@@ -7,6 +7,13 @@ const Player = require('./Player');
 const ScoutingReport = require('./ScoutingReport');
 const DailyReport = require('./DailyReport');
 const PreferenceList = require('./PreferenceList');
+const Schedule = require('./Schedule');
+const ScheduleSection = require('./ScheduleSection');
+const ScheduleActivity = require('./ScheduleActivity');
+const DepthChart = require('./DepthChart');
+const DepthChartPosition = require('./DepthChartPosition');
+const DepthChartPlayer = require('./DepthChartPlayer');
+const UserPermission = require('./UserPermission');
 
 // Define associations
 User.belongsTo(Team, { foreignKey: 'team_id' });
@@ -39,6 +46,51 @@ Team.hasMany(PreferenceList, { foreignKey: 'team_id' });
 PreferenceList.belongsTo(User, { foreignKey: 'added_by', as: 'AddedBy' });
 User.hasMany(PreferenceList, { foreignKey: 'added_by' });
 
+// Schedule associations
+Schedule.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(Schedule, { foreignKey: 'team_id' });
+
+Schedule.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(Schedule, { foreignKey: 'created_by' });
+
+ScheduleSection.belongsTo(Schedule, { foreignKey: 'schedule_id' });
+Schedule.hasMany(ScheduleSection, { foreignKey: 'schedule_id' });
+
+ScheduleActivity.belongsTo(ScheduleSection, { foreignKey: 'section_id' });
+ScheduleSection.hasMany(ScheduleActivity, { foreignKey: 'section_id' });
+
+// Depth Chart associations
+DepthChart.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(DepthChart, { foreignKey: 'team_id' });
+
+DepthChart.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(DepthChart, { foreignKey: 'created_by' });
+
+DepthChartPosition.belongsTo(DepthChart, { foreignKey: 'depth_chart_id' });
+DepthChart.hasMany(DepthChartPosition, { foreignKey: 'depth_chart_id' });
+
+DepthChartPlayer.belongsTo(DepthChart, { foreignKey: 'depth_chart_id' });
+DepthChart.hasMany(DepthChartPlayer, { foreignKey: 'depth_chart_id' });
+
+DepthChartPlayer.belongsTo(DepthChartPosition, { foreignKey: 'position_id' });
+DepthChartPosition.hasMany(DepthChartPlayer, { foreignKey: 'position_id' });
+
+DepthChartPlayer.belongsTo(Player, { foreignKey: 'player_id' });
+Player.hasMany(DepthChartPlayer, { foreignKey: 'player_id' });
+
+DepthChartPlayer.belongsTo(User, { foreignKey: 'assigned_by', as: 'AssignedBy' });
+User.hasMany(DepthChartPlayer, { foreignKey: 'assigned_by' });
+
+// User Permission associations
+UserPermission.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(UserPermission, { foreignKey: 'user_id' });
+
+UserPermission.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(UserPermission, { foreignKey: 'team_id' });
+
+UserPermission.belongsTo(User, { foreignKey: 'granted_by', as: 'GrantedBy' });
+User.hasMany(UserPermission, { foreignKey: 'granted_by', as: 'GrantedPermissions' });
+
 module.exports = {
   sequelize,
   User,
@@ -46,5 +98,12 @@ module.exports = {
   Player,
   ScoutingReport,
   DailyReport,
-  PreferenceList
+  PreferenceList,
+  Schedule,
+  ScheduleSection,
+  ScheduleActivity,
+  DepthChart,
+  DepthChartPosition,
+  DepthChartPlayer,
+  UserPermission
 }; 

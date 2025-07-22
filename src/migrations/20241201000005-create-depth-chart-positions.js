@@ -1,0 +1,76 @@
+'use strict';
+
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.createTable('depth_chart_positions', {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER
+      },
+      depth_chart_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'depth_charts',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+      },
+      position_code: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
+      position_name: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
+      color: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        defaultValue: '#6B7280'
+      },
+      icon: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      sort_order: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0
+      },
+      is_active: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: true
+      },
+      max_players: {
+        type: Sequelize.INTEGER,
+        allowNull: true
+      },
+      description: {
+        type: Sequelize.TEXT,
+        allowNull: true
+      },
+      created_at: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+      },
+      updated_at: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+      }
+    });
+
+    // Add indexes
+    await queryInterface.addIndex('depth_chart_positions', ['depth_chart_id']);
+    await queryInterface.addIndex('depth_chart_positions', ['position_code']);
+    await queryInterface.addIndex('depth_chart_positions', ['sort_order']);
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.dropTable('depth_chart_positions');
+  }
+}; 

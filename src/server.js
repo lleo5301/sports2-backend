@@ -21,6 +21,8 @@ const playerRoutes = require('./routes/players');
 const teamRoutes = require('./routes/teams');
 const reportRoutes = require('./routes/reports');
 const recruitRoutes = require('./routes/recruits');
+const scheduleRoutes = require('./routes/schedules');
+const depthChartRoutes = require('./routes/depthCharts');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -72,6 +74,8 @@ app.use('/api/players', playerRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/recruits', recruitRoutes);
+app.use('/api/schedules', scheduleRoutes);
+app.use('/api/depth-charts', depthChartRoutes);
 
 // Error handling middleware
 app.use(notFound);
