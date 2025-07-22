@@ -15,6 +15,9 @@ Team.hasMany(User, { foreignKey: 'team_id' });
 Player.belongsTo(Team, { foreignKey: 'team_id' });
 Team.hasMany(Player, { foreignKey: 'team_id' });
 
+Player.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(Player, { foreignKey: 'created_by' });
+
 ScoutingReport.belongsTo(Player, { foreignKey: 'player_id' });
 Player.hasMany(ScoutingReport, { foreignKey: 'player_id' });
 
@@ -32,6 +35,9 @@ Player.hasMany(PreferenceList, { foreignKey: 'player_id' });
 
 PreferenceList.belongsTo(Team, { foreignKey: 'team_id' });
 Team.hasMany(PreferenceList, { foreignKey: 'team_id' });
+
+PreferenceList.belongsTo(User, { foreignKey: 'added_by', as: 'AddedBy' });
+User.hasMany(PreferenceList, { foreignKey: 'added_by' });
 
 module.exports = {
   sequelize,
