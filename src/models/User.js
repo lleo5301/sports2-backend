@@ -18,10 +18,24 @@ const User = sequelize.define('User', {
   },
   password: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     validate: {
       len: [6, 100]
     }
+  },
+  oauth_provider: {
+    type: DataTypes.ENUM('google', 'apple', 'local'),
+    allowNull: false,
+    defaultValue: 'local'
+  },
+  oauth_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
+  },
+  avatar_url: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   first_name: {
     type: DataTypes.STRING,
@@ -69,13 +83,13 @@ const User = sequelize.define('User', {
   tableName: 'users',
   hooks: {
     beforeCreate: async (user) => {
-      if (user.password) {
+      if (user.password && user.oauth_provider === 'local') {
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(user.password, salt);
       }
     },
     beforeUpdate: async (user) => {
-      if (user.changed('password')) {
+      if (user.changed('password') && user.password && user.oauth_provider === 'local') {
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(user.password, salt);
       }

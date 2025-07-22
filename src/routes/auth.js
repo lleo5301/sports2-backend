@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
+const passport = require('passport');
 const { User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
 
@@ -301,6 +302,115 @@ router.put('/change-password', protect, [
     res.status(500).json({ 
       success: false, 
       error: 'Server error while changing password' 
+    });
+  }
+});
+
+// OAuth Routes
+
+// @route   GET /api/auth/google
+// @desc    Initiate Google OAuth
+// @access  Public
+router.get('/google', (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(503).json({
+      success: false,
+      error: 'Google OAuth is not configured'
+    });
+  }
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res);
+});
+
+// @route   GET /api/auth/google/callback
+// @desc    Google OAuth callback
+// @access  Public
+router.get('/google/callback', (req, res, next) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(503).json({
+      success: false,
+      error: 'Google OAuth is not configured'
+    });
+  }
+  passport.authenticate('google', { session: false })(req, res, next);
+}, (req, res) => {
+  try {
+    const token = generateToken(req.user.id);
+    
+    // Redirect to frontend with token
+    const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/oauth-callback?token=${token}&provider=google`;
+    res.redirect(redirectUrl);
+  } catch (error) {
+    console.error('Google OAuth callback error:', error);
+    const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`;
+    res.redirect(errorUrl);
+  }
+});
+
+// @route   GET /api/auth/apple
+// @desc    Initiate Apple OAuth
+// @access  Public
+router.get('/apple', (req, res) => {
+  if (!process.env.APPLE_CLIENT_ID || !process.env.APPLE_TEAM_ID || !process.env.APPLE_KEY_ID) {
+    return res.status(503).json({
+      success: false,
+      error: 'Apple OAuth is not configured'
+    });
+  }
+  passport.authenticate('apple', { scope: ['email', 'name'] })(req, res);
+});
+
+// @route   POST /api/auth/apple/callback
+// @desc    Apple OAuth callback
+// @access  Public
+router.post('/apple/callback', (req, res, next) => {
+  if (!process.env.APPLE_CLIENT_ID || !process.env.APPLE_TEAM_ID || !process.env.APPLE_KEY_ID) {
+    return res.status(503).json({
+      success: false,
+      error: 'Apple OAuth is not configured'
+    });
+  }
+  passport.authenticate('apple', { session: false })(req, res, next);
+}, (req, res) => {
+  try {
+    const token = generateToken(req.user.id);
+    
+    // Redirect to frontend with token
+    const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/oauth-callback?token=${token}&provider=apple`;
+    res.redirect(redirectUrl);
+  } catch (error) {
+    console.error('Apple OAuth callback error:', error);
+    const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`;
+    res.redirect(errorUrl);
+  }
+});
+
+// @route   POST /api/auth/oauth/token
+// @desc    Get OAuth token for mobile apps
+// @access  Public
+router.post('/oauth/token', async (req, res) => {
+  try {
+    const { provider, access_token } = req.body;
+
+    if (!provider || !access_token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Provider and access token are required'
+      });
+    }
+
+    // For mobile apps, you would verify the access token with the provider
+    // and then find or create the user accordingly
+    // This is a simplified version - in production you'd want to verify the token
+    
+    res.json({
+      success: true,
+      message: 'OAuth token endpoint - implement based on your mobile app needs'
+    });
+  } catch (error) {
+    console.error('OAuth token error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error during OAuth token processing'
     });
   }
 });
