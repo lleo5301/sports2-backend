@@ -1,5 +1,5 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, query } = require('express-validator');
 const { Schedule, ScheduleSection, ScheduleActivity, User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
 const router = express.Router();
@@ -95,8 +95,90 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/schedules/:id - Get a specific schedule with all sections and activities
-router.get('/:id', async (req, res) => {
+// GET /api/schedules/stats - Get schedule statistics
+router.get('/stats', async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    // Get total events
+    const totalEvents = await ScheduleActivity.count({
+      include: [
+        {
+          model: ScheduleSection,
+          include: [
+            {
+              model: Schedule,
+              where: {
+                team_id: req.user.team_id,
+                is_active: true
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    // Get events this week
+    const thisWeek = await ScheduleActivity.count({
+      include: [
+        {
+          model: ScheduleSection,
+          include: [
+            {
+              model: Schedule,
+              where: {
+                team_id: req.user.team_id,
+                is_active: true,
+                date: {
+                  [require('sequelize').Op.gte]: startOfWeek
+                }
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    // Get events this month
+    const thisMonth = await ScheduleActivity.count({
+      include: [
+        {
+          model: ScheduleSection,
+          include: [
+            {
+              model: Schedule,
+              where: {
+                team_id: req.user.team_id,
+                is_active: true,
+                date: {
+                  [require('sequelize').Op.gte]: startOfMonth
+                }
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    res.json({
+      data: {
+        totalEvents,
+        thisWeek,
+        thisMonth
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching schedule stats:', error);
+    res.status(500).json({ error: 'Failed to fetch schedule stats' });
+  }
+});
+
+// GET /api/schedules/byId/:id - Get a specific schedule with all sections and activities
+router.get('/byId/:id', async (req, res) => {
   try {
     const schedule = await Schedule.findOne({
       where: {
@@ -219,7 +301,7 @@ router.post('/', validateSchedule, handleValidationErrors, async (req, res) => {
 });
 
 // PUT /api/schedules/:id - Update a schedule
-router.put('/:id', validateSchedule, handleValidationErrors, async (req, res) => {
+router.put('/byId/:id', validateSchedule, handleValidationErrors, async (req, res) => {
   try {
     const { team_name, program_name, date, motto, sections } = req.body;
 
@@ -315,7 +397,7 @@ router.put('/:id', validateSchedule, handleValidationErrors, async (req, res) =>
 });
 
 // DELETE /api/schedules/:id - Soft delete a schedule
-router.delete('/:id', async (req, res) => {
+router.delete('/byId/:id', async (req, res) => {
   try {
     const schedule = await Schedule.findOne({
       where: {

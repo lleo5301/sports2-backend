@@ -13,25 +13,8 @@ router.use(protect);
 // @route   GET /api/players
 // @desc    Get all players for the user's team
 // @access  Private
-router.get('/', [
-  query('school_type').optional().isIn(['HS', 'COLL']),
-  query('position').optional().isIn(['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'OF', 'DH']),
-  query('status').optional().isIn(['active', 'inactive', 'graduated', 'transferred']),
-  query('search').optional().isString(),
-  query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 100 })
-], async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Validation failed',
-        details: errors.array() 
-      });
-    }
-
     const { 
       school_type, 
       position, 
@@ -108,10 +91,10 @@ router.get('/', [
   }
 });
 
-// @route   GET /api/players/:id
+// @route   GET /api/players/byId/:id
 // @desc    Get single player by ID
 // @access  Private
-router.get('/:id', async (req, res) => {
+router.get('/byId/:id', async (req, res) => {
   try {
     const player = await Player.findOne({
       where: {
@@ -229,10 +212,10 @@ router.post('/', [
   }
 });
 
-// @route   PUT /api/players/:id
+// @route   PUT /api/players/byId/:id
 // @desc    Update a player
 // @access  Private
-router.put('/:id', [
+router.put('/byId/:id', [
   body('first_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('last_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('school_type').optional().isIn(['HS', 'COLL']),
@@ -307,10 +290,10 @@ router.put('/:id', [
   }
 });
 
-// @route   DELETE /api/players/:id
+// @route   DELETE /api/players/byId/:id
 // @desc    Delete a player
 // @access  Private
-router.delete('/:id', async (req, res) => {
+router.delete('/byId/:id', async (req, res) => {
   try {
     const player = await Player.findOne({
       where: {
@@ -412,6 +395,85 @@ router.get('/stats/summary', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Server error while fetching statistics' 
+    });
+  }
+});
+
+// @route   GET /api/players/byId/:id/stats
+// @desc    Get player statistics by ID
+// @access  Private
+router.get('/byId/:id/stats', async (req, res) => {
+  try {
+    const player = await Player.findOne({
+      where: {
+        id: req.params.id,
+        team_id: req.user.team_id
+      },
+      attributes: [
+        'id', 'first_name', 'last_name', 'position', 'school_type',
+        'batting_avg', 'on_base_pct', 'slugging_pct', 'ops',
+        'runs', 'hits', 'doubles', 'triples', 'home_runs', 'rbis',
+        'walks', 'strikeouts', 'stolen_bases', 'caught_stealing',
+        'era', 'wins', 'losses', 'saves', 'innings_pitched',
+        'hits_allowed', 'runs_allowed', 'earned_runs', 'walks_allowed',
+        'strikeouts_pitched', 'whip', 'batting_avg_against'
+      ]
+    });
+
+    if (!player) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Player not found' 
+      });
+    }
+
+    // Calculate additional stats
+    const stats = {
+      id: player.id,
+      name: `${player.first_name} ${player.last_name}`,
+      position: player.position,
+      school_type: player.school_type,
+      batting: {
+        avg: player.batting_avg || '.000',
+        obp: player.on_base_pct || '.000',
+        slg: player.slugging_pct || '.000',
+        ops: player.ops || '.000',
+        runs: player.runs || 0,
+        hits: player.hits || 0,
+        doubles: player.doubles || 0,
+        triples: player.triples || 0,
+        home_runs: player.home_runs || 0,
+        rbis: player.rbis || 0,
+        walks: player.walks || 0,
+        strikeouts: player.strikeouts || 0,
+        stolen_bases: player.stolen_bases || 0,
+        caught_stealing: player.caught_stealing || 0
+      },
+      pitching: {
+        era: player.era || 0.00,
+        wins: player.wins || 0,
+        losses: player.losses || 0,
+        saves: player.saves || 0,
+        innings_pitched: player.innings_pitched || 0,
+        hits_allowed: player.hits_allowed || 0,
+        runs_allowed: player.runs_allowed || 0,
+        earned_runs: player.earned_runs || 0,
+        walks_allowed: player.walks_allowed || 0,
+        strikeouts_pitched: player.strikeouts_pitched || 0,
+        whip: player.whip || 0.00,
+        batting_avg_against: player.batting_avg_against || '.000'
+      }
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Get player stats error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error while fetching player statistics' 
     });
   }
 });

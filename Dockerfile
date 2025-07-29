@@ -6,14 +6,15 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies with better error handling
+RUN npm install --only=production --no-audit --no-fund
 
 # Copy source code
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create uploads directory and ensure proper permissions
+RUN mkdir -p uploads && \
+    chmod 755 uploads
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs

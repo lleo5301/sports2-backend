@@ -14,6 +14,8 @@ const DepthChart = require('./DepthChart');
 const DepthChartPosition = require('./DepthChartPosition');
 const DepthChartPlayer = require('./DepthChartPlayer');
 const UserPermission = require('./UserPermission');
+const Report = require('./Report');
+const Game = require('./Game');
 
 // Define associations
 User.belongsTo(Team, { foreignKey: 'team_id' });
@@ -91,6 +93,20 @@ Team.hasMany(UserPermission, { foreignKey: 'team_id' });
 UserPermission.belongsTo(User, { foreignKey: 'granted_by', as: 'GrantedBy' });
 User.hasMany(UserPermission, { foreignKey: 'granted_by', as: 'GrantedPermissions' });
 
+// Report associations
+Report.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(Report, { foreignKey: 'team_id' });
+
+Report.belongsTo(User, { foreignKey: 'created_by', as: 'created_by_user' });
+User.hasMany(Report, { foreignKey: 'created_by' });
+
+// Game associations
+Game.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
+Team.hasMany(Game, { foreignKey: 'team_id' });
+
+Game.belongsTo(User, { foreignKey: 'created_by', as: 'created_by_user' });
+User.hasMany(Game, { foreignKey: 'created_by' });
+
 module.exports = {
   sequelize,
   User,
@@ -105,5 +121,7 @@ module.exports = {
   DepthChart,
   DepthChartPosition,
   DepthChartPlayer,
-  UserPermission
+  UserPermission,
+  Report,
+  Game
 }; 

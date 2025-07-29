@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const { User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
+const UserPermission = require('../models/UserPermission'); // Added import for UserPermission
 
 const router = express.Router();
 
@@ -411,6 +412,36 @@ router.post('/oauth/token', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server error during OAuth token processing'
+    });
+  }
+});
+
+// @route   GET /api/auth/permissions
+// @desc    Get current user's permissions
+// @access  Private
+router.get('/permissions', protect, async (req, res) => {
+  try {
+    const permissions = await UserPermission.findAll({
+      where: {
+        user_id: req.user.id,
+        team_id: req.user.team_id,
+        is_granted: true
+      },
+      attributes: ['permission_type'],
+      order: [['permission_type', 'ASC']]
+    });
+
+    const permissionTypes = permissions.map(p => p.permission_type);
+
+    res.json({
+      success: true,
+      data: permissionTypes
+    });
+  } catch (error) {
+    console.error('Error fetching user permissions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching user permissions'
     });
   }
 });

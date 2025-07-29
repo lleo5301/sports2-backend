@@ -26,9 +26,7 @@ const protect = async (req, res, next) => {
       console.error('Token verification error:', error);
       return res.status(401).json({ success: false, error: 'Not authorized' });
     }
-  }
-
-  if (!token) {
+  } else {
     return res.status(401).json({ success: false, error: 'Not authorized, no token' });
   }
 };
