@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 const { sequelize } = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
@@ -53,6 +54,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Compression middleware
 app.use(compression());
+
+// Serve static files for uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {

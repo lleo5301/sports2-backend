@@ -205,6 +205,11 @@ const Player = sequelize.define('Player', {
       model: 'users',
       key: 'id'
     }
+  },
+  video_url: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'URL path to player video file'
   }
 }, {
   tableName: 'players',

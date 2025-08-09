@@ -4,6 +4,9 @@ const { Op } = require('sequelize');
 const { Player, Team, User, ScoutingReport } = require('../models');
 const { protect } = require('../middleware/auth');
 const { sequelize } = require('../config/database'); // Add this import
+const { uploadVideo, handleUploadError } = require('../middleware/upload');
+const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
 
@@ -146,7 +149,7 @@ router.get('/byId/:id', async (req, res) => {
 // @route   POST /api/players
 // @desc    Create a new player
 // @access  Private
-router.post('/', [
+router.post('/', uploadVideo, [
   body('first_name').trim().isLength({ min: 1, max: 50 }),
   body('last_name').trim().isLength({ min: 1, max: 50 }),
   body('school_type').isIn(['HS', 'COLL']),
@@ -164,7 +167,7 @@ router.post('/', [
   body('injury_details').optional().isString(),
   body('has_comparison').optional().isBoolean(),
   body('comparison_player').optional().isLength({ min: 1, max: 100 })
-], async (req, res) => {
+], handleUploadError, async (req, res) => {
   try {
     // Check for validation errors
     const errors = validationResult(req);
@@ -181,6 +184,11 @@ router.post('/', [
       team_id: req.user.team_id,
       created_by: req.user.id
     };
+
+    // Add video URL if file was uploaded
+    if (req.file) {
+      playerData.video_url = `/uploads/videos/${req.file.filename}`;
+    }
 
     const player = await Player.create(playerData);
 
@@ -215,7 +223,7 @@ router.post('/', [
 // @route   PUT /api/players/byId/:id
 // @desc    Update a player
 // @access  Private
-router.put('/byId/:id', [
+router.put('/byId/:id', uploadVideo, [
   body('first_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('last_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('school_type').optional().isIn(['HS', 'COLL']),
@@ -234,7 +242,7 @@ router.put('/byId/:id', [
   body('has_comparison').optional().isBoolean(),
   body('comparison_player').optional().isLength({ min: 1, max: 100 }),
   body('status').optional().isIn(['active', 'inactive', 'graduated', 'transferred'])
-], async (req, res) => {
+], handleUploadError, async (req, res) => {
   try {
     // Check for validation errors
     const errors = validationResult(req);
@@ -260,7 +268,22 @@ router.put('/byId/:id', [
       });
     }
 
-    await player.update(req.body);
+    // Prepare update data
+    const updateData = { ...req.body };
+
+    // Handle video upload for update
+    if (req.file) {
+      // Delete old video file if it exists
+      if (player.video_url) {
+        const oldVideoPath = path.join(__dirname, '../../uploads/videos', path.basename(player.video_url));
+        if (fs.existsSync(oldVideoPath)) {
+          fs.unlinkSync(oldVideoPath);
+        }
+      }
+      updateData.video_url = `/uploads/videos/${req.file.filename}`;
+    }
+
+    await player.update(updateData);
 
     // Get the updated player with associations
     const updatedPlayer = await Player.findByPk(player.id, {
