@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "build": "echo 'No build step required for Node.js'",
-    "test": "jest",
+    "test": "jest --coverage",
     "test:api": "mocha test-api-routes.js --timeout 30000",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:seed": "npx sequelize-cli db:seed:all",
