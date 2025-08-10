@@ -2,6 +2,13 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    const tables = await queryInterface.sequelize.query(
+      "SELECT to_regclass('public.depth_chart_positions') as exists",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+    if (tables[0] && tables[0].exists) {
+      return;
+    }
     await queryInterface.createTable('depth_chart_positions', {
       id: {
         allowNull: false,
@@ -65,7 +72,7 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('depth_chart_positions', ['depth_chart_id']);
+    try { await queryInterface.addIndex('depth_chart_positions', ['depth_chart_id']); } catch (e) {}
     await queryInterface.addIndex('depth_chart_positions', ['position_code']);
     await queryInterface.addIndex('depth_chart_positions', ['sort_order']);
   },

@@ -2,6 +2,13 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    const tables = await queryInterface.sequelize.query(
+      "SELECT to_regclass('public.user_permissions') as exists",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+    if (tables[0] && tables[0].exists) {
+      return;
+    }
     await queryInterface.createTable('user_permissions', {
       id: {
         allowNull: false,
@@ -90,7 +97,7 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('user_permissions', ['user_id']);
+    try { await queryInterface.addIndex('user_permissions', ['user_id']); } catch (e) {}
     await queryInterface.addIndex('user_permissions', ['team_id']);
     await queryInterface.addIndex('user_permissions', ['permission_type']);
     await queryInterface.addIndex('user_permissions', ['is_granted']);

@@ -2,6 +2,13 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    const tables = await queryInterface.sequelize.query(
+      "SELECT to_regclass('public.depth_chart_players') as exists",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+    if (tables[0] && tables[0].exists) {
+      return;
+    }
     await queryInterface.createTable('depth_chart_players', {
       id: {
         allowNull: false,
@@ -78,18 +85,20 @@ module.exports = {
       }
     });
 
-    // Add indexes
-    await queryInterface.addIndex('depth_chart_players', ['depth_chart_id']);
-    await queryInterface.addIndex('depth_chart_players', ['position_id']);
-    await queryInterface.addIndex('depth_chart_players', ['player_id']);
-    await queryInterface.addIndex('depth_chart_players', ['depth_order']);
+    // Add indexes (guarded)
+    try { await queryInterface.addIndex('depth_chart_players', ['depth_chart_id']); } catch (e) {}
+    try { await queryInterface.addIndex('depth_chart_players', ['position_id']); } catch (e) {}
+    try { await queryInterface.addIndex('depth_chart_players', ['player_id']); } catch (e) {}
+    try { await queryInterface.addIndex('depth_chart_players', ['depth_order']); } catch (e) {}
     
     // Add unique constraint
-    await queryInterface.addConstraint('depth_chart_players', {
-      fields: ['depth_chart_id', 'position_id', 'player_id'],
-      type: 'unique',
-      name: 'unique_depth_chart_player_position'
-    });
+    try {
+      await queryInterface.addConstraint('depth_chart_players', {
+        fields: ['depth_chart_id', 'position_id', 'player_id'],
+        type: 'unique',
+        name: 'unique_depth_chart_player_position'
+      });
+    } catch (e) {}
   },
 
   down: async (queryInterface, Sequelize) => {

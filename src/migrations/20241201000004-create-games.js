@@ -2,6 +2,14 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    // Guard if table already exists
+    const tables = await queryInterface.sequelize.query(
+      "SELECT to_regclass('public.games') as exists",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+    if (tables[0] && tables[0].exists) {
+      return;
+    }
     await queryInterface.createTable('games', {
       id: {
         allowNull: false,
@@ -79,7 +87,7 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('games', ['team_id']);
+    try { await queryInterface.addIndex('games', ['team_id']); } catch (e) {}
     await queryInterface.addIndex('games', ['game_date']);
     await queryInterface.addIndex('games', ['season']);
     await queryInterface.addIndex('games', ['result']);

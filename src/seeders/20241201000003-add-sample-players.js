@@ -1,4 +1,5 @@
 'use strict';
+const bcrypt = require('bcryptjs');
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
@@ -9,6 +10,38 @@ module.exports = {
     );
     
     const teamId = teams[0]?.id || 1;
+    // Try to use an existing user as creator if available; otherwise leave null to avoid FK errors
+    // Ensure a default user exists to satisfy FK constraints on created_by
+    let users = await queryInterface.sequelize.query(
+      "SELECT id FROM users WHERE email = 'user@example.com'",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+    if (users.length === 0) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('password', salt);
+      const nowUser = new Date();
+      await queryInterface.bulkInsert('users', [{
+        email: 'user@example.com',
+        password: hashedPassword,
+        oauth_provider: 'local',
+        oauth_id: null,
+        avatar_url: null,
+        first_name: 'Demo',
+        last_name: 'User',
+        role: 'head_coach',
+        phone: '+1-555-0123',
+        is_active: true,
+        last_login: null,
+        team_id: teamId,
+        created_at: nowUser,
+        updated_at: nowUser
+      }], {});
+      users = await queryInterface.sequelize.query(
+        "SELECT id FROM users WHERE email = 'user@example.com'",
+        { type: Sequelize.QueryTypes.SELECT }
+      );
+    }
+    const createdBy = users[0].id;
     const now = new Date();
 
     const players = [
@@ -36,7 +69,7 @@ module.exports = {
         has_comparison: true,
         status: 'active',
         team_id: teamId,
-        created_by: 1,
+        created_by: createdBy,
         created_at: now,
         updated_at: now
       },
@@ -63,7 +96,7 @@ module.exports = {
         has_comparison: false,
         status: 'active',
         team_id: teamId,
-        created_by: 1,
+        created_by: createdBy,
         created_at: now,
         updated_at: now
       },
@@ -91,7 +124,7 @@ module.exports = {
         has_comparison: true,
         status: 'active',
         team_id: teamId,
-        created_by: 1,
+        created_by: createdBy,
         created_at: now,
         updated_at: now
       },
@@ -119,7 +152,7 @@ module.exports = {
         has_comparison: true,
         status: 'active',
         team_id: teamId,
-        created_by: 1,
+        created_by: createdBy,
         created_at: now,
         updated_at: now
       },
@@ -146,7 +179,7 @@ module.exports = {
         has_comparison: false,
         status: 'active',
         team_id: teamId,
-        created_by: 1,
+        created_by: createdBy,
         created_at: now,
         updated_at: now
       },
@@ -173,7 +206,7 @@ module.exports = {
         has_comparison: true,
         status: 'active',
         team_id: teamId,
-        created_by: 1,
+        created_by: createdBy,
         created_at: now,
         updated_at: now
       },
@@ -200,7 +233,7 @@ module.exports = {
         has_comparison: true,
         status: 'active',
         team_id: teamId,
-        created_by: 1,
+        created_by: createdBy,
         created_at: now,
         updated_at: now
       },
@@ -228,7 +261,7 @@ module.exports = {
         has_comparison: true,
         status: 'active',
         team_id: teamId,
-        created_by: 1,
+        created_by: createdBy,
         created_at: now,
         updated_at: now
       },

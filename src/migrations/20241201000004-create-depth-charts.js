@@ -2,6 +2,14 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    // Guard if table already exists (e.g., created by sync in dev)
+    const tables = await queryInterface.sequelize.query(
+      "SELECT to_regclass('public.depth_charts') as exists",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+    if (tables[0] && tables[0].exists) {
+      return;
+    }
     await queryInterface.createTable('depth_charts', {
       id: {
         allowNull: false,
@@ -69,11 +77,11 @@ module.exports = {
       }
     });
 
-    // Add indexes
-    await queryInterface.addIndex('depth_charts', ['team_id']);
-    await queryInterface.addIndex('depth_charts', ['created_by']);
-    await queryInterface.addIndex('depth_charts', ['is_active']);
-    await queryInterface.addIndex('depth_charts', ['effective_date']);
+    // Add indexes (with guards)
+    try { await queryInterface.addIndex('depth_charts', ['team_id']); } catch (e) {}
+    try { await queryInterface.addIndex('depth_charts', ['created_by']); } catch (e) {}
+    try { await queryInterface.addIndex('depth_charts', ['is_active']); } catch (e) {}
+    try { await queryInterface.addIndex('depth_charts', ['effective_date']); } catch (e) {}
   },
 
   down: async (queryInterface, Sequelize) => {
