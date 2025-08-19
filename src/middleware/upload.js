@@ -6,12 +6,16 @@ const fs = require('fs');
 const uploadsDir = path.join(__dirname, '../../uploads');
 const videosDir = path.join(uploadsDir, 'videos');
 
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-if (!fs.existsSync(videosDir)) {
-  fs.mkdirSync(videosDir, { recursive: true });
+// Try to create directories, but don't fail if they already exist or can't be created
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  if (!fs.existsSync(videosDir)) {
+    fs.mkdirSync(videosDir, { recursive: true });
+  }
+} catch (error) {
+  console.warn('Upload directories may already exist or will be created by Docker:', error.message);
 }
 
 // Configure storage

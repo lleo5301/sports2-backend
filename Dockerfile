@@ -13,15 +13,16 @@ RUN npm install --only=production --no-audit --no-fund
 COPY . .
 
 # Create uploads directory and ensure proper permissions
-RUN mkdir -p uploads && \
-    chmod 755 uploads
+RUN mkdir -p uploads uploads/videos && \
+    chmod 755 uploads uploads/videos
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
 # Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
+RUN chown -R nodejs:nodejs /app && \
+    chown -R nodejs:nodejs /app/uploads
 USER nodejs
 
 # Expose port
