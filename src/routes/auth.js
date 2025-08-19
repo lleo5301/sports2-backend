@@ -337,12 +337,14 @@ router.get('/google/callback', (req, res, next) => {
   try {
     const token = generateToken(req.user.id);
     
-    // Redirect to frontend with token
-    const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/oauth-callback?token=${token}&provider=google`;
+    // Redirect to frontend app with token
+    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost/app';
+    const redirectUrl = `${appUrl}/oauth-callback?token=${token}&provider=google`;
     res.redirect(redirectUrl);
   } catch (error) {
     console.error('Google OAuth callback error:', error);
-    const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`;
+    const landingUrl = process.env.LANDING_URL || 'http://localhost';
+    const errorUrl = `${landingUrl}/login?error=oauth_failed`;
     res.redirect(errorUrl);
   }
 });
@@ -375,12 +377,14 @@ router.post('/apple/callback', (req, res, next) => {
   try {
     const token = generateToken(req.user.id);
     
-    // Redirect to frontend with token
-    const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/oauth-callback?token=${token}&provider=apple`;
+    // Redirect to frontend app with token
+    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost/app';
+    const redirectUrl = `${appUrl}/oauth-callback?token=${token}&provider=apple`;
     res.redirect(redirectUrl);
   } catch (error) {
     console.error('Apple OAuth callback error:', error);
-    const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`;
+    const landingUrl = process.env.LANDING_URL || 'http://localhost';
+    const errorUrl = `${landingUrl}/login?error=oauth_failed`;
     res.redirect(errorUrl);
   }
 });
