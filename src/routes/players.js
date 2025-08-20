@@ -501,4 +501,167 @@ router.get('/byId/:id/stats', async (req, res) => {
   }
 });
 
+// @route   GET /api/players/performance
+// @desc    Get player performance rankings with statistics
+// @access  Private
+router.get('/performance', [
+  query('position').optional().isIn(['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'OF', 'DH']),
+  query('school_type').optional().isIn(['HS', 'COLL']),
+  query('status').optional().isIn(['active', 'inactive', 'graduated', 'transferred']),
+  query('sort_by').optional().isIn(['batting_avg', 'home_runs', 'rbi', 'stolen_bases', 'era', 'wins', 'strikeouts', 'ops', 'whip']),
+  query('order').optional().isIn(['ASC', 'DESC']),
+  query('limit').optional().isInt({ min: 1, max: 100 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        details: errors.array()
+      });
+    }
+
+    const {
+      position,
+      school_type,
+      status = 'active',
+      sort_by = 'batting_avg',
+      order = 'DESC',
+      limit = 50
+    } = req.query;
+
+    // Build where clause
+    const whereClause = {
+      team_id: req.user.team_id
+    };
+
+    if (position) {
+      whereClause.position = position;
+    }
+
+    if (school_type) {
+      whereClause.school_type = school_type;
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    // Get players with all statistics
+    const players = await Player.findAll({
+      where: whereClause,
+      attributes: [
+        'id', 'first_name', 'last_name', 'position', 'school_type', 'status',
+        'height', 'weight', 'graduation_year', 'school', 'city', 'state',
+        // Batting stats
+        'batting_avg', 'home_runs', 'rbi', 'stolen_bases',
+        // Pitching stats  
+        'era', 'wins', 'losses', 'strikeouts', 'innings_pitched',
+        // Additional calculated fields that might exist
+        'created_at', 'updated_at'
+      ],
+      order: [
+        [sort_by, order],
+        ['last_name', 'ASC'],
+        ['first_name', 'ASC']
+      ],
+      limit: parseInt(limit),
+      raw: false
+    });
+
+    // Calculate additional statistics and rankings
+    const playersWithStats = players.map((player, index) => {
+      const playerData = player.toJSON();
+      
+      // Calculate some basic derived stats
+      const battingAvg = parseFloat(playerData.batting_avg) || 0;
+      const homeRuns = parseInt(playerData.home_runs) || 0;
+      const rbi = parseInt(playerData.rbi) || 0;
+      const stolenBases = parseInt(playerData.stolen_bases) || 0;
+      const era = parseFloat(playerData.era) || 0;
+      const wins = parseInt(playerData.wins) || 0;
+      const losses = parseInt(playerData.losses) || 0;
+      const strikeouts = parseInt(playerData.strikeouts) || 0;
+      const inningsPitched = parseFloat(playerData.innings_pitched) || 0;
+
+      // Calculate win percentage for pitchers
+      const totalGames = wins + losses;
+      const winPct = totalGames > 0 ? (wins / totalGames) : 0;
+      
+      // Calculate K/9 (strikeouts per 9 innings) for pitchers
+      const k9 = inningsPitched > 0 ? (strikeouts * 9) / inningsPitched : 0;
+
+      // Calculate simple performance score based on position
+      let performanceScore = 0;
+      if (playerData.position === 'P') {
+        // Pitcher scoring: lower ERA is better, more wins and strikeouts are better
+        performanceScore = (era > 0 ? (1 / era) * 50 : 0) + (wins * 10) + (strikeouts * 2);
+      } else {
+        // Position player scoring: higher avg, HRs, RBIs, SBs are better
+        performanceScore = (battingAvg * 100) + (homeRuns * 5) + (rbi * 2) + (stolenBases * 3);
+      }
+
+      return {
+        ...playerData,
+        rank: index + 1,
+        calculated_stats: {
+          win_pct: winPct,
+          k9: k9,
+          performance_score: Math.round(performanceScore * 10) / 10
+        },
+        display_stats: {
+          batting_avg: battingAvg.toFixed(3),
+          era: era.toFixed(2),
+          win_pct: winPct.toFixed(3),
+          k9: k9.toFixed(1)
+        }
+      };
+    });
+
+    // Get team statistics for comparison
+    const teamStats = await Player.aggregate('batting_avg', 'AVG', {
+      where: {
+        team_id: req.user.team_id,
+        status: 'active',
+        batting_avg: { [Op.not]: null }
+      }
+    });
+
+    const teamERA = await Player.aggregate('era', 'AVG', {
+      where: {
+        team_id: req.user.team_id,
+        status: 'active',
+        era: { [Op.not]: null }
+      }
+    });
+
+    const summary = {
+      total_players: playersWithStats.length,
+      team_batting_avg: parseFloat(teamStats) || 0,
+      team_era: parseFloat(teamERA) || 0,
+      filters: {
+        position,
+        school_type,
+        status,
+        sort_by,
+        order
+      }
+    };
+
+    res.json({
+      success: true,
+      data: playersWithStats,
+      summary
+    });
+
+  } catch (error) {
+    console.error('Get player performance error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching player performance data'
+    });
+  }
+});
+
 module.exports = router; 
