@@ -26,6 +26,8 @@ const scheduleRoutes = require('./routes/schedules');
 const depthChartRoutes = require('./routes/depthCharts');
 const settingsRoutes = require('./routes/settings');
 const gamesRoutes = require('./routes/games');
+const coachRoutes = require('./routes/coaches');
+const scoutRoutes = require('./routes/scouts');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -84,6 +86,8 @@ app.use('/api/schedules', scheduleRoutes);
 app.use('/api/depth-charts', depthChartRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/games', gamesRoutes);
+app.use('/api/coaches', coachRoutes);
+app.use('/api/scouts', scoutRoutes);
 
 // Error handling middleware
 app.use(notFound);
