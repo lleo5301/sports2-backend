@@ -505,12 +505,8 @@ router.get('/byId/:id/stats', async (req, res) => {
 // @desc    Get player performance rankings with statistics
 // @access  Private
 router.get('/performance', [
-  query('position').optional().isIn(['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'OF', 'DH']),
-  query('school_type').optional().isIn(['HS', 'COLL']),
-  query('status').optional().isIn(['active', 'inactive', 'graduated', 'transferred']),
-  query('sort_by').optional().isIn(['batting_avg', 'home_runs', 'rbi', 'stolen_bases', 'era', 'wins', 'strikeouts', 'ops', 'whip']),
-  query('order').optional().isIn(['ASC', 'DESC']),
-  query('limit').optional().isInt({ min: 1, max: 100 })
+  // Validate limit only when provided and not empty
+  query('limit').if(query('limit').notEmpty()).isInt({ min: 1, max: 100 })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
