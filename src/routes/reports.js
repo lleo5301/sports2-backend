@@ -828,4 +828,96 @@ router.post('/export-excel', checkPermission('reports_create'), async (req, res)
   }
 });
 
+// POST /api/reports/scouting - Create a scouting report
+router.post('/scouting', async (req, res) => {
+  try {
+    console.log('Create scouting report request:', req.body);
+    console.log('User team_id:', req.user.team_id);
+
+    // Validate that player belongs to user's team
+    const player = await Player.findOne({
+      where: {
+        id: req.body.player_id,
+        team_id: req.user.team_id
+      }
+    });
+
+    if (!player) {
+      return res.status(404).json({
+        success: false,
+        message: 'Player not found or does not belong to your team'
+      });
+    }
+
+    const scoutingReport = await ScoutingReport.create({
+      ...req.body,
+      created_by: req.user.id
+    });
+
+    // Fetch the created report with includes
+    const createdReport = await ScoutingReport.findByPk(scoutingReport.id, {
+      include: [
+        {
+          model: Player,
+          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+        },
+        {
+          model: User,
+          attributes: ['id', 'first_name', 'last_name']
+        }
+      ]
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Scouting report created successfully',
+      data: createdReport
+    });
+  } catch (error) {
+    console.error('Create scouting report error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating scouting report'
+    });
+  }
+});
+
+// GET /api/reports/scouting/:id - Get a specific scouting report
+router.get('/scouting/:id', async (req, res) => {
+  try {
+    const report = await ScoutingReport.findOne({
+      where: { id: req.params.id },
+      include: [
+        {
+          model: Player,
+          where: { team_id: req.user.team_id },
+          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+        },
+        {
+          model: User,
+          attributes: ['id', 'first_name', 'last_name']
+        }
+      ]
+    });
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scouting report not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: report
+    });
+  } catch (error) {
+    console.error('Get scouting report error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching scouting report'
+    });
+  }
+});
+
 module.exports = router; 
