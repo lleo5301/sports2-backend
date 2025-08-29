@@ -577,4 +577,119 @@ router.delete('/activities/:activityId', async (req, res) => {
   }
 });
 
+// @route   GET /api/schedules/export-pdf
+// @desc    Export schedule as PDF
+// @access  Private
+router.get('/export-pdf', async (req, res) => {
+  try {
+    // For now, return a simple HTML that can be printed as PDF
+    // In production, you would use a library like puppeteer or jsPDF
+
+    const schedules = await Schedule.findAll({
+      where: { team_id: req.user.team_id },
+      include: [
+        {
+          model: ScheduleSection,
+          include: [
+            {
+              model: ScheduleActivity,
+              order: [['time', 'ASC']]
+            }
+          ]
+        }
+      ],
+      order: [['date', 'DESC']]
+    });
+
+    let html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Team Schedules</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .schedule { margin-bottom: 30px; border: 1px solid #ddd; padding: 20px; }
+          .header { background: #f5f5f5; padding: 10px; margin: -20px -20px 20px -20px; }
+          .section { margin-bottom: 20px; }
+          .activity { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+          .time { font-weight: bold; min-width: 80px; }
+          .activity-name { flex: 1; }
+          .location { font-style: italic; color: #666; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          @media print {
+            body { margin: 0; }
+            .schedule { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Team Schedules</h1>
+    `;
+
+    schedules.forEach(schedule => {
+      html += `
+        <div class="schedule">
+          <div class="header">
+            <h2>${schedule.team_name} - ${schedule.program_name}</h2>
+            <p><strong>Date:</strong> ${new Date(schedule.date).toLocaleDateString()}</p>
+            ${schedule.motto ? `<p><strong>Motto:</strong> ${schedule.motto}</p>` : ''}
+          </div>
+      `;
+
+      if (schedule.ScheduleSections && schedule.ScheduleSections.length > 0) {
+        schedule.ScheduleSections.forEach(section => {
+          html += `
+            <div class="section">
+              <h3>${section.title}</h3>
+              ${section.ScheduleActivities && section.ScheduleActivities.length > 0 ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Activity</th>
+                      <th>Location</th>
+                      <th>Staff/Group</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${section.ScheduleActivities.map(activity => `
+                      <tr>
+                        <td>${activity.time}</td>
+                        <td>${activity.activity}</td>
+                        <td>${activity.location || ''}</td>
+                        <td>${activity.staff || activity.group || ''}</td>
+                        <td>${activity.notes || ''}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              ` : '<p>No activities scheduled</p>'}
+            </div>
+          `;
+        });
+      } else {
+        html += '<p>No sections defined</p>';
+      }
+
+      html += '</div>';
+    });
+
+    html += `
+        </body>
+      </html>
+    `;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', 'attachment; filename="team-schedules.html"');
+    res.send(html);
+
+  } catch (error) {
+    console.error('Error exporting schedules:', error);
+    res.status(500).json({ error: 'Failed to export schedules' });
+  }
+});
+
 module.exports = router; 
