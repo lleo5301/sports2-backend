@@ -19,6 +19,8 @@ const Game = require('./Game');
 const Coach = require('./Coach');
 const Scout = require('./Scout');
 const ScheduleTemplate = require('./ScheduleTemplate');
+const Vendor = require('./Vendor');
+const HighSchoolCoach = require('./HighSchoolCoach');
 
 // Define associations
 User.belongsTo(Team, { foreignKey: 'team_id' });
@@ -131,6 +133,20 @@ Team.hasMany(ScheduleTemplate, { foreignKey: 'team_id' });
 ScheduleTemplate.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
 User.hasMany(ScheduleTemplate, { foreignKey: 'created_by' });
 
+// Vendor associations
+Vendor.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(Vendor, { foreignKey: 'team_id' });
+
+Vendor.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(Vendor, { foreignKey: 'created_by' });
+
+// High School Coach associations
+HighSchoolCoach.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(HighSchoolCoach, { foreignKey: 'team_id' });
+
+HighSchoolCoach.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(HighSchoolCoach, { foreignKey: 'created_by' });
+
 module.exports = {
   sequelize,
   User,
@@ -150,5 +166,7 @@ module.exports = {
   Game,
   Coach,
   Scout,
-  ScheduleTemplate
+  ScheduleTemplate,
+  Vendor,
+  HighSchoolCoach
 }; 
