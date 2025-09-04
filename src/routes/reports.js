@@ -892,4 +892,74 @@ router.get('/scouting/:id', async (req, res) => {
   }
 });
 
+// PUT /api/reports/scouting/:id - Update a scouting report
+router.put('/scouting/:id', async (req, res) => {
+  try {
+    console.log('Update scouting report request:', req.params.id, req.body);
+
+    // Find the existing report and verify it belongs to user's team
+    const existingReport = await ScoutingReport.findOne({
+      where: { id: req.params.id },
+      include: [{
+        model: Player,
+        where: { team_id: req.user.team_id },
+        attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+      }]
+    });
+
+    if (!existingReport) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scouting report not found or does not belong to your team'
+      });
+    }
+
+    // If player_id is being changed, validate the new player belongs to user's team
+    if (req.body.player_id && req.body.player_id !== existingReport.player_id) {
+      const player = await Player.findOne({
+        where: {
+          id: req.body.player_id,
+          team_id: req.user.team_id
+        }
+      });
+
+      if (!player) {
+        return res.status(404).json({
+          success: false,
+          message: 'Player not found or does not belong to your team'
+        });
+      }
+    }
+
+    // Update the report
+    await existingReport.update(req.body);
+
+    // Fetch the updated report with includes
+    const updatedReport = await ScoutingReport.findByPk(existingReport.id, {
+      include: [
+        {
+          model: Player,
+          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+        },
+        {
+          model: User,
+          attributes: ['id', 'first_name', 'last_name']
+        }
+      ]
+    });
+
+    res.json({
+      success: true,
+      message: 'Scouting report updated successfully',
+      data: updatedReport
+    });
+  } catch (error) {
+    console.error('Update scouting report error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating scouting report'
+    });
+  }
+});
+
 module.exports = router; 
