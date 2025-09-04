@@ -135,4 +135,4 @@ process.on('SIGINT', async () => {
   console.log('🛑 SIGINT received, shutting down gracefully');
   await sequelize.close();
   process.exit(0);
-}); 
+});

@@ -428,61 +428,6 @@ router.get('/team-statistics', async (req, res) => {
   }
 });
 
-// GET /api/reports/scouting-analysis - Get scouting analysis data
-router.get('/scouting-analysis', async (req, res) => {
-  try {
-    const whereClause = {
-      team_id: req.user.team_id
-    };
-
-    if (req.query.start_date && req.query.end_date) {
-      whereClause.report_date = {
-        [Op.between]: [req.query.start_date, req.query.end_date]
-      };
-    }
-
-    const scoutingReports = await ScoutingReport.findAll({
-      where: whereClause,
-      include: [
-        {
-          model: Player,
-          attributes: ['id', 'first_name', 'last_name', 'position']
-        }
-      ],
-      order: [['report_date', 'DESC']]
-    });
-
-    // Calculate analysis metrics
-    const totalReports = scoutingReports.length;
-    const avgGrade = totalReports > 0
-      ? (scoutingReports.reduce((sum, report) => sum + (report.overall_grade || 0), 0) / totalReports).toFixed(1)
-      : 0;
-
-    const positionBreakdown = scoutingReports.reduce((acc, report) => {
-      const position = report.Player?.position || 'Unknown';
-      acc[position] = (acc[position] || 0) + 1;
-      return acc;
-    }, {});
-
-    res.json({
-      success: true,
-      data: {
-        total_reports: totalReports,
-        average_grade: avgGrade,
-        position_breakdown: positionBreakdown,
-        recent_reports: scoutingReports.slice(0, 10),
-        filters: req.query,
-        generated_at: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    console.error('Get scouting analysis error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching scouting analysis'
-    });
-  }
-});
 
 // GET /api/reports/recruitment-pipeline - Get recruitment pipeline data
 router.get('/recruitment-pipeline', async (req, res) => {
@@ -679,12 +624,14 @@ router.get('/team-statistics', checkPermission('reports_view'), async (req, res)
 // GET /api/reports/scouting-analysis - Get scouting analysis reports
 router.get('/scouting-analysis', checkPermission('reports_view'), async (req, res) => {
   try {
-    const { ScoutingReport, Player } = require('../models');
     const { start_date, end_date, position } = req.query;
+
+    console.log('Scouting analysis request - user team_id:', req.user.team_id);
+    console.log('Scouting analysis request - query params:', req.query);
 
     const whereClause = {};
     if (start_date && end_date) {
-      whereClause.report_date = { [require('sequelize').Op.between]: [start_date, end_date] };
+      whereClause.report_date = { [Op.between]: [start_date, end_date] };
     }
 
     const reports = await ScoutingReport.findAndCountAll({
@@ -697,11 +644,34 @@ router.get('/scouting-analysis', checkPermission('reports_view'), async (req, re
       order: [['report_date', 'DESC']]
     });
 
+    console.log('Scouting analysis query result count:', reports.count);
+
+    // Helper function to convert grade to numeric value for calculations
+    const gradeToNumeric = (grade) => {
+      const gradeMap = {
+        'A+': 97, 'A': 93, 'A-': 90,
+        'B+': 87, 'B': 83, 'B-': 80,
+        'C+': 77, 'C': 73, 'C-': 70,
+        'D+': 67, 'D': 63, 'D-': 60,
+        'F': 50
+      };
+      return gradeMap[grade] || 0;
+    };
+
+    // Calculate analysis metrics
+    const totalReports = reports.count;
+    const validGrades = reports.rows.filter(r => r.overall_grade).map(r => gradeToNumeric(r.overall_grade));
+    const avgGrade = validGrades.length > 0
+      ? (validGrades.reduce((sum, grade) => sum + grade, 0) / validGrades.length).toFixed(1)
+      : 0;
+
     const analysis = {
-      total_reports: reports.count,
+      total_reports: totalReports,
+      average_grade: avgGrade,
       reports_by_position: {},
       recent_reports: reports.rows.slice(0, 10),
-      date_range: { start_date, end_date }
+      date_range: { start_date, end_date },
+      generated_at: new Date().toISOString()
     };
 
     // Group reports by position
@@ -719,6 +689,8 @@ router.get('/scouting-analysis', checkPermission('reports_view'), async (req, re
     });
   } catch (error) {
     console.error('Error fetching scouting analysis report:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error fetching scouting analysis report'
