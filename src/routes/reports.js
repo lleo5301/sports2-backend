@@ -331,8 +331,8 @@ router.get('/player-performance', async (req, res) => {
     const players = await Player.findAll({
       where: whereClause,
       attributes: [
-        'id', 'first_name', 'last_name', 'position', 'batting_average',
-        'home_runs', 'rbi', 'era', 'wins', 'losses', 'saves'
+        'id', 'first_name', 'last_name', 'position', 'batting_avg',
+        'home_runs', 'rbi', 'era', 'wins', 'losses', 'strikeouts'
       ],
       order: [['last_name', 'ASC'], ['first_name', 'ASC']]
     });
@@ -378,11 +378,11 @@ router.get('/team-statistics', async (req, res) => {
     // Calculate team batting average
     const players = await Player.findAll({
       where: { team_id: req.user.team_id },
-      attributes: ['batting_average', 'era', 'wins', 'losses']
+      attributes: ['batting_avg', 'era', 'wins', 'losses']
     });
 
     const validBattingAverages = players
-      .map(p => p.batting_average)
+      .map(p => p.batting_avg)
       .filter(avg => avg !== null && avg !== undefined);
 
     const teamBattingAverage = validBattingAverages.length > 0
@@ -410,7 +410,7 @@ router.get('/team-statistics', async (req, res) => {
       data: {
         team_name: team.name,
         total_players: playerCount,
-        team_batting_average: teamBattingAverage,
+        team_batting_avg: teamBattingAverage,
         team_era: teamERA,
         wins: totalWins,
         losses: totalLosses,

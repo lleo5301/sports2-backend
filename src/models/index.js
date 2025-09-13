@@ -19,9 +19,6 @@ const Game = require('./Game');
 const Coach = require('./Coach');
 const Scout = require('./Scout');
 const ScheduleTemplate = require('./ScheduleTemplate');
-const Location = require('./Location');
-const ScheduleEvent = require('./ScheduleEvent');
-const ScheduleEventDate = require('./ScheduleEventDate');
 const Vendor = require('./Vendor');
 const HighSchoolCoach = require('./HighSchoolCoach');
 
@@ -136,39 +133,6 @@ Team.hasMany(ScheduleTemplate, { foreignKey: 'team_id' });
 ScheduleTemplate.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
 User.hasMany(ScheduleTemplate, { foreignKey: 'created_by' });
 
-// Location associations
-Location.belongsTo(Team, { foreignKey: 'team_id' });
-Team.hasMany(Location, { foreignKey: 'team_id' });
-
-Location.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
-User.hasMany(Location, { foreignKey: 'created_by' });
-
-// Schedule Event associations
-ScheduleEvent.belongsTo(ScheduleTemplate, { foreignKey: 'schedule_template_id' });
-ScheduleTemplate.hasMany(ScheduleEvent, { foreignKey: 'schedule_template_id' });
-
-ScheduleEvent.belongsTo(Location, { foreignKey: 'location_id' });
-Location.hasMany(ScheduleEvent, { foreignKey: 'location_id' });
-
-ScheduleEvent.belongsTo(Team, { foreignKey: 'team_id' });
-Team.hasMany(ScheduleEvent, { foreignKey: 'team_id' });
-
-ScheduleEvent.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
-User.hasMany(ScheduleEvent, { foreignKey: 'created_by' });
-
-// Schedule Event Date associations
-ScheduleEventDate.belongsTo(ScheduleEvent, { foreignKey: 'schedule_event_id' });
-ScheduleEvent.hasMany(ScheduleEventDate, { foreignKey: 'schedule_event_id', as: 'EventDates' });
-
-ScheduleEventDate.belongsTo(Location, { foreignKey: 'location_id_override', as: 'OverrideLocation' });
-Location.hasMany(ScheduleEventDate, { foreignKey: 'location_id_override' });
-
-ScheduleEventDate.belongsTo(Team, { foreignKey: 'team_id' });
-Team.hasMany(ScheduleEventDate, { foreignKey: 'team_id' });
-
-ScheduleEventDate.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
-User.hasMany(ScheduleEventDate, { foreignKey: 'created_by' });
-
 // Vendor associations
 Vendor.belongsTo(Team, { foreignKey: 'team_id' });
 Team.hasMany(Vendor, { foreignKey: 'team_id' });
@@ -203,9 +167,6 @@ module.exports = {
   Coach,
   Scout,
   ScheduleTemplate,
-  Location,
-  ScheduleEvent,
-  ScheduleEventDate,
   Vendor,
   HighSchoolCoach
 }; 
