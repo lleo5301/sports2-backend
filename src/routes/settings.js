@@ -1,4 +1,5 @@
 const express = require('express');
+const emailService = require('../services/emailService');
 const { body, param, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { User, Team } = require('../models');
@@ -841,12 +842,29 @@ router.put('/notifications/preferences', validateNotificationSettings, handleVal
 // POST /api/settings/notifications/test-email - Test email notification
 router.post('/notifications/test-email', async (req, res) => {
   try {
-    // In a real implementation, you'd send a test email
-    // For now, just return success
-    res.json({
-      success: true,
-      message: 'Test email sent successfully'
+    const user = await User.findByPk(req.user.id);
+    
+    const result = await emailService.testEmail(user.email);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Test email sent successfully'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send test email: ' + result.error
+      });
+    }
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error sending test email'
     });
+  }
+});
   } catch (error) {
     console.error('Error sending test email:', error);
     res.status(500).json({

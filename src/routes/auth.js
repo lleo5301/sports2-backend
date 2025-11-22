@@ -1,4 +1,5 @@
 const express = require('express');
+const emailService = require('../services/emailService');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
@@ -91,6 +92,18 @@ router.post('/register', [
         token
       }
     });
+
+    // Send welcome email
+    try {
+      await emailService.sendWelcomeEmail(
+        user.email,
+        user.first_name,
+        team.name || 'Sports2'
+      );
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // Don't fail registration if email fails
+    }
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ 
