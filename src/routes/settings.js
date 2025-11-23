@@ -865,14 +865,6 @@ router.post('/notifications/test-email', async (req, res) => {
     });
   }
 });
-  } catch (error) {
-    console.error('Error sending test email:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error sending test email'
-    });
-  }
-});
 
 // GET /api/settings/sessions - Get active sessions
 router.get('/sessions', async (req, res) => {
