@@ -7,6 +7,7 @@ const nodemailer = require('nodemailer');
 class EmailService {
   constructor() {
     this.transporter = null;
+    this.isConfigured = false;
     this.initialize();
   }
 
@@ -14,29 +15,52 @@ class EmailService {
    * Initialize the email transporter
    */
   initialize() {
-    const config = {
-      host: process.env.SMTP_HOST || 'mail.theprogram1814.com',
-      port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true' || false,
-      auth: {
-        user: process.env.SMTP_USER || 'admin@mail.theprogram1814.com',
-        pass: process.env.SMTP_PASS || 'ChangeThisSecurePassword123!'
-      },
-      tls: {
-        rejectUnauthorized: false // For self-signed certificates in development
-      }
-    };
+    try {
+      // Check if SMTP is actually configured (not using defaults)
+      const hasCustomConfig = process.env.SMTP_USER && process.env.SMTP_PASS &&
+                             process.env.SMTP_USER !== 'admin@mail.theprogram1814.com';
 
-    this.transporter = nodemailer.createTransporter(config);
-    
-    // Verify connection configuration
-    this.transporter.verify((error, success) => {
-      if (error) {
-        console.error('Email service configuration error:', error);
-      } else {
-        console.log('Email service ready');
+      if (!hasCustomConfig) {
+        console.warn('⚠️  Email service not configured - SMTP credentials not provided. Email functionality will be disabled.');
+        return;
       }
-    });
+
+      const config = {
+        host: process.env.SMTP_HOST || 'mail.theprogram1814.com',
+        port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === 'true' || false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        },
+        tls: {
+          rejectUnauthorized: false // For self-signed certificates in development
+        }
+      };
+
+      // Check if nodemailer.createTransporter exists
+      if (typeof nodemailer.createTransporter !== 'function') {
+        console.error('❌ Email service error: nodemailer.createTransporter is not available');
+        return;
+      }
+
+      this.transporter = nodemailer.createTransporter(config);
+      this.isConfigured = true;
+
+      // Verify connection configuration
+      this.transporter.verify((error, success) => {
+        if (error) {
+          console.error('❌ Email service configuration error:', error);
+          this.isConfigured = false;
+        } else {
+          console.log('✅ Email service ready');
+        }
+      });
+    } catch (error) {
+      console.error('❌ Failed to initialize email service:', error.message);
+      this.transporter = null;
+      this.isConfigured = false;
+    }
   }
 
   /**
@@ -49,9 +73,14 @@ class EmailService {
    * @returns {Promise<Object>} - Send result
    */
   async sendEmail({ to, subject, text, html }) {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn(`⚠️  Email not sent to ${to} - Email service not configured`);
+      return { success: false, error: 'Email service not configured' };
+    }
+
     try {
       const mailOptions = {
-        from: process.env.SMTP_FROM || `"Sports2 Team" <${process.env.SMTP_USER || 'admin@mail.theprogram1814.com'}>`,
+        from: process.env.SMTP_FROM || `"Sports2 Team" <${process.env.SMTP_USER}>`,
         to,
         subject,
         text,
@@ -59,10 +88,10 @@ class EmailService {
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', result.messageId);
+      console.log('✅ Email sent successfully:', result.messageId);
       return { success: true, messageId: result.messageId };
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error('❌ Failed to send email:', error);
       return { success: false, error: error.message };
     }
   }
@@ -75,7 +104,7 @@ class EmailService {
    */
   async sendPasswordResetEmail(email, resetToken, resetUrl) {
     const subject = 'Password Reset Request - Sports2';
-    
+
     const text = `
 You have requested a password reset for your Sports2 account.
 
@@ -139,7 +168,7 @@ The Sports2 Team
    */
   async sendWelcomeEmail(email, firstName, teamName) {
     const subject = `Welcome to Sports2, ${firstName}!`;
-    
+
     const text = `
 Hello ${firstName},
 
@@ -207,7 +236,7 @@ The Sports2 Team
    */
   async sendNotificationEmail(email, title, message, actionUrl = null) {
     const subject = `${title} - Sports2`;
-    
+
     let text = `
 ${title}
 
