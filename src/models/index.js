@@ -21,10 +21,33 @@ const Scout = require('./Scout');
 const ScheduleTemplate = require('./ScheduleTemplate');
 const Vendor = require('./Vendor');
 const HighSchoolCoach = require('./HighSchoolCoach');
+const UserTeam = require('./UserTeam');
 
 // Define associations
+
+// Primary team relationship (backwards compatible)
 User.belongsTo(Team, { foreignKey: 'team_id' });
 Team.hasMany(User, { foreignKey: 'team_id' });
+
+// Many-to-many: User can have multiple teams (through UserTeam junction table)
+User.belongsToMany(Team, {
+  through: UserTeam,
+  foreignKey: 'user_id',
+  otherKey: 'team_id',
+  as: 'Teams'  // user.Teams gives all teams
+});
+Team.belongsToMany(User, {
+  through: UserTeam,
+  foreignKey: 'team_id',
+  otherKey: 'user_id',
+  as: 'Members'  // team.Members gives all users
+});
+
+// UserTeam explicit associations for eager loading
+UserTeam.belongsTo(User, { foreignKey: 'user_id' });
+UserTeam.belongsTo(Team, { foreignKey: 'team_id' });
+User.hasMany(UserTeam, { foreignKey: 'user_id' });
+Team.hasMany(UserTeam, { foreignKey: 'team_id' });
 
 Player.belongsTo(Team, { foreignKey: 'team_id' });
 Team.hasMany(Player, { foreignKey: 'team_id' });
@@ -168,5 +191,6 @@ module.exports = {
   Scout,
   ScheduleTemplate,
   Vendor,
-  HighSchoolCoach
+  HighSchoolCoach,
+  UserTeam
 }; 

@@ -3,7 +3,7 @@ const emailService = require('../services/emailService');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
-const { User, Team } = require('../models');
+const { User, Team, UserTeam } = require('../models');
 const { protect } = require('../middleware/auth');
 const UserPermission = require('../models/UserPermission'); // Added import for UserPermission
 
@@ -201,10 +201,23 @@ router.post('/login', [
 router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      include: [{
-        model: Team,
-        attributes: ['id', 'name', 'program_name', 'school_logo_url', 'conference', 'division']
-      }],
+      include: [
+        {
+          // Primary team (backwards compatible)
+          model: Team,
+          attributes: ['id', 'name', 'program_name', 'school_logo_url', 'conference', 'division']
+        },
+        {
+          // All teams from junction table (for multi-team support)
+          model: Team,
+          as: 'Teams',
+          attributes: ['id', 'name', 'program_name', 'school_logo_url', 'conference', 'division'],
+          through: {
+            attributes: ['role', 'is_active'],
+            where: { is_active: true }
+          }
+        }
+      ],
       attributes: { exclude: ['password'] }
     });
 
@@ -214,9 +227,9 @@ router.get('/me', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Get profile error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Server error while fetching profile' 
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching profile'
     });
   }
 });
