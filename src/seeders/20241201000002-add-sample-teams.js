@@ -2,6 +2,16 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    // Check if teams already exist to prevent duplicates
+    const [existingTeams] = await queryInterface.sequelize.query(
+      'SELECT COUNT(*) as count FROM teams'
+    );
+
+    if (existingTeams[0].count > 0) {
+      console.log('Teams already exist, skipping seed');
+      return;
+    }
+
     const teams = [
       {
         name: 'Texas Longhorns',
