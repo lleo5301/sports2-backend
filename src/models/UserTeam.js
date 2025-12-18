@@ -28,8 +28,7 @@ const UserTeam = sequelize.define('UserTeam', {
   role: {
     type: DataTypes.ENUM('primary', 'secondary'),
     defaultValue: 'secondary',
-    allowNull: false,
-    comment: 'Primary is the main team, secondary for additional teams'
+    allowNull: false
   },
   is_active: {
     type: DataTypes.BOOLEAN,
