@@ -1,7 +1,15 @@
 const express = require('express');
 const { body, param, validationResult } = require('express-validator');
+const path = require('path');
+const fs = require('fs');
 const { protect } = require('../middleware/auth');
-const { checkPermission } = require('../middleware/permissions');
+const { checkPermission, isSuperAdmin } = require('../middleware/permissions');
+const { uploadLogo, handleUploadError, logosDir } = require('../middleware/upload');
+
+// Helper to check if user can modify branding (super_admin or head_coach)
+const canModifyBranding = (user) => {
+  return isSuperAdmin(user) || user.role === 'head_coach';
+};
 const { Team, User, UserPermission, Schedule, ScheduleSection, ScheduleActivity } = require('../models');
 
 const router = express.Router();
@@ -320,7 +328,7 @@ router.get('/byId/:id', async (req, res) => {
 });
 
 // PUT /api/teams/me - Update current user's team
-router.put('/me', 
+router.put('/me',
   checkPermission('team_settings'),
   async (req, res) => {
     try {
@@ -350,7 +358,348 @@ router.put('/me',
   }
 );
 
-// GET /api/teams/users - Get all users in current team
+// POST /api/teams/logo - Upload team logo (super_admin or head_coach only)
+router.post('/logo',
+  (req, res, next) => {
+    if (!canModifyBranding(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only super admins and head coaches can update team branding'
+      });
+    }
+    next();
+  },
+  uploadLogo,
+  handleUploadError,
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No logo file provided'
+        });
+      }
+
+      const team = await Team.findByPk(req.user.team_id);
+      if (!team) {
+        return res.status(404).json({
+          success: false,
+          message: 'Team not found'
+        });
+      }
+
+      // Delete old logo if it exists
+      if (team.school_logo_url) {
+        const oldLogoPath = path.join(logosDir, path.basename(team.school_logo_url));
+        try {
+          if (fs.existsSync(oldLogoPath)) {
+            fs.unlinkSync(oldLogoPath);
+          }
+        } catch (err) {
+          console.warn('Could not delete old logo:', err.message);
+        }
+      }
+
+      // Update team with new logo URL
+      const logoUrl = `/uploads/logos/${req.file.filename}`;
+      await team.update({ school_logo_url: logoUrl });
+
+      res.json({
+        success: true,
+        message: 'Logo uploaded successfully',
+        data: {
+          logo_url: logoUrl
+        }
+      });
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error uploading logo'
+      });
+    }
+  }
+);
+
+// DELETE /api/teams/logo - Remove team logo (super_admin or head_coach only)
+router.delete('/logo',
+  async (req, res) => {
+    try {
+      if (!canModifyBranding(req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins and head coaches can update team branding'
+        });
+      }
+
+      const team = await Team.findByPk(req.user.team_id);
+      if (!team) {
+        return res.status(404).json({
+          success: false,
+          message: 'Team not found'
+        });
+      }
+
+      // Delete logo file if it exists
+      if (team.school_logo_url) {
+        const logoPath = path.join(logosDir, path.basename(team.school_logo_url));
+        try {
+          if (fs.existsSync(logoPath)) {
+            fs.unlinkSync(logoPath);
+          }
+        } catch (err) {
+          console.warn('Could not delete logo file:', err.message);
+        }
+      }
+
+      // Clear logo URL from team
+      await team.update({ school_logo_url: null });
+
+      res.json({
+        success: true,
+        message: 'Logo removed successfully'
+      });
+    } catch (error) {
+      console.error('Error removing logo:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error removing logo'
+      });
+    }
+  }
+);
+
+// PUT /api/teams/branding - Update team colors (super_admin or head_coach only)
+router.put('/branding',
+  body('primary_color').optional().matches(/^#[0-9A-F]{6}$/i).withMessage('Primary color must be a valid hex color'),
+  body('secondary_color').optional().matches(/^#[0-9A-F]{6}$/i).withMessage('Secondary color must be a valid hex color'),
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      if (!canModifyBranding(req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins and head coaches can update team branding'
+        });
+      }
+
+      const team = await Team.findByPk(req.user.team_id);
+      if (!team) {
+        return res.status(404).json({
+          success: false,
+          message: 'Team not found'
+        });
+      }
+
+      const { primary_color, secondary_color } = req.body;
+      const updateData = {};
+
+      if (primary_color) updateData.primary_color = primary_color;
+      if (secondary_color) updateData.secondary_color = secondary_color;
+
+      await team.update(updateData);
+
+      res.json({
+        success: true,
+        message: 'Team branding updated successfully',
+        data: {
+          primary_color: team.primary_color,
+          secondary_color: team.secondary_color
+        }
+      });
+    } catch (error) {
+      console.error('Error updating branding:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error updating team branding'
+      });
+    }
+  }
+);
+
+// GET /api/teams/branding - Get team branding info
+router.get('/branding', async (req, res) => {
+  try {
+    const team = await Team.findByPk(req.user.team_id, {
+      attributes: ['id', 'name', 'program_name', 'school_logo_url', 'primary_color', 'secondary_color']
+    });
+
+    if (!team) {
+      return res.status(404).json({
+        success: false,
+        message: 'Team not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        name: team.name,
+        program_name: team.program_name,
+        logo_url: team.school_logo_url,
+        primary_color: team.primary_color || '#3B82F6',
+        secondary_color: team.secondary_color || '#EF4444'
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching branding:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching team branding'
+    });
+  }
+});
+
+// GET /api/teams/users - Get all users in current team (simplified endpoint)
+router.get('/users', async (req, res) => {
+  try {
+    const users = await User.findAll({
+      where: {
+        team_id: req.user.team_id
+      },
+      attributes: ['id', 'first_name', 'last_name', 'email', 'role', 'created_at'],
+      order: [['first_name', 'ASC'], ['last_name', 'ASC']]
+    });
+
+    res.json({
+      success: true,
+      data: users
+    });
+  } catch (error) {
+    console.error('Error fetching team users:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching team users'
+    });
+  }
+});
+
+// GET /api/teams/permissions - Get all permissions for current team (simplified endpoint)
+router.get('/permissions', async (req, res) => {
+  try {
+    const permissions = await UserPermission.findAll({
+      where: {
+        team_id: req.user.team_id
+      },
+      include: [
+        {
+          model: User,
+          attributes: ['id', 'first_name', 'last_name', 'email']
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      data: permissions
+    });
+  } catch (error) {
+    console.error('Error fetching team permissions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching team permissions'
+    });
+  }
+});
+
+// POST /api/teams/permissions - Add new permission (simplified endpoint)
+router.post('/permissions',
+  validatePermission,
+  handleValidationErrors,
+  checkPermission('user_management'),
+  async (req, res) => {
+    try {
+      // Check if user exists and belongs to the team
+      const user = await User.findOne({
+        where: {
+          id: req.body.user_id,
+          team_id: req.user.team_id
+        }
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found in team'
+        });
+      }
+
+      // Check if permission already exists
+      const existingPermission = await UserPermission.findOne({
+        where: {
+          user_id: req.body.user_id,
+          team_id: req.user.team_id,
+          permission_type: req.body.permission_type
+        }
+      });
+
+      if (existingPermission) {
+        return res.status(400).json({
+          success: false,
+          message: 'Permission already exists for this user'
+        });
+      }
+
+      const permission = await UserPermission.create({
+        user_id: req.body.user_id,
+        team_id: req.user.team_id,
+        permission_type: req.body.permission_type,
+        granted_by: req.user.id
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Permission added successfully',
+        data: permission
+      });
+    } catch (error) {
+      console.error('Error adding permission:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error adding permission'
+      });
+    }
+  }
+);
+
+// PUT /api/teams/permissions/:id - Update permission (simplified endpoint)
+router.put('/permissions/:id',
+  checkPermission('user_management'),
+  async (req, res) => {
+    try {
+      const permission = await UserPermission.findOne({
+        where: {
+          id: req.params.id,
+          team_id: req.user.team_id
+        }
+      });
+
+      if (!permission) {
+        return res.status(404).json({
+          success: false,
+          message: 'Permission not found'
+        });
+      }
+
+      await permission.update(req.body);
+
+      res.json({
+        success: true,
+        message: 'Permission updated successfully',
+        data: permission
+      });
+    } catch (error) {
+      console.error('Error updating permission:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error updating permission'
+      });
+    }
+  }
+);
+
+// GET /api/teams/byid/:id/users - Get all users in current team (legacy endpoint)
 router.get('/byid/:id/users', async (req, res) => {
   try {
     const users = await User.findAll({
@@ -679,5 +1028,96 @@ router.get('/roster', protect, async (req, res) => {
     });
   }
 });
+
+// GET /api/teams/:id - Get a specific team by ID (simplified endpoint)
+// This route must be last to avoid conflicting with other named routes
+router.get('/:id', async (req, res) => {
+  try {
+    // Validate that id is a number
+    const teamId = parseInt(req.params.id);
+    if (isNaN(teamId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid team ID'
+      });
+    }
+
+    const team = await Team.findByPk(teamId, {
+      include: [
+        {
+          model: User,
+          attributes: ['id', 'first_name', 'last_name', 'email', 'role']
+        }
+      ]
+    });
+
+    if (!team) {
+      return res.status(404).json({
+        success: false,
+        message: 'Team not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: team
+    });
+  } catch (error) {
+    console.error('Error fetching team:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching team'
+    });
+  }
+});
+
+// PUT /api/teams/:id - Update a specific team by ID (simplified endpoint)
+// This route must be last to avoid conflicting with other named routes
+router.put('/:id',
+  checkPermission('team_settings'),
+  async (req, res) => {
+    try {
+      // Validate that id is a number
+      const teamId = parseInt(req.params.id);
+      if (isNaN(teamId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid team ID'
+        });
+      }
+
+      // Ensure user can only update their own team
+      if (req.user.team_id !== teamId) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only update your own team'
+        });
+      }
+
+      const team = await Team.findByPk(teamId);
+
+      if (!team) {
+        return res.status(404).json({
+          success: false,
+          message: 'Team not found'
+        });
+      }
+
+      await team.update(req.body);
+
+      res.json({
+        success: true,
+        message: 'Team updated successfully',
+        data: team
+      });
+    } catch (error) {
+      console.error('Error updating team:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error updating team'
+      });
+    }
+  }
+);
 
 module.exports = router; 

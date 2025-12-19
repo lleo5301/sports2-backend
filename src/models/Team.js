@@ -23,10 +23,8 @@ const Team = sequelize.define('Team', {
   },
   school_logo_url: {
     type: DataTypes.STRING,
-    allowNull: true,
-    validate: {
-      isUrl: true
-    }
+    allowNull: true
+    // Note: Accepts both full URLs and relative paths for internal uploads
   },
   conference: {
     type: DataTypes.STRING,

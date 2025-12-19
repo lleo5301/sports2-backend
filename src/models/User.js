@@ -52,7 +52,7 @@ const User = sequelize.define('User', {
     }
   },
   role: {
-    type: DataTypes.ENUM('head_coach', 'assistant_coach'),
+    type: DataTypes.ENUM('super_admin', 'head_coach', 'assistant_coach'),
     allowNull: false,
     defaultValue: 'assistant_coach'
   },

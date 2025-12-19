@@ -5,6 +5,7 @@ const fs = require('fs');
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../../uploads');
 const videosDir = path.join(uploadsDir, 'videos');
+const logosDir = path.join(uploadsDir, 'logos');
 
 // Try to create directories, but don't fail if they already exist or can't be created
 try {
@@ -13,6 +14,9 @@ try {
   }
   if (!fs.existsSync(videosDir)) {
     fs.mkdirSync(videosDir, { recursive: true });
+  }
+  if (!fs.existsSync(logosDir)) {
+    fs.mkdirSync(logosDir, { recursive: true });
   }
 } catch (error) {
   console.warn('Upload directories may already exist or will be created by Docker:', error.message);
@@ -52,7 +56,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer
+// Configure multer for videos
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
@@ -64,13 +68,58 @@ const upload = multer({
 // Middleware for handling video uploads
 const uploadVideo = upload.single('video');
 
+// Configure storage for logos
+const logoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, logosDir);
+  },
+  filename: (req, file, cb) => {
+    const teamId = req.user?.team_id || 'unknown';
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `team-${teamId}-${timestamp}${ext}`);
+  }
+});
+
+// File filter for images (logos)
+const imageFileFilter = (req, file, cb) => {
+  const allowedMimeTypes = [
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/svg+xml',
+    'image/webp'
+  ];
+
+  const allowedExtensions = ['.png', '.jpg', '.jpeg', '.svg', '.webp'];
+  const fileExtension = path.extname(file.originalname).toLowerCase();
+
+  if (allowedMimeTypes.includes(file.mimetype) || allowedExtensions.includes(fileExtension)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only PNG, JPG, SVG, and WebP images are allowed.'), false);
+  }
+};
+
+// Configure multer for logos
+const logoUpload = multer({
+  storage: logoStorage,
+  fileFilter: imageFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for logos
+  }
+});
+
+// Middleware for handling logo uploads
+const uploadLogo = logoUpload.single('logo');
+
 // Error handling middleware
 const handleUploadError = (error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
-        error: 'File too large. Maximum size is 100MB.'
+        error: 'File too large. Maximum size exceeded.'
       });
     }
     return res.status(400).json({
@@ -78,8 +127,9 @@ const handleUploadError = (error, req, res, next) => {
       error: `Upload error: ${error.message}`
     });
   }
-  
-  if (error.message === 'Invalid file type. Only video files are allowed.') {
+
+  if (error.message === 'Invalid file type. Only video files are allowed.' ||
+      error.message === 'Invalid file type. Only PNG, JPG, SVG, and WebP images are allowed.') {
     return res.status(400).json({
       success: false,
       error: error.message
@@ -91,5 +141,7 @@ const handleUploadError = (error, req, res, next) => {
 
 module.exports = {
   uploadVideo,
-  handleUploadError
+  uploadLogo,
+  handleUploadError,
+  logosDir
 };

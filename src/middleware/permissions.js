@@ -1,6 +1,15 @@
 const { UserPermission } = require('../models');
 
 /**
+ * Check if user is a super admin (bypasses all permission checks)
+ * @param {Object} user - The user object from req.user
+ * @returns {boolean} True if user is super_admin
+ */
+const isSuperAdmin = (user) => {
+  return user && user.role === 'super_admin';
+};
+
+/**
  * Middleware to check if user has a specific permission
  * @param {string} permissionType - The permission type to check
  * @returns {Function} Express middleware function
@@ -8,6 +17,11 @@ const { UserPermission } = require('../models');
 const checkPermission = (permissionType) => {
   return async (req, res, next) => {
     try {
+      // Super admin bypasses all permission checks
+      if (isSuperAdmin(req.user)) {
+        return next();
+      }
+
       const userId = req.user.id;
       const teamId = req.user.team_id;
 
@@ -55,6 +69,11 @@ const checkPermission = (permissionType) => {
 const checkAnyPermission = (permissionTypes) => {
   return async (req, res, next) => {
     try {
+      // Super admin bypasses all permission checks
+      if (isSuperAdmin(req.user)) {
+        return next();
+      }
+
       const userId = req.user.id;
       const teamId = req.user.team_id;
 
@@ -102,6 +121,11 @@ const checkAnyPermission = (permissionTypes) => {
 const checkAllPermissions = (permissionTypes) => {
   return async (req, res, next) => {
     try {
+      // Super admin bypasses all permission checks
+      if (isSuperAdmin(req.user)) {
+        return next();
+      }
+
       const userId = req.user.id;
       const teamId = req.user.team_id;
 
@@ -159,6 +183,7 @@ const depthChartPermissions = {
 };
 
 module.exports = {
+  isSuperAdmin,
   checkPermission,
   checkAnyPermission,
   checkAllPermissions,
