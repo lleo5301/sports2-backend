@@ -22,6 +22,7 @@ const ScheduleTemplate = require('./ScheduleTemplate');
 const Vendor = require('./Vendor');
 const HighSchoolCoach = require('./HighSchoolCoach');
 const UserTeam = require('./UserTeam');
+const GameStatistic = require('./GameStatistic');
 
 // Define associations
 
@@ -135,6 +136,16 @@ Team.hasMany(Game, { foreignKey: 'team_id' });
 Game.belongsTo(User, { foreignKey: 'created_by', as: 'created_by_user' });
 User.hasMany(Game, { foreignKey: 'created_by' });
 
+// GameStatistic associations
+GameStatistic.belongsTo(Game, { foreignKey: 'game_id' });
+Game.hasMany(GameStatistic, { foreignKey: 'game_id' });
+
+GameStatistic.belongsTo(Player, { foreignKey: 'player_id' });
+Player.hasMany(GameStatistic, { foreignKey: 'player_id' });
+
+GameStatistic.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(GameStatistic, { foreignKey: 'team_id' });
+
 // Coach associations
 Coach.belongsTo(Team, { foreignKey: 'team_id' });
 Team.hasMany(Coach, { foreignKey: 'team_id' });
@@ -187,6 +198,7 @@ module.exports = {
   UserPermission,
   Report,
   Game,
+  GameStatistic,
   Coach,
   Scout,
   ScheduleTemplate,

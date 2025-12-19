@@ -33,6 +33,7 @@ const coachRoutes = require('./routes/coaches');
 const scoutRoutes = require('./routes/scouts');
 const vendorRoutes = require('./routes/vendors');
 const highSchoolCoachRoutes = require('./routes/highSchoolCoaches');
+const integrationRoutes = require('./routes/integrations');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -104,6 +105,7 @@ app.use('/api/coaches', coachRoutes);
 app.use('/api/scouts', scoutRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/high-school-coaches', highSchoolCoachRoutes);
+app.use('/api/integrations', integrationRoutes);
 
 // Error handling middleware
 app.use(notFound);

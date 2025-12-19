@@ -210,9 +210,58 @@ const Player = sequelize.define('Player', {
     type: DataTypes.STRING,
     allowNull: true,
     comment: 'URL path to player video file'
+  },
+  // PrestoSports sync fields
+  external_id: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    unique: true,
+    comment: 'PrestoSports player ID'
+  },
+  source_system: {
+    type: DataTypes.ENUM('manual', 'presto'),
+    defaultValue: 'manual',
+    comment: 'Source of this player record'
+  },
+  last_synced_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Last sync from PrestoSports'
+  },
+  jersey_number: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: {
+      min: 0,
+      max: 99
+    },
+    comment: 'Player jersey number'
+  },
+  class_year: {
+    type: DataTypes.ENUM('FR', 'SO', 'JR', 'SR', 'GR'),
+    allowNull: true,
+    comment: 'Academic class year'
   }
 }, {
   tableName: 'players',
+  indexes: [
+    {
+      fields: ['external_id'],
+      unique: true
+    },
+    {
+      fields: ['source_system']
+    },
+    {
+      fields: ['team_id']
+    },
+    {
+      fields: ['position']
+    },
+    {
+      fields: ['status']
+    }
+  ],
   hooks: {
     beforeCreate: (player) => {
       // Set default values for statistics if not provided

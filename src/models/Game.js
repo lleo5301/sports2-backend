@@ -76,6 +76,33 @@ const Game = sequelize.define('Game', {
       model: 'users',
       key: 'id'
     }
+  },
+  // PrestoSports sync fields
+  external_id: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    unique: true,
+    comment: 'PrestoSports event ID'
+  },
+  source_system: {
+    type: DataTypes.ENUM('manual', 'presto'),
+    defaultValue: 'manual',
+    comment: 'Source of this game record'
+  },
+  last_synced_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Last sync from PrestoSports'
+  },
+  game_time: {
+    type: DataTypes.TIME,
+    allowNull: true,
+    comment: 'Game start time'
+  },
+  game_status: {
+    type: DataTypes.ENUM('scheduled', 'completed', 'cancelled', 'postponed'),
+    defaultValue: 'scheduled',
+    comment: 'Game status'
   }
 }, {
   tableName: 'games',
@@ -95,6 +122,13 @@ const Game = sequelize.define('Game', {
     },
     {
       fields: ['created_by']
+    },
+    {
+      fields: ['external_id'],
+      unique: true
+    },
+    {
+      fields: ['source_system']
     }
   ]
 });
