@@ -47,7 +47,7 @@ const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
-const { Report, Player, Team, ScoutingReport, User, Coach } = require('../models');
+const { Report, Player, Team, ScoutingReport, User, Coach, HighSchoolCoach } = require('../models');
 const { Op } = require('sequelize');
 const { arrayToCSV, generateFilename } = require('../utils/csvExport');
 
@@ -1596,6 +1596,117 @@ router.get('/export/coaches', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error exporting coaches to CSV'
+    });
+  }
+});
+
+/**
+ * @route GET /api/reports/export/high-school-coaches
+ * @description Exports high school coach data to CSV format with optional filtering.
+ *              Uses the same filtering options as the /api/high-school-coaches endpoint.
+ *              Fetches ALL matching high school coaches (no pagination) and returns as a downloadable CSV file.
+ *              CSV includes: first_name, last_name, school_name, school_district, position, city, state,
+ *              email, phone, years_coaching, school_classification, relationship_type, players_sent_count,
+ *              last_contact_date, status.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} [req.query.state] - Filter by state where school is located
+ * @param {string} [req.query.position] - Filter by position ('Head Coach' | 'Assistant Coach' | 'JV Coach' | 'Freshman Coach' | 'Pitching Coach' | 'Hitting Coach')
+ * @param {string} [req.query.relationship_type] - Filter by relationship type ('Recruiting Contact' | 'Former Player' | 'Coaching Connection' | 'Tournament Contact' | 'Camp Contact' | 'Other')
+ * @param {string} [req.query.status] - Filter by coach status ('active' | 'inactive')
+ * @param {string} [req.query.search] - Free-text search across first_name, last_name, school_name, school_district, email, and city fields
+ *
+ * @returns {string} CSV file - Content-Type: text/csv with Content-Disposition header
+ *
+ * @throws {500} Server error - Database query failure or CSV generation failure
+ */
+router.get('/export/high-school-coaches', async (req, res) => {
+  try {
+    const { state, position, relationship_type, status, search } = req.query;
+
+    // Permission: Team isolation - only export high school coaches belonging to user's team
+    const whereClause = {
+      team_id: req.user.team_id
+    };
+
+    // Business logic: Apply optional filters when provided
+    if (state) {
+      whereClause.state = state;
+    }
+
+    if (position) {
+      whereClause.position = position;
+    }
+
+    if (relationship_type) {
+      whereClause.relationship_type = relationship_type;
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    // Business logic: Free-text search using case-insensitive ILIKE across multiple fields
+    if (search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { school_name: { [Op.iLike]: `%${search}%` } },
+        { school_district: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } },
+        { city: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    // Database: Fetch ALL high school coaches matching the criteria (no pagination for export)
+    const coaches = await HighSchoolCoach.findAll({
+      where: whereClause,
+      // Business logic: Select only fields needed for CSV export
+      attributes: [
+        'first_name', 'last_name', 'school_name', 'school_district', 'position',
+        'city', 'state', 'email', 'phone', 'years_coaching', 'school_classification',
+        'relationship_type', 'players_sent_count', 'last_contact_date', 'status'
+      ],
+      // Business logic: Sort alphabetically by name for consistent export
+      order: [['last_name', 'ASC'], ['first_name', 'ASC']]
+    });
+
+    // Business logic: Define CSV column configuration
+    const columns = [
+      { label: 'First Name', key: 'first_name' },
+      { label: 'Last Name', key: 'last_name' },
+      { label: 'School Name', key: 'school_name' },
+      { label: 'School District', key: 'school_district' },
+      { label: 'Position', key: 'position' },
+      { label: 'City', key: 'city' },
+      { label: 'State', key: 'state' },
+      { label: 'Email', key: 'email' },
+      { label: 'Phone', key: 'phone' },
+      { label: 'Years Coaching', key: 'years_coaching' },
+      { label: 'Classification', key: 'school_classification' },
+      { label: 'Relationship Type', key: 'relationship_type' },
+      { label: 'Players Sent', key: 'players_sent_count' },
+      { label: 'Last Contact Date', key: 'last_contact_date' },
+      { label: 'Status', key: 'status' }
+    ];
+
+    // Business logic: Convert high school coach data to CSV format
+    const csv = arrayToCSV(coaches, columns);
+
+    // Business logic: Generate filename with current date
+    const filename = generateFilename('high-school-coaches');
+
+    // Response: Set headers for CSV file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    // Error: Database query failure or CSV generation failure
+    console.error('Export high school coaches CSV error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting high school coaches to CSV'
     });
   }
 });
