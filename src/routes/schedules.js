@@ -21,9 +21,10 @@
  */
 
 const express = require('express');
-const { body, validationResult, query } = require('express-validator');
+const { body, query } = require('express-validator');
 const { Schedule, ScheduleSection, ScheduleActivity, User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
+const { handleValidationErrors } = require('../middleware/validation');
 const router = express.Router();
 
 // Middleware: Apply JWT authentication to all routes in this file
@@ -69,24 +70,6 @@ const validateActivity = [
   body('time').notEmpty().withMessage('Time is required'),
   body('activity').notEmpty().withMessage('Activity is required')
 ];
-
-/**
- * @description Helper middleware to check validation results from express-validator.
- * Returns 400 error with validation details if any validation rules failed.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      error: 'Validation failed',
-      details: errors.array()
-    });
-  }
-  next();
-};
 
 /**
  * @route GET /api/schedules
