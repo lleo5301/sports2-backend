@@ -61,9 +61,10 @@
  */
 
 const express = require('express');
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
+const { handleValidationErrors } = require('../middleware/validation');
 const { Location, User } = require('../models');
 const { Op } = require('sequelize');
 
@@ -138,31 +139,6 @@ const validateLocationUpdate = [
   body('is_active').optional().isBoolean().withMessage('is_active must be a boolean'),
   body('is_home_venue').optional().isBoolean().withMessage('is_home_venue must be a boolean')
 ];
-
-/**
- * Helper function to handle validation errors from express-validator.
- * Checks for validation errors and returns a 400 response if found.
- *
- * @function handleValidationErrors
- * @description Express middleware that processes validation results
- *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- *
- * @returns {Object|void} Returns 400 error response if validation fails, otherwise calls next()
- */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array()
-    });
-  }
-  next();
-};
 
 // Middleware: Apply JWT authentication to all routes in this file
 // All subsequent routes require a valid JWT token in the Authorization header
@@ -345,18 +321,11 @@ router.get('/', async (req, res) => {
  *   }
  * }
  */
-router.get('/:id', param('id').isInt().withMessage('Location ID must be an integer'), async (req, res) => {
+router.get('/:id',
+  param('id').isInt().withMessage('Location ID must be an integer'),
+  handleValidationErrors,
+  async (req, res) => {
   try {
-    // Validation: Check for validation errors from express-validator
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid location ID',
-        errors: errors.array()
-      });
-    }
-
     // Database: Find location by ID, scoped to user's team
     // Multi-tenant isolation: Only returns location if team_id matches
     const location = await Location.findOne({
