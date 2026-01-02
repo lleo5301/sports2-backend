@@ -1,7 +1,7 @@
 const express = require('express');
 const emailService = require('../services/emailService');
 const { body, validationResult } = require('express-validator');
-const { passwordValidator } = require('../utils/passwordValidator');
+const { passwordValidator, newPasswordValidator } = require('../utils/passwordValidator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const { User, Team, UserTeam } = require('../models');
@@ -290,7 +290,7 @@ router.put('/me', protect, [
 // @access  Private
 router.put('/change-password', protect, [
   body('current_password').exists(),
-  body('new_password').isLength({ min: 6 })
+  newPasswordValidator
 ], async (req, res) => {
   try {
     // Check for validation errors
