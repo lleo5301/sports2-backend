@@ -1,6 +1,7 @@
 const express = require('express');
 const emailService = require('../services/emailService');
 const { body, param, validationResult } = require('express-validator');
+const { newPasswordCamelValidator } = require('../utils/passwordValidator');
 const { protect } = require('../middleware/auth');
 const { User, Team } = require('../models');
 const bcrypt = require('bcryptjs');
@@ -51,7 +52,7 @@ const validateSecuritySettings = [
 
 const validatePasswordChange = [
   body('currentPassword').isLength({ min: 6 }).withMessage('Current password must be at least 6 characters'),
-  body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters'),
+  newPasswordCamelValidator,
   body('confirmPassword').custom((value, { req }) => {
     if (value !== req.body.newPassword) {
       throw new Error('Password confirmation does not match password');
