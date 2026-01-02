@@ -38,6 +38,7 @@ const { body, param, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { protect } = require('../middleware/auth');
 const { Game, Team, Player } = require('../models');
+const { createSortValidators, buildOrderClause } = require('../utils/sorting');
 
 const router = express.Router();
 
@@ -99,15 +100,18 @@ const validateGame = [
 /**
  * @route GET /api/games
  * @description Retrieves all games for the authenticated user's team with pagination.
- *              Supports filtering by season and result. Games are sorted by date descending
- *              (most recent first).
+ *              Supports filtering by season and result. Supports configurable sorting
+ *              via orderBy and sortDirection query parameters.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
+ * @middleware express-validator - Query parameter validation for sorting
  *
  * @param {number} [req.query.page=1] - Page number for pagination (1-indexed)
  * @param {number} [req.query.limit=20] - Number of games per page (default 20)
  * @param {string} [req.query.season] - Optional filter by season (e.g., "2024")
  * @param {string} [req.query.result] - Optional filter by result ('W', 'L', or 'T')
+ * @param {string} [req.query.orderBy=game_date] - Column to sort by (game_date, opponent, home_away, result, team_score, opponent_score, season, created_at)
+ * @param {string} [req.query.sortDirection=DESC] - Sort direction ('ASC' or 'DESC', case-insensitive)
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
@@ -129,14 +133,32 @@ const validateGame = [
  * @returns {number} response.pagination.total - Total number of games
  * @returns {number} response.pagination.pages - Total number of pages
  *
+ * @throws {400} Validation error - Invalid orderBy column or sortDirection value
  * @throws {500} Server error - Database query failure
  */
-router.get('/', async (req, res) => {
+router.get('/', createSortValidators('games'), async (req, res) => {
   try {
+    // Validation: Check for validation errors from express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
     // Pagination: Parse page and limit from query params with defaults
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
+
+    const {
+      season,
+      result,
+      orderBy,
+      sortDirection
+    } = req.query;
 
     // Permission: Filter games to user's team only (multi-tenant isolation)
     const whereClause = {
@@ -144,20 +166,22 @@ router.get('/', async (req, res) => {
     };
 
     // Business logic: Apply optional season filter
-    if (req.query.season) {
-      whereClause.season = req.query.season;
+    if (season) {
+      whereClause.season = season;
     }
 
     // Business logic: Apply optional result filter (W/L/T)
-    if (req.query.result) {
-      whereClause.result = req.query.result;
+    if (result) {
+      whereClause.result = result;
     }
+
+    // Business logic: Build dynamic order clause from query parameters (defaults to game_date DESC)
+    const orderClause = buildOrderClause('games', orderBy, sortDirection);
 
     // Database: Fetch games with team association and pagination
     const games = await Game.findAndCountAll({
       where: whereClause,
-      // Business logic: Sort by game date descending (most recent first)
-      order: [['game_date', 'DESC']],
+      order: orderClause,
       limit,
       offset,
       include: [
