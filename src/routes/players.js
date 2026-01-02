@@ -19,6 +19,7 @@ const { Player, Team, User, ScoutingReport } = require('../models');
 const { protect } = require('../middleware/auth');
 const { sequelize } = require('../config/database');
 const { uploadVideo, handleUploadError } = require('../middleware/upload');
+const { createSortValidators, buildOrderClause } = require('../utils/sorting');
 const path = require('path');
 const fs = require('fs');
 
@@ -33,13 +34,17 @@ router.use(protect);
  * @description Retrieves a paginated list of players belonging to the authenticated user's team.
  *              Supports filtering by school type, position, status, and free-text search.
  *              Search performs case-insensitive matching across first_name, last_name, school, city, and state.
+ *              Supports configurable sorting via orderBy and sortDirection query parameters.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
+ * @middleware express-validator - Query parameter validation for sorting
  *
  * @param {string} [req.query.school_type] - Filter by school type ('HS' for high school, 'COLL' for college)
  * @param {string} [req.query.position] - Filter by position ('P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'OF', 'DH')
  * @param {string} [req.query.status] - Filter by player status ('active', 'inactive', 'graduated', 'transferred')
  * @param {string} [req.query.search] - Free-text search across name, school, city, and state fields
+ * @param {string} [req.query.orderBy=created_at] - Column to sort by (first_name, last_name, position, school_type, graduation_year, created_at, status)
+ * @param {string} [req.query.sortDirection=DESC] - Sort direction ('ASC' or 'DESC', case-insensitive)
  * @param {number} [req.query.page=1] - Page number for pagination (1-indexed)
  * @param {number} [req.query.limit=20] - Number of records per page
  *
@@ -52,15 +57,28 @@ router.use(protect);
  * @returns {number} response.pagination.total - Total number of matching records
  * @returns {number} response.pagination.pages - Total number of pages
  *
+ * @throws {400} Validation error - Invalid orderBy column or sortDirection value
  * @throws {500} Server error - Database query failure
  */
-router.get('/', async (req, res) => {
+router.get('/', createSortValidators('players'), async (req, res) => {
   try {
+    // Validation: Check for validation errors from express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
     const {
       school_type,
       position,
       status,
       search,
+      orderBy,
+      sortDirection,
       page = 1,
       limit = 20
     } = req.query;
@@ -97,7 +115,10 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    // Database: Fetch players with count for pagination, ordered by newest first
+    // Business logic: Build dynamic order clause from query parameters (defaults to created_at DESC)
+    const orderClause = buildOrderClause('players', orderBy, sortDirection);
+
+    // Database: Fetch players with count for pagination, ordered by user-specified criteria
     const { count, rows: players } = await Player.findAndCountAll({
       where: whereClause,
       include: [
@@ -111,7 +132,7 @@ router.get('/', async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: [['created_at', 'DESC']],
+      order: orderClause,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
