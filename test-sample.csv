@@ -1,0 +1,5 @@
+First Name,Last Name,Position,School Type,School,City,State,Email,Phone,Status,Graduation Year
+John,Smith,P,HS,Lincoln High School,Boston,MA,john.smith@example.com,555-1234,active,2025
+Mike,"Johnson, Jr.",C,COLL,State University,Austin,TX,,555-5678,committed,2024
+Sarah,"O'Brien",SS,HS,"Washington High, West Campus",Seattle,WA,sarah.obrien@example.com,555-9999,active,2026
+Tom,Davis,1B,COLL,"University of ""Excellence""",Portland,OR,tdavis@example.com,555-1111,graduated,2023
