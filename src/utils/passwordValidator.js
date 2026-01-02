@@ -139,6 +139,87 @@ const expressValidatorCheck = (password) => {
   return true;
 };
 
+/**
+ * Import express-validator body function for creating validators
+ * Using lazy loading to avoid issues when module is used without express-validator
+ */
+let body;
+try {
+  body = require('express-validator').body;
+} catch {
+  body = null;
+}
+
+/**
+ * Create an express-validator chain for password validation on a specific field
+ * @param {string} fieldName - The name of the field to validate (default: 'password')
+ * @returns {Object} Express-validator validation chain
+ * @throws {Error} If express-validator is not installed
+ *
+ * @example
+ * // In routes file:
+ * const { createPasswordValidator } = require('../utils/passwordValidator');
+ *
+ * router.post('/register', [
+ *   body('email').isEmail(),
+ *   createPasswordValidator('password'),
+ * ], handler);
+ */
+const createPasswordValidator = (fieldName = 'password') => {
+  if (!body) {
+    throw new Error('express-validator is required for createPasswordValidator');
+  }
+
+  return body(fieldName)
+    .exists({ checkFalsy: true })
+    .withMessage('Password is required')
+    .isString()
+    .withMessage('Password must be a string')
+    .custom(expressValidatorCheck);
+};
+
+/**
+ * Pre-built express-validator for 'password' field
+ * Usage: router.post('/register', [passwordValidator, ...], handler)
+ *
+ * @example
+ * const { passwordValidator } = require('../utils/passwordValidator');
+ *
+ * router.post('/register', [
+ *   body('email').isEmail(),
+ *   passwordValidator,
+ * ], handler);
+ */
+const passwordValidator = body ? createPasswordValidator('password') : null;
+
+/**
+ * Pre-built express-validator for 'new_password' field (auth routes)
+ * Usage: router.put('/change-password', [newPasswordValidator, ...], handler)
+ *
+ * @example
+ * const { newPasswordValidator } = require('../utils/passwordValidator');
+ *
+ * router.put('/change-password', [
+ *   body('current_password').exists(),
+ *   newPasswordValidator,
+ * ], handler);
+ */
+const newPasswordValidator = body ? createPasswordValidator('new_password') : null;
+
+/**
+ * Pre-built express-validator for 'newPassword' field (settings routes)
+ * Usage: router.put('/settings/change-password', [newPasswordCamelValidator, ...], handler)
+ *
+ * @example
+ * const { newPasswordCamelValidator } = require('../utils/passwordValidator');
+ *
+ * router.put('/settings/change-password', [
+ *   body('currentPassword').exists(),
+ *   newPasswordCamelValidator,
+ * ], handler);
+ */
+const newPasswordCamelValidator = body ? createPasswordValidator('newPassword') : null;
+
 module.exports = {
   // Constants
   PASSWORD_MIN_LENGTH,
@@ -158,5 +239,11 @@ module.exports = {
   getPasswordRequirements,
   validatePassword,
   isPasswordValid,
-  expressValidatorCheck
+  expressValidatorCheck,
+
+  // Express-validator integration
+  createPasswordValidator,
+  passwordValidator,
+  newPasswordValidator,
+  newPasswordCamelValidator
 };
