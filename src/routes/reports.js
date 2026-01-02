@@ -47,7 +47,7 @@ const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
-const { Report, Player, Team, ScoutingReport, User } = require('../models');
+const { Report, Player, Team, ScoutingReport, User, Coach } = require('../models');
 const { Op } = require('sequelize');
 const { arrayToCSV, generateFilename } = require('../utils/csvExport');
 
@@ -1505,6 +1505,97 @@ router.get('/export/players', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error exporting players to CSV'
+    });
+  }
+});
+
+/**
+ * @route GET /api/reports/export/coaches
+ * @description Exports coach data to CSV format with optional filtering.
+ *              Uses the same filtering options as the /api/coaches endpoint.
+ *              Fetches ALL matching coaches (no pagination) and returns as a downloadable CSV file.
+ *              CSV includes: first_name, last_name, school_name, position, email, phone,
+ *              last_contact_date, next_contact_date, status.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} [req.query.status] - Filter by coach status ('active' | 'inactive')
+ * @param {string} [req.query.position] - Filter by position ('Head Coach' | 'Recruiting Coordinator' | 'Pitching Coach' | 'Volunteer')
+ * @param {string} [req.query.search] - Free-text search across first_name, last_name, school_name, and email fields
+ *
+ * @returns {string} CSV file - Content-Type: text/csv with Content-Disposition header
+ *
+ * @throws {500} Server error - Database query failure or CSV generation failure
+ */
+router.get('/export/coaches', async (req, res) => {
+  try {
+    const { status, position, search } = req.query;
+
+    // Permission: Team isolation - only export coaches belonging to user's team
+    const whereClause = {
+      team_id: req.user.team_id
+    };
+
+    // Business logic: Apply optional filters when provided
+    if (status) {
+      whereClause.status = status;
+    }
+
+    if (position) {
+      whereClause.position = position;
+    }
+
+    // Business logic: Free-text search using case-insensitive ILIKE across multiple fields
+    if (search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { school_name: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    // Database: Fetch ALL coaches matching the criteria (no pagination for export)
+    const coaches = await Coach.findAll({
+      where: whereClause,
+      // Business logic: Select only fields needed for CSV export
+      attributes: [
+        'first_name', 'last_name', 'school_name', 'position', 'email',
+        'phone', 'last_contact_date', 'next_contact_date', 'status'
+      ],
+      // Business logic: Sort alphabetically by name for consistent export
+      order: [['last_name', 'ASC'], ['first_name', 'ASC']]
+    });
+
+    // Business logic: Define CSV column configuration
+    const columns = [
+      { label: 'First Name', key: 'first_name' },
+      { label: 'Last Name', key: 'last_name' },
+      { label: 'School Name', key: 'school_name' },
+      { label: 'Position', key: 'position' },
+      { label: 'Email', key: 'email' },
+      { label: 'Phone', key: 'phone' },
+      { label: 'Last Contact Date', key: 'last_contact_date' },
+      { label: 'Next Contact Date', key: 'next_contact_date' },
+      { label: 'Status', key: 'status' }
+    ];
+
+    // Business logic: Convert coach data to CSV format
+    const csv = arrayToCSV(coaches, columns);
+
+    // Business logic: Generate filename with current date
+    const filename = generateFilename('coaches');
+
+    // Response: Set headers for CSV file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    // Error: Database query failure or CSV generation failure
+    console.error('Export coaches CSV error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting coaches to CSV'
     });
   }
 });
