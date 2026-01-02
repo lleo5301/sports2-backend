@@ -19,6 +19,7 @@ const { Player, Team, User, ScoutingReport } = require('../models');
 const { protect } = require('../middleware/auth');
 const { sequelize } = require('../config/database');
 const { uploadVideo, handleUploadError } = require('../middleware/upload');
+const notificationService = require('../services/notificationService');
 const path = require('path');
 const fs = require('fs');
 
@@ -307,6 +308,14 @@ router.post('/', uploadVideo, [
         }
       ]
     });
+
+    // Notification: Fire-and-forget notification to team members
+    // This does not block the response - errors are handled gracefully in the service
+    notificationService.sendPlayerAddedNotification(
+      createdPlayer,
+      req.user.team_id,
+      req.user.id
+    );
 
     res.status(201).json({
       success: true,
