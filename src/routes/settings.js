@@ -34,9 +34,10 @@
 
 const express = require('express');
 const emailService = require('../services/emailService');
-const { body, param, validationResult } = require('express-validator');
+const { body, param } = require('express-validator');
 const { newPasswordCamelValidator } = require('../utils/passwordValidator');
 const { protect } = require('../middleware/auth');
+const { handleValidationErrors } = require('../middleware/validation');
 const { User, Team } = require('../models');
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
@@ -180,28 +181,6 @@ const validatePrivacySettings = [
   body('allowAnalytics').optional().isBoolean().withMessage('Allow analytics must be a boolean'),
   body('allowMarketing').optional().isBoolean().withMessage('Allow marketing must be a boolean')
 ];
-
-/**
- * @description Helper function to handle express-validator validation results.
- * Checks for validation errors and returns a 400 response with error details if any are found.
- * If validation passes, calls next() to continue to the route handler.
- *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- * @returns {Object|void} Returns 400 response on validation failure, otherwise calls next()
- */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array()
-    });
-  }
-  next();
-};
 
 // Middleware: Apply JWT authentication to all routes in this file
 // All subsequent routes require a valid JWT token in the Authorization header
