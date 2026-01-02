@@ -11,7 +11,8 @@
     "test:api": "mocha test-api-routes.js --timeout 30000",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:seed": "npx sequelize-cli db:seed:all",
-    "db:reset": "npx sequelize-cli db:drop && npx sequelize-cli db:create && npm run db:migrate && npm run db:seed"
+    "db:reset": "npx sequelize-cli db:drop && npx sequelize-cli db:create && npm run db:migrate && npm run db:seed",
+    "generate:jwt-secret": "node ../scripts/generate-jwt-secret.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

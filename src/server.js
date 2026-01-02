@@ -12,6 +12,10 @@ const path = require('path');
 const { sequelize } = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 const notFound = require('./middleware/notFound');
+const {
+  validateJwtSecret,
+  getSecretGenerationInstructions
+} = require('./utils/jwtSecretValidator');
 
 // Import OAuth configuration
 require('./config/oauth');
@@ -112,6 +116,36 @@ app.use(errorHandler);
 // Database connection and server startup
 const startServer = async () => {
   try {
+    // Validate JWT_SECRET before proceeding with startup
+    const jwtValidation = validateJwtSecret(process.env.JWT_SECRET);
+    const nodeEnv = process.env.NODE_ENV || 'development';
+    const isStrictMode = ['production', 'staging'].includes(nodeEnv);
+
+    if (!jwtValidation.valid) {
+      console.error('\n❌ JWT_SECRET SECURITY ERROR');
+      console.error('═'.repeat(50));
+      jwtValidation.errors.forEach(err => {
+        console.error(`  • ${err}`);
+      });
+      console.error('═'.repeat(50));
+      console.error('\n' + getSecretGenerationInstructions());
+      console.error('');
+
+      if (isStrictMode) {
+        console.error(`\n🛑 Server startup aborted. Fix JWT_SECRET before deploying to ${nodeEnv}.\n`);
+        process.exit(1);
+      } else {
+        console.warn('\n⚠️  WARNING: Starting server with weak JWT_SECRET (development mode only)');
+        console.warn('   DO NOT deploy to production with this configuration!\n');
+      }
+    } else if (jwtValidation.warnings.length > 0) {
+      console.warn('\n⚠️  JWT_SECRET warnings:');
+      jwtValidation.warnings.forEach(warn => {
+        console.warn(`  • ${warn}`);
+      });
+      console.warn('');
+    }
+
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully.');
     
@@ -132,7 +166,13 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Only start the server when this file is run directly (not when imported for testing)
+if (require.main === module) {
+  startServer();
+}
+
+// Export app for testing
+module.exports = app;
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
