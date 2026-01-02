@@ -131,7 +131,11 @@ const validateGame = [
  *
  * @throws {500} Server error - Database query failure
  */
-router.get('/', async (req, res) => {
+router.get('/', [
+  // Validation: Search must be a string if provided
+  query('search').optional().isString().withMessage('Search must be a string'),
+  handleValidationErrors
+], async (req, res) => {
   try {
     // Pagination: Parse page and limit from query params with defaults
     const page = parseInt(req.query.page) || 1;
