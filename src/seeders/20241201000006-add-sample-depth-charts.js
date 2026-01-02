@@ -7,7 +7,7 @@ module.exports = {
       'SELECT id FROM teams LIMIT 1',
       { type: Sequelize.QueryTypes.SELECT }
     );
-    
+
     const teamId = teams[0]?.id || 1;
     const now = new Date();
 
@@ -170,9 +170,9 @@ module.exports = {
     // Get player IDs for assignment
     const players = await queryInterface.sequelize.query(
       'SELECT id, position FROM players WHERE team_id = ? AND status = ? ORDER BY id',
-      { 
+      {
         replacements: [teamId, 'active'],
-        type: Sequelize.QueryTypes.SELECT 
+        type: Sequelize.QueryTypes.SELECT
       }
     );
 
@@ -217,4 +217,4 @@ module.exports = {
     await queryInterface.bulkDelete('depth_chart_positions', null, {});
     await queryInterface.bulkDelete('depth_charts', null, {});
   }
-}; 
+};

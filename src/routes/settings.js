@@ -489,13 +489,27 @@ router.put('/account',
       // Business logic: Build update object from provided fields only
       // Maps camelCase request body to snake_case database columns
       const updateData = {};
-      if (req.body.firstName) updateData.first_name = req.body.firstName;
-      if (req.body.lastName) updateData.last_name = req.body.lastName;
-      if (req.body.email) updateData.email = req.body.email;
-      if (req.body.phone) updateData.phone = req.body.phone;
-      if (req.body.bio) updateData.bio = req.body.bio;
-      if (req.body.location) updateData.location = req.body.location;
-      if (req.body.website) updateData.website = req.body.website;
+      if (req.body.firstName) {
+        updateData.first_name = req.body.firstName;
+      }
+      if (req.body.lastName) {
+        updateData.last_name = req.body.lastName;
+      }
+      if (req.body.email) {
+        updateData.email = req.body.email;
+      }
+      if (req.body.phone) {
+        updateData.phone = req.body.phone;
+      }
+      if (req.body.bio) {
+        updateData.bio = req.body.bio;
+      }
+      if (req.body.location) {
+        updateData.location = req.body.location;
+      }
+      if (req.body.website) {
+        updateData.website = req.body.website;
+      }
 
       // Database: Persist account changes
       await user.update(updateData);

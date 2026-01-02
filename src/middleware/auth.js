@@ -49,4 +49,4 @@ const isSameTeam = (req, res, next) => {
   }
 };
 
-module.exports = { protect, isHeadCoach, isSameTeam }; 
+module.exports = { protect, isHeadCoach, isSameTeam };

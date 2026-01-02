@@ -72,4 +72,4 @@ const DepthChartPosition = sequelize.define('DepthChartPosition', {
   ]
 });
 
-module.exports = DepthChartPosition; 
+module.exports = DepthChartPosition;

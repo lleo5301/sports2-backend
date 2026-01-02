@@ -11,7 +11,7 @@ describe('Schedule Templates API', () => {
   beforeAll(async () => {
     // Ensure database connection
     await sequelize.authenticate();
-    
+
     // Create test team
     testTeam = await Team.create({
       name: 'Test Team',

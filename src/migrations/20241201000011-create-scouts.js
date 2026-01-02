@@ -104,7 +104,7 @@ module.exports = {
     await queryInterface.removeIndex('scouts', 'scouts_status_idx');
     await queryInterface.removeIndex('scouts', 'scouts_organization_name_idx');
     await queryInterface.removeIndex('scouts', 'scouts_team_id_idx');
-    
+
     await queryInterface.dropTable('scouts');
   }
 };

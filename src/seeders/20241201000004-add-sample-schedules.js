@@ -7,7 +7,7 @@ module.exports = {
       'SELECT id FROM teams LIMIT 1',
       { type: Sequelize.QueryTypes.SELECT }
     );
-    
+
     const teamId = teams[0]?.id || 1;
     const now = new Date();
 
@@ -223,4 +223,4 @@ module.exports = {
     await queryInterface.bulkDelete('schedule_sections', null, {});
     await queryInterface.bulkDelete('schedules', null, {});
   }
-}; 
+};

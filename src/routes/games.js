@@ -721,9 +721,13 @@ router.get('/season-stats', [
       acc[season].gamesPlayed++;
 
       // Count by result type
-      if (game.result === 'W') acc[season].wins++;
-      else if (game.result === 'L') acc[season].losses++;
-      else if (game.result === 'T') acc[season].ties++;
+      if (game.result === 'W') {
+        acc[season].wins++;
+      } else if (game.result === 'L') {
+        acc[season].losses++;
+      } else if (game.result === 'T') {
+        acc[season].ties++;
+      }
 
       // Accumulate scores (handle null with default 0)
       acc[season].totalRunsScored += game.team_score || 0;

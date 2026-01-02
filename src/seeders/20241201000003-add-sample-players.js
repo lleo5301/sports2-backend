@@ -8,7 +8,7 @@ module.exports = {
       'SELECT id FROM teams LIMIT 1',
       { type: Sequelize.QueryTypes.SELECT }
     );
-    
+
     const teamId = teams[0]?.id || 1;
     // Try to use an existing user as creator if available; otherwise leave null to avoid FK errors
     // Ensure a default user exists to satisfy FK constraints on created_by
@@ -327,4 +327,4 @@ module.exports = {
   down: async (queryInterface, Sequelize) => {
     await queryInterface.bulkDelete('players', null, {});
   }
-}; 
+};

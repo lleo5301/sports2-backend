@@ -854,7 +854,7 @@ router.get('/performance', [
         // Calculated statistics for data analysis
         calculated_stats: {
           win_pct: winPct,
-          k9: k9,
+          k9,
           performance_score: Math.round(performanceScore * 10) / 10
         },
         // Formatted statistics for display in UI
@@ -913,4 +913,4 @@ router.get('/performance', [
   }
 });
 
-module.exports = router; 
+module.exports = router;

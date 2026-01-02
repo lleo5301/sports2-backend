@@ -84,4 +84,4 @@ const Team = sequelize.define('Team', {
   tableName: 'teams'
 });
 
-module.exports = Team; 
+module.exports = Team;

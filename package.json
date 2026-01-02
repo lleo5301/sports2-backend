@@ -7,6 +7,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "build": "echo 'No build step required for Node.js'",
+    "lint": "eslint src --max-warnings 0",
+    "lint:fix": "eslint src --fix",
     "test": "jest --coverage",
     "test:api": "mocha test-api-routes.js --timeout 30000",
     "db:migrate": "npx sequelize-cli db:migrate",

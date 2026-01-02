@@ -686,7 +686,7 @@ router.delete('/:id',
       const eventsUsingLocation = await ScheduleEvent.count({
         where: {
           [Op.or]: [
-            { location_id: req.params.id },
+            { location_id: req.params.id }
           ]
         }
       });

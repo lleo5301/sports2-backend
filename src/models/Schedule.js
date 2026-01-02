@@ -55,4 +55,4 @@ const Schedule = sequelize.define('Schedule', {
   underscored: true
 });
 
-module.exports = Schedule; 
+module.exports = Schedule;

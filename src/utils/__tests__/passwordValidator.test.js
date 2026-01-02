@@ -203,7 +203,7 @@ describe('passwordValidator', () => {
         'Test_Pass1',
         'Hello123$World',
         '!Abc1234',
-        'Passw0rd@',
+        'Passw0rd@'
       ];
 
       validPasswords.forEach((password) => {
@@ -275,7 +275,7 @@ describe('passwordValidator', () => {
         'abc123',
         'letmein',
         'admin',
-        'iloveyou',
+        'iloveyou'
       ];
 
       weakPasswords.forEach((password) => {

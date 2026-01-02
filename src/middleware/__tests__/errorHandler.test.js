@@ -27,5 +27,3 @@ describe('errorHandler', () => {
     expect(response.status).toHaveBeenCalledWith(400);
   });
 });
-
-

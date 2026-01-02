@@ -37,11 +37,11 @@ const HighSchoolCoach = sequelize.define('HighSchoolCoach', {
   },
   position: {
     type: DataTypes.ENUM(
-      'Head Coach', 
-      'Assistant Coach', 
-      'JV Coach', 
-      'Freshman Coach', 
-      'Pitching Coach', 
+      'Head Coach',
+      'Assistant Coach',
+      'JV Coach',
+      'Freshman Coach',
+      'Pitching Coach',
       'Hitting Coach'
     ),
     allowNull: false

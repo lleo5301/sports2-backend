@@ -28,13 +28,15 @@ module.exports = {
     }
 
     // Make password nullable for OAuth users
-    try { await queryInterface.changeColumn('users', 'password', {
-      type: Sequelize.STRING,
-      allowNull: true,
-      validate: {
-        len: [6, 100]
-      }
-    }); } catch (e) {}
+    try {
+      await queryInterface.changeColumn('users', 'password', {
+        type: Sequelize.STRING,
+        allowNull: true,
+        validate: {
+          len: [6, 100]
+        }
+      });
+    } catch (e) {}
 
     // Add unique constraint for oauth_provider + oauth_id combination
     try {
@@ -54,7 +56,7 @@ module.exports = {
     await queryInterface.removeColumn('users', 'avatar_url');
     await queryInterface.removeColumn('users', 'oauth_id');
     await queryInterface.removeColumn('users', 'oauth_provider');
-    
+
     // Restore password as required
     await queryInterface.changeColumn('users', 'password', {
       type: Sequelize.STRING,
@@ -64,4 +66,4 @@ module.exports = {
       }
     });
   }
-}; 
+};

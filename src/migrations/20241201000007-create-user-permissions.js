@@ -97,11 +97,13 @@ module.exports = {
     });
 
     // Add indexes
-    try { await queryInterface.addIndex('user_permissions', ['user_id']); } catch (e) {}
+    try {
+      await queryInterface.addIndex('user_permissions', ['user_id']);
+    } catch (e) {}
     await queryInterface.addIndex('user_permissions', ['team_id']);
     await queryInterface.addIndex('user_permissions', ['permission_type']);
     await queryInterface.addIndex('user_permissions', ['is_granted']);
-    
+
     // Add unique constraint
     await queryInterface.addConstraint('user_permissions', {
       fields: ['user_id', 'team_id', 'permission_type'],
@@ -113,4 +115,4 @@ module.exports = {
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('user_permissions');
   }
-}; 
+};

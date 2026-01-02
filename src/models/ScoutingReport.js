@@ -175,4 +175,4 @@ const ScoutingReport = sequelize.define('ScoutingReport', {
   tableName: 'scouting_reports'
 });
 
-module.exports = ScoutingReport; 
+module.exports = ScoutingReport;

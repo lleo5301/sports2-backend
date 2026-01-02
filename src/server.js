@@ -84,10 +84,10 @@ if (process.env.NODE_ENV === 'development') {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
+    environment: process.env.NODE_ENV
   });
 });
 
@@ -148,13 +148,13 @@ const startServer = async () => {
 
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully.');
-    
+
     // Sync database (in development and staging)
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'staging') {
       await sequelize.sync({ alter: true });
       console.log('✅ Database synchronized.');
     }
-    
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV}`);

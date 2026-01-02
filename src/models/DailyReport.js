@@ -175,4 +175,4 @@ const DailyReport = sequelize.define('DailyReport', {
   tableName: 'daily_reports'
 });
 
-module.exports = DailyReport; 
+module.exports = DailyReport;

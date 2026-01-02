@@ -91,4 +91,4 @@ const UserPermission = sequelize.define('UserPermission', {
   ]
 });
 
-module.exports = UserPermission; 
+module.exports = UserPermission;

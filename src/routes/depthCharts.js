@@ -1221,7 +1221,7 @@ router.get('/:id/recommended-players/:positionId',
       // Business logic: Score each player based on position fit and performance
       const scoredPlayers = allPlayers.map(player => {
         let score = 0;
-        let reasons = [];
+        const reasons = [];
 
         // Scoring component 1: Position match
         if (player.position && position.position_code) {
@@ -1522,7 +1522,7 @@ router.get('/byId/:id/recommended-players/:positionId',
       // Business logic: Score each player based on position fit and performance
       const scoredPlayers = allPlayers.map(player => {
         let score = 0;
-        let reasons = [];
+        const reasons = [];
 
         // Scoring component 1: Position match
         if (player.position && position.position_code) {

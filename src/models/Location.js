@@ -47,12 +47,12 @@ const Location = sequelize.define('Location', {
   },
   location_type: {
     type: DataTypes.ENUM(
-      'field', 
-      'gym', 
-      'facility', 
-      'stadium', 
-      'practice_field', 
-      'batting_cage', 
+      'field',
+      'gym',
+      'facility',
+      'stadium',
+      'practice_field',
+      'batting_cage',
       'weight_room',
       'classroom',
       'other'
@@ -140,7 +140,3 @@ const Location = sequelize.define('Location', {
 });
 
 module.exports = Location;
-
-
-
-

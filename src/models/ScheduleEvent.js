@@ -157,7 +157,3 @@ const ScheduleEvent = sequelize.define('ScheduleEvent', {
 });
 
 module.exports = ScheduleEvent;
-
-
-
-

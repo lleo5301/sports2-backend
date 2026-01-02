@@ -45,4 +45,4 @@ const ScheduleSection = sequelize.define('ScheduleSection', {
   underscored: true
 });
 
-module.exports = ScheduleSection; 
+module.exports = ScheduleSection;

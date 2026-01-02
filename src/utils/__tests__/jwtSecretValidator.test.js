@@ -6,7 +6,7 @@ const {
   calculateEntropyScore,
   isRepetitivePattern,
   PLACEHOLDER_PATTERNS,
-  BLOCKED_VALUES,
+  BLOCKED_VALUES
 } = require('../jwtSecretValidator');
 
 // Generate a secure test secret (64 hex chars = 32 bytes = 256 bits)

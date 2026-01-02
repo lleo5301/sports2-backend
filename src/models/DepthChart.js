@@ -72,4 +72,4 @@ const DepthChart = sequelize.define('DepthChart', {
   ]
 });
 
-module.exports = DepthChart; 
+module.exports = DepthChart;

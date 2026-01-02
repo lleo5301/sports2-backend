@@ -49,4 +49,4 @@ module.exports = {
       idle: 10000
     }
   }
-}; 
+};

@@ -61,4 +61,4 @@ module.exports = {
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('schedule_sections');
   }
-}; 
+};

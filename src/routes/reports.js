@@ -790,7 +790,6 @@ router.get('/team-statistics', async (req, res) => {
   }
 });
 
-
 /**
  * @route GET /api/reports/recruitment-pipeline
  * @description Retrieves recruitment pipeline data with prospect stages.
@@ -995,9 +994,13 @@ router.get('/player-performance', checkPermission('reports_view'), async (req, r
     };
 
     // Filter: Optionally filter by position
-    if (position) whereClause.position = position;
+    if (position) {
+      whereClause.position = position;
+    }
     // Filter: Optionally filter by school type
-    if (school_type) whereClause.school_type = school_type;
+    if (school_type) {
+      whereClause.school_type = school_type;
+    }
 
     // Database: Fetch players with comprehensive performance stats
     const players = await Player.findAll({
@@ -1076,7 +1079,9 @@ router.get('/team-statistics', checkPermission('reports_view'), async (req, res)
     // Business logic: Build where clause for games
     const whereClause = { team_id: req.user.team_id };
     // Filter: Optionally filter by season
-    if (season) whereClause.season = season;
+    if (season) {
+      whereClause.season = season;
+    }
 
     // Database: Fetch team games for win/loss record
     const games = await Game.findAll({ where: whereClause });

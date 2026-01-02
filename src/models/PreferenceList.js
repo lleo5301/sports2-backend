@@ -123,4 +123,4 @@ const PreferenceList = sequelize.define('PreferenceList', {
   ]
 });
 
-module.exports = PreferenceList; 
+module.exports = PreferenceList;

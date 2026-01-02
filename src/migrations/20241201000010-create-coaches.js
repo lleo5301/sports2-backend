@@ -96,7 +96,7 @@ module.exports = {
     await queryInterface.removeIndex('coaches', 'coaches_status_idx');
     await queryInterface.removeIndex('coaches', 'coaches_school_name_idx');
     await queryInterface.removeIndex('coaches', 'coaches_team_id_idx');
-    
+
     await queryInterface.dropTable('coaches');
   }
 };

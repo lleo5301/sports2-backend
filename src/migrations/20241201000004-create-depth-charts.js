@@ -78,13 +78,21 @@ module.exports = {
     });
 
     // Add indexes (with guards)
-    try { await queryInterface.addIndex('depth_charts', ['team_id']); } catch (e) {}
-    try { await queryInterface.addIndex('depth_charts', ['created_by']); } catch (e) {}
-    try { await queryInterface.addIndex('depth_charts', ['is_active']); } catch (e) {}
-    try { await queryInterface.addIndex('depth_charts', ['effective_date']); } catch (e) {}
+    try {
+      await queryInterface.addIndex('depth_charts', ['team_id']);
+    } catch (e) {}
+    try {
+      await queryInterface.addIndex('depth_charts', ['created_by']);
+    } catch (e) {}
+    try {
+      await queryInterface.addIndex('depth_charts', ['is_active']);
+    } catch (e) {}
+    try {
+      await queryInterface.addIndex('depth_charts', ['effective_date']);
+    } catch (e) {}
   },
 
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('depth_charts');
   }
-}; 
+};

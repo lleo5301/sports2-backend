@@ -47,13 +47,13 @@ module.exports = {
       },
       vendor_type: {
         type: Sequelize.ENUM(
-          'Equipment', 
-          'Apparel', 
-          'Technology', 
-          'Food Service', 
-          'Transportation', 
-          'Medical', 
-          'Facilities', 
+          'Equipment',
+          'Apparel',
+          'Technology',
+          'Food Service',
+          'Transportation',
+          'Medical',
+          'Facilities',
           'Other'
         ),
         allowNull: false

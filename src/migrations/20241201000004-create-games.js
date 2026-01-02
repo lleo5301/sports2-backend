@@ -87,7 +87,9 @@ module.exports = {
     });
 
     // Add indexes
-    try { await queryInterface.addIndex('games', ['team_id']); } catch (e) {}
+    try {
+      await queryInterface.addIndex('games', ['team_id']);
+    } catch (e) {}
     await queryInterface.addIndex('games', ['game_date']);
     await queryInterface.addIndex('games', ['season']);
     await queryInterface.addIndex('games', ['result']);
@@ -97,4 +99,4 @@ module.exports = {
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('games');
   }
-}; 
+};

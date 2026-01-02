@@ -86,11 +86,19 @@ module.exports = {
     });
 
     // Add indexes (guarded)
-    try { await queryInterface.addIndex('depth_chart_players', ['depth_chart_id']); } catch (e) {}
-    try { await queryInterface.addIndex('depth_chart_players', ['position_id']); } catch (e) {}
-    try { await queryInterface.addIndex('depth_chart_players', ['player_id']); } catch (e) {}
-    try { await queryInterface.addIndex('depth_chart_players', ['depth_order']); } catch (e) {}
-    
+    try {
+      await queryInterface.addIndex('depth_chart_players', ['depth_chart_id']);
+    } catch (e) {}
+    try {
+      await queryInterface.addIndex('depth_chart_players', ['position_id']);
+    } catch (e) {}
+    try {
+      await queryInterface.addIndex('depth_chart_players', ['player_id']);
+    } catch (e) {}
+    try {
+      await queryInterface.addIndex('depth_chart_players', ['depth_order']);
+    } catch (e) {}
+
     // Add unique constraint
     try {
       await queryInterface.addConstraint('depth_chart_players', {
@@ -104,4 +112,4 @@ module.exports = {
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('depth_chart_players');
   }
-}; 
+};

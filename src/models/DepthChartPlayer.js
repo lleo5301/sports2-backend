@@ -81,4 +81,4 @@ const DepthChartPlayer = sequelize.define('DepthChartPlayer', {
   ]
 });
 
-module.exports = DepthChartPlayer; 
+module.exports = DepthChartPlayer;

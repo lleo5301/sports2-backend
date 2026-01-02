@@ -24,7 +24,9 @@ describe('auth middleware', () => {
 
   it('rejects on invalid token', async () => {
     const req = { headers: { authorization: 'Bearer bad' } };
-    jest.spyOn(jwt, 'verify').mockImplementation(() => { throw new Error('bad'); });
+    jest.spyOn(jwt, 'verify').mockImplementation(() => {
+      throw new Error('bad');
+    });
     const response = res();
     await protect(req, response, next);
     expect(response.status).toHaveBeenCalledWith(401);
@@ -72,5 +74,3 @@ describe('auth middleware', () => {
     expect(response.status).toHaveBeenCalledWith(403);
   });
 });
-
-
