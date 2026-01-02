@@ -49,6 +49,7 @@ const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
 const { Report, Player, Team, ScoutingReport, User } = require('../models');
 const { Op } = require('sequelize');
+const notificationService = require('../services/notificationService');
 
 const router = express.Router();
 
@@ -1478,6 +1479,15 @@ router.post('/scouting', async (req, res) => {
         }
       ]
     });
+
+    // Notification: Fire-and-forget notification to team members
+    // This does not block the response - errors are handled gracefully in the service
+    notificationService.sendScoutingReportNotification(
+      createdReport,
+      createdReport.Player,
+      req.user.team_id,
+      req.user.id
+    );
 
     res.status(201).json({
       success: true,
