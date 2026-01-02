@@ -1,0 +1,193 @@
+
+> collegiate-baseball-backend@1.0.0 lint
+> eslint src --max-warnings 0
+
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/middleware/errorHandler.js
+  1:38  error  'next' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20240101000000-add-video-to-players.js
+  24:30  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000001-create-schedules.js
+  71:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000002-create-schedule-sections.js
+  61:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000003-create-schedule-activities.js
+  68:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000004-create-depth-charts.js
+  83:17  error  Empty block statement                                                        no-empty
+  86:17  error  Empty block statement                                                        no-empty
+  89:17  error  Empty block statement                                                        no-empty
+  92:17  error  Empty block statement                                                        no-empty
+  95:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000004-create-games.js
+  92:17  error  Empty block statement                                                        no-empty
+  99:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000005-create-depth-chart-positions.js
+  77:17  error  Empty block statement                                                        no-empty
+  82:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000006-create-depth-chart-players.js
+   91:17  error  Empty block statement                                                        no-empty
+   94:17  error  Empty block statement                                                        no-empty
+   97:17  error  Empty block statement                                                        no-empty
+  100:17  error  Empty block statement                                                        no-empty
+  109:17  error  Empty block statement                                                        no-empty
+  112:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000007-create-user-permissions.js
+  102:17  error  Empty block statement                                                        no-empty
+  115:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000009-create-schedule-templates.js
+  69:30  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000010-create-coaches.js
+  93:30  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000011-create-scouts.js
+  101:30  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000012-create-vendors.js
+  139:30  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241201000013-create-high-school-coaches.js
+  145:30  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/20241204000001-create-user-teams.js
+  72:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/migrations/add_oauth_fields.js
+  39:17  error  Empty block statement  no-empty
+  51:17  error  Empty block statement  no-empty
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/models/User.js
+  102:10  error  Redundant use of `await` on a return value  no-return-await
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/__tests__/scheduleTemplates.test.js
+  62:13  error  'template1' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/auth.js
+   28:21  error  'UserTeam' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  724:46  error  Async arrow function has no 'await' expression                                       require-await
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/depthCharts.js
+    27:22  error  'query' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  1399:3   error  Closing curly brace does not appear on the same line as the subsequent block      brace-style
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/games.js
+  40:21  error  'Player' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/locations.js
+  64:22  error  'query' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/recruits.js
+  53:33  error  'Team' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/reports.js
+    47:15  error  'param' is assigned a value but never used. Allowed unused vars must match /^_/u                   no-unused-vars
+    47:22  error  'query' is assigned a value but never used. Allowed unused vars must match /^_/u                   no-unused-vars
+    72:7   error  'validateReportCreate' is assigned a value but never used. Allowed unused vars must match /^_/u    no-unused-vars
+    97:7   error  'validateReportUpdate' is assigned a value but never used. Allowed unused vars must match /^_/u    no-unused-vars
+   114:7   error  'handleValidationErrors' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   814:54  error  Async arrow function has no 'await' expression                                                     require-await
+   890:47  error  Async arrow function has no 'await' expression                                                     require-await
+   933:47  error  Async arrow function has no 'await' expression                                                     require-await
+  1155:35  error  'position' is assigned a value but never used. Allowed unused vars must match /^_/u                no-unused-vars
+  1352:82  error  Async arrow function has no 'await' expression                                                     require-await
+  1354:19  error  'data' is assigned a value but never used. Allowed unused vars must match /^_/u                    no-unused-vars
+  1396:82  error  Async arrow function has no 'await' expression                                                     require-await
+  1398:19  error  'data' is assigned a value but never used. Allowed unused vars must match /^_/u                    no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/scheduleEvents.js
+  32:22  error  'query' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/scheduleTemplates.js
+  34:27  error  'Team' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/schedules.js
+  24:33  error  'query' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/settings.js
+    37:15  error  'param' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+    42:9   error  'Op' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+   835:47  error  Async arrow function has no 'await' expression                                    require-await
+   883:20  error  Async arrow function has no 'await' expression                                    require-await
+   936:47  error  Async arrow function has no 'await' expression                                    require-await
+  1339:11  error  'user' is assigned a value but never used. Allowed unused vars must match /^_/u   no-unused-vars
+  1413:11  error  'user' is assigned a value but never used. Allowed unused vars must match /^_/u   no-unused-vars
+  1501:42  error  Async arrow function has no 'await' expression                                    require-await
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/routes/teams.js
+  66:7  error  'validateTeamUpdate' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/seeders/20241201000002-add-sample-teams.js
+   4:30  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  81:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/seeders/20241201000003-add-sample-players.js
+  327:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/seeders/20241201000004-add-sample-schedules.js
+  115:39  error  'sectionIndex' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  221:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u     no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/seeders/20241201000005-add-sample-games.js
+  118:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/seeders/20241201000006-add-sample-depth-charts.js
+  182:41  error  'posIndex' is defined but never used. Allowed unused args must match /^_/u   no-unused-vars
+  215:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/seeders/20241201000007-add-sample-reports.js
+  70:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/seeders/20241201000008-add-default-user.js
+  130:11  error  'userId' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  150:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u        no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/seeders/20241201000009-add-default-permissions.js
+  85:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/seeders/20241201000010-add-sample-scouting-reports.js
+  135:32  error  'Sequelize' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/server.js
+  136:9  error  Don't use process.exit(); throw an error instead  no-process-exit
+  165:5  error  Don't use process.exit(); throw an error instead  no-process-exit
+  181:3  error  Don't use process.exit(); throw an error instead  no-process-exit
+  187:3  error  Don't use process.exit(); throw an error instead  no-process-exit
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/services/emailService.js
+   51:39  error  'success' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  160:12  error  Redundant use of `await` on a return value                                 no-return-await
+  227:12  error  Redundant use of `await` on a return value                                 no-return-await
+  290:12  error  Redundant use of `await` on a return value                                 no-return-await
+  298:12  error  Redundant use of `await` on a return value                                 no-return-await
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/utils/__tests__/jwtSecretValidator.test.js
+  13:7  error  'SECURE_SECRET' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/utils/__tests__/passwordValidator.test.js
+  371:9  error  'fail' is not defined  no-undef
+
+/Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend/src/utils/passwordValidator.js
+   18:45  error  Unnecessary escape character: \[                                                no-useless-escape
+   18:62  error  Unnecessary escape character: \/                                                no-useless-escape
+  104:15  error  'key' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+✖ 91 problems (91 errors, 0 warnings)
+
+npm error Lifecycle script `lint` failed with error:
+npm error code 1
+npm error path /Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend
+npm error workspace collegiate-baseball-backend@1.0.0
+npm error location /Users/leo/testcopy/sports2/.worktrees/037-add-eslint-configuration-to-backend-service/backend
+npm error command failed
+npm error command sh -c eslint src --max-warnings 0
