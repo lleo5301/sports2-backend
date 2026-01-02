@@ -29,7 +29,8 @@
  */
 
 const express = require('express');
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
+const { handleValidationErrors } = require('../middleware/validation');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
 const { ScheduleEvent, ScheduleEventDate, Location, User, ScheduleTemplate } = require('../models');
@@ -102,25 +103,6 @@ const validateScheduleEventCreate = [
   // Validation: Date-specific notes (e.g., "Bring extra gear", "Early start")
   body('event_dates.*.notes').optional().trim().isLength({ max: 500 }).withMessage('Date notes must be less than 500 characters')
 ];
-
-/**
- * @description Helper middleware to check validation results from express-validator.
- * Returns 400 error with validation details if any validation rules failed.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array()
-    });
-  }
-  next();
-};
 
 // Middleware: Apply JWT authentication to all routes in this file
 // All subsequent routes require a valid JWT token in the Authorization header
@@ -293,18 +275,11 @@ router.get('/', async (req, res) => {
  * @throws {404} Not found - Event doesn't exist or doesn't belong to user's team
  * @throws {500} Server error - Database query failure
  */
-router.get('/:id', param('id').isInt().withMessage('Event ID must be an integer'), async (req, res) => {
+router.get('/:id',
+  param('id').isInt().withMessage('Event ID must be an integer'),
+  handleValidationErrors,
+  async (req, res) => {
   try {
-    // Validation: Check for parameter validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid event ID',
-        errors: errors.array()
-      });
-    }
-
     // Database: Fetch event with all associations
     const event = await ScheduleEvent.findOne({
       where: {
