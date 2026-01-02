@@ -1,6 +1,7 @@
 const express = require('express');
 const emailService = require('../services/emailService');
 const { body, validationResult } = require('express-validator');
+const { passwordValidator } = require('../utils/passwordValidator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const { User, Team, UserTeam } = require('../models');
@@ -21,7 +22,7 @@ const generateToken = (id) => {
 // @access  Public
 router.post('/register', [
   body('email').isEmail().normalizeEmail(),
-  body('password').isLength({ min: 6 }),
+  passwordValidator,
   body('first_name').trim().isLength({ min: 1, max: 50 }),
   body('last_name').trim().isLength({ min: 1, max: 50 }),
   body('role').isIn(['head_coach', 'assistant_coach']),
