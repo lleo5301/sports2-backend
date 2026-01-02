@@ -40,6 +40,7 @@ const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Coach, User } = require('../models');
 const { protect } = require('../middleware/auth');
+const { createSortValidators, buildOrderClause } = require('../utils/sorting');
 
 const router = express.Router();
 
@@ -51,12 +52,16 @@ router.use(protect);
  * @route GET /api/coaches
  * @description Retrieves a paginated list of coaches for the authenticated user's team.
  *              Supports filtering by status, position, and search text.
- *              Results are ordered by creation date (newest first).
+ *              Supports configurable sorting via orderBy and sortDirection query parameters.
  * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ * @middleware express-validator - Query parameter validation for sorting
  *
  * @param {string} [req.query.search] - Search text to filter by first_name, last_name, school_name, or email (case-insensitive)
  * @param {string} [req.query.status='active'] - Filter by coach status ('active' | 'inactive')
  * @param {string} [req.query.position] - Filter by position ('Head Coach' | 'Recruiting Coordinator' | 'Pitching Coach' | 'Volunteer')
+ * @param {string} [req.query.orderBy=created_at] - Column to sort by (first_name, last_name, school_name, position, last_contact_date, next_contact_date, created_at, status)
+ * @param {string} [req.query.sortDirection=DESC] - Sort direction ('ASC' or 'DESC', case-insensitive)
  * @param {number} [req.query.page=1] - Page number for pagination (minimum: 1)
  * @param {number} [req.query.limit=20] - Number of records per page (minimum: 1, maximum: 100)
  *
@@ -69,7 +74,7 @@ router.use(protect);
  * @returns {number} response.pagination.total - Total number of matching records
  * @returns {number} response.pagination.pages - Total number of pages
  *
- * @throws {400} Validation failed - Invalid query parameters
+ * @throws {400} Validation error - Invalid orderBy column or sortDirection value
  * @throws {401} Unauthorized - Missing or invalid JWT token
  * @throws {500} Server error - Database query failure
  *
@@ -95,6 +100,8 @@ router.use(protect);
  * }
  */
 router.get('/', [
+  // Validation: Sorting parameters
+  ...createSortValidators('coaches'),
   // Validation: Query parameter rules
   query('search').optional().isString(),
   query('status').optional().isIn(['active', 'inactive']),
@@ -118,6 +125,8 @@ router.get('/', [
       search,
       status = 'active',
       position,
+      orderBy,
+      sortDirection,
       page = 1,
       limit = 20
     } = req.query;
@@ -152,7 +161,10 @@ router.get('/', [
       ];
     }
 
-    // Database: Execute paginated query with Creator association
+    // Business logic: Build dynamic order clause from query parameters (defaults to created_at DESC)
+    const orderClause = buildOrderClause('coaches', orderBy, sortDirection);
+
+    // Database: Execute paginated query with Creator association, ordered by user-specified criteria
     const { count, rows: coaches } = await Coach.findAndCountAll({
       where: whereClause,
       include: [
@@ -162,7 +174,7 @@ router.get('/', [
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: [['created_at', 'DESC']],
+      order: orderClause,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
