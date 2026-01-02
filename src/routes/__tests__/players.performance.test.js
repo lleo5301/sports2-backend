@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { app } = require('../../server');
+const app = require('../../server');
 const { Player, User, Team } = require('../../models');
 const { sequelize } = require('../../config/database');
 const jwt = require('jsonwebtoken');

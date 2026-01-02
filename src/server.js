@@ -166,7 +166,13 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Only start the server when this file is run directly (not when imported for testing)
+if (require.main === module) {
+  startServer();
+}
+
+// Export app for testing
+module.exports = app;
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
