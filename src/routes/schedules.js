@@ -24,6 +24,7 @@ const express = require('express');
 const { body, validationResult, query } = require('express-validator');
 const { Schedule, ScheduleSection, ScheduleActivity, User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
+const notificationService = require('../services/notificationService');
 const router = express.Router();
 
 // Middleware: Apply JWT authentication to all routes in this file
@@ -445,6 +446,14 @@ router.post('/', validateSchedule, handleValidationErrors, async (req, res) => {
         }
       ]
     });
+
+    // Notification: Fire-and-forget notification to team members
+    // This does not block the response - errors are handled gracefully in the service
+    notificationService.sendSchedulePublishedNotification(
+      createdSchedule,
+      req.user.team_id,
+      req.user.id
+    );
 
     res.status(201).json({
       message: 'Schedule created successfully',
