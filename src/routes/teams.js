@@ -21,12 +21,13 @@
  */
 
 const express = require('express');
-const { body, param, validationResult } = require('express-validator');
+const { body, param } = require('express-validator');
 const path = require('path');
 const fs = require('fs');
 const { protect } = require('../middleware/auth');
 const { checkPermission, isSuperAdmin } = require('../middleware/permissions');
 const { uploadLogo, handleUploadError, logosDir } = require('../middleware/upload');
+const { handleValidationErrors } = require('../middleware/validation');
 
 /**
  * @description Helper function to check if a user has permission to modify team branding.
@@ -91,25 +92,6 @@ const validatePermission = [
   body('expires_at').optional().isISO8601().withMessage('expires_at must be a valid date'),
   body('notes').optional().isLength({ max: 500 }).withMessage('Notes must be less than 500 characters')
 ];
-
-/**
- * @description Helper middleware to handle express-validator validation errors.
- *              Returns 400 status with error details if validation fails.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array()
-    });
-  }
-  next();
-};
 
 /**
  * @route GET /api/teams
