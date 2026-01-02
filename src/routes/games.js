@@ -157,6 +157,16 @@ router.get('/', [
       whereClause.result = req.query.result;
     }
 
+    // Business logic: Free-text search using case-insensitive ILIKE across multiple fields
+    if (req.query.search) {
+      whereClause[Op.or] = [
+        { opponent: { [Op.iLike]: `%${req.query.search}%` } },
+        { location: { [Op.iLike]: `%${req.query.search}%` } },
+        { season: { [Op.iLike]: `%${req.query.search}%` } },
+        { notes: { [Op.iLike]: `%${req.query.search}%` } }
+      ];
+    }
+
     // Database: Fetch games with team association and pagination
     const games = await Game.findAndCountAll({
       where: whereClause,
