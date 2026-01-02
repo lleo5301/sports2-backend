@@ -65,9 +65,6 @@ router.use(protect);
  */
 router.get('/', async (req, res) => {
   try {
-    console.log('Scouting reports request - user team_id:', req.user.team_id);
-    console.log('Scouting reports request - query params:', req.query);
-
     // Pagination: Parse page and limit with defaults
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -155,9 +152,6 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    console.log('Create scouting report request:', req.body);
-    console.log('User team_id:', req.user.team_id);
-
     // Validation: Ensure player exists and belongs to user's team
     // This enforces multi-tenant isolation for scouting reports
     const player = await Player.findOne({
@@ -311,8 +305,6 @@ router.get('/:id', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
   try {
-    console.log('Update scouting report request:', req.params.id, req.body);
-
     // Database: Find existing report with team validation via Player
     const existingReport = await ScoutingReport.findOne({
       where: { id: req.params.id },

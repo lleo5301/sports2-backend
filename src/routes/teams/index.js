@@ -181,10 +181,6 @@ router.use('/', statsRouter);
  */
 router.get('/me', async (req, res) => {
   try {
-    console.log('Teams /me endpoint hit');
-    console.log('User team_id:', req.user.team_id);
-    console.log('User object:', req.user);
-
     // Validation: Ensure user has a team association
     if (!req.user.team_id) {
       return res.status(400).json({

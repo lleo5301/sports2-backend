@@ -257,9 +257,6 @@ router.get('/scouting-analysis', checkPermission('reports_view'), async (req, re
   try {
     const { start_date, end_date, position } = req.query;
 
-    console.log('Scouting analysis request - user team_id:', req.user.team_id);
-    console.log('Scouting analysis request - query params:', req.query);
-
     // Business logic: Build where clause for date filtering
     const whereClause = {};
     if (start_date && end_date) {
@@ -277,8 +274,6 @@ router.get('/scouting-analysis', checkPermission('reports_view'), async (req, re
       }],
       order: [['report_date', 'DESC']]
     });
-
-    console.log('Scouting analysis query result count:', reports.count);
 
     // Business logic: Calculate average grade from valid grades
     const totalReports = reports.count;
