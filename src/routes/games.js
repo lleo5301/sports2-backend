@@ -99,8 +99,9 @@ const validateGame = [
 /**
  * @route GET /api/games
  * @description Retrieves all games for the authenticated user's team with pagination.
- *              Supports filtering by season and result. Games are sorted by date descending
- *              (most recent first).
+ *              Supports filtering by season and result, and free-text search.
+ *              Search performs case-insensitive matching across opponent, location, season, and notes.
+ *              Games are sorted by date descending (most recent first).
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  *
@@ -108,6 +109,7 @@ const validateGame = [
  * @param {number} [req.query.limit=20] - Number of games per page (default 20)
  * @param {string} [req.query.season] - Optional filter by season (e.g., "2024")
  * @param {string} [req.query.result] - Optional filter by result ('W', 'L', or 'T')
+ * @param {string} [req.query.search] - Free-text search across opponent, location, season, and notes fields
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
@@ -131,7 +133,11 @@ const validateGame = [
  *
  * @throws {500} Server error - Database query failure
  */
-router.get('/', async (req, res) => {
+router.get('/', [
+  // Validation: Search must be a string if provided
+  query('search').optional().isString().withMessage('Search must be a string'),
+  handleValidationErrors
+], async (req, res) => {
   try {
     // Pagination: Parse page and limit from query params with defaults
     const page = parseInt(req.query.page) || 1;
@@ -151,6 +157,16 @@ router.get('/', async (req, res) => {
     // Business logic: Apply optional result filter (W/L/T)
     if (req.query.result) {
       whereClause.result = req.query.result;
+    }
+
+    // Business logic: Free-text search using case-insensitive ILIKE across multiple fields
+    if (req.query.search) {
+      whereClause[Op.or] = [
+        { opponent: { [Op.iLike]: `%${req.query.search}%` } },
+        { location: { [Op.iLike]: `%${req.query.search}%` } },
+        { season: { [Op.iLike]: `%${req.query.search}%` } },
+        { notes: { [Op.iLike]: `%${req.query.search}%` } }
+      ];
     }
 
     // Database: Fetch games with team association and pagination
