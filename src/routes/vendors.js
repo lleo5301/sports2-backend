@@ -70,6 +70,7 @@ const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Vendor, User } = require('../models');
 const { protect } = require('../middleware/auth');
+const { createSortValidators, buildOrderClause } = require('../utils/sorting');
 
 const router = express.Router();
 
@@ -79,7 +80,7 @@ router.use(protect);
 
 /**
  * Validation middleware for listing vendors.
- * Validates query parameters for filtering and pagination.
+ * Validates query parameters for filtering, pagination, and sorting.
  *
  * @constant {Array<ValidationChain>} validateVendorList
  * @description Express-validator chain for GET /api/vendors
@@ -87,6 +88,8 @@ router.use(protect);
  * @property {string} [search] - Optional search term for text search
  * @property {string} [vendor_type] - Optional filter by vendor category
  * @property {string} [status] - Optional filter by relationship status
+ * @property {string} [orderBy] - Optional column to sort by
+ * @property {string} [sortDirection] - Optional sort direction ('ASC' or 'DESC')
  * @property {number} [page] - Optional page number (min: 1)
  * @property {number} [limit] - Optional items per page (min: 1, max: 100)
  */
@@ -95,7 +98,8 @@ const validateVendorList = [
   query('vendor_type').optional().isIn(['Equipment', 'Apparel', 'Technology', 'Food Service', 'Transportation', 'Medical', 'Facilities', 'Other']),
   query('status').optional().isIn(['active', 'inactive', 'pending', 'expired']),
   query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 100 })
+  query('limit').optional().isInt({ min: 1, max: 100 }),
+  ...createSortValidators('vendors')
 ];
 
 /**
@@ -195,12 +199,15 @@ const handleValidationErrors = (req, res) => {
  * Supports filtering by vendor type, status, and search text. Search performs
  * case-insensitive partial matching across company_name, contact_person,
  * services_provided, and email fields.
+ * Supports configurable sorting via orderBy and sortDirection query parameters.
  *
  * @access  Private - Requires authentication
  *
  * @param {string} [req.query.search] - Search term for text search across multiple fields
  * @param {string} [req.query.vendor_type] - Filter by vendor category (Equipment|Apparel|Technology|Food Service|Transportation|Medical|Facilities|Other)
  * @param {string} [req.query.status=active] - Filter by status (active|inactive|pending|expired), defaults to 'active'
+ * @param {string} [req.query.orderBy=created_at] - Column to sort by (company_name, contact_person, vendor_type, contract_value, contract_start_date, contract_end_date, last_contact_date, next_contact_date, created_at, status)
+ * @param {string} [req.query.sortDirection=DESC] - Sort direction ('ASC' or 'DESC', case-insensitive)
  * @param {number} [req.query.page=1] - Page number for pagination
  * @param {number} [req.query.limit=20] - Items per page (max 100)
  *
@@ -222,7 +229,7 @@ const handleValidationErrors = (req, res) => {
  * @returns {number} response.pagination.total - Total matching vendors
  * @returns {number} response.pagination.pages - Total number of pages
  *
- * @throws {400} Validation failed - Invalid query parameters
+ * @throws {400} Validation failed - Invalid query parameters or invalid orderBy column or sortDirection value
  * @throws {401} Unauthorized - Missing or invalid authentication token
  * @throws {500} Server error - Database or server failure
  *
@@ -255,6 +262,8 @@ router.get('/', validateVendorList, async (req, res) => {
       search,
       vendor_type,
       status = 'active',  // Default to showing only active vendors
+      orderBy,
+      sortDirection,
       page = 1,
       limit = 20
     } = req.query;
@@ -290,6 +299,9 @@ router.get('/', validateVendorList, async (req, res) => {
       ];
     }
 
+    // Business logic: Build dynamic order clause from query parameters (defaults to created_at DESC)
+    const orderClause = buildOrderClause('vendors', orderBy, sortDirection);
+
     // Database: Fetch paginated vendors with creator association
     const { count, rows: vendors } = await Vendor.findAndCountAll({
       where: whereClause,
@@ -300,7 +312,7 @@ router.get('/', validateVendorList, async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: [['created_at', 'DESC']],  // Most recently created first
+      order: orderClause,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
