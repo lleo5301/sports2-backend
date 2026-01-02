@@ -99,8 +99,9 @@ const validateGame = [
 /**
  * @route GET /api/games
  * @description Retrieves all games for the authenticated user's team with pagination.
- *              Supports filtering by season and result. Games are sorted by date descending
- *              (most recent first).
+ *              Supports filtering by season and result, and free-text search.
+ *              Search performs case-insensitive matching across opponent, location, season, and notes.
+ *              Games are sorted by date descending (most recent first).
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  *
@@ -108,6 +109,7 @@ const validateGame = [
  * @param {number} [req.query.limit=20] - Number of games per page (default 20)
  * @param {string} [req.query.season] - Optional filter by season (e.g., "2024")
  * @param {string} [req.query.result] - Optional filter by result ('W', 'L', or 'T')
+ * @param {string} [req.query.search] - Free-text search across opponent, location, season, and notes fields
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
