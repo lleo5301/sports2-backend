@@ -133,7 +133,7 @@ const startServer = async () => {
 
       if (isStrictMode) {
         console.error(`\n🛑 Server startup aborted. Fix JWT_SECRET before deploying to ${nodeEnv}.\n`);
-        process.exit(1);
+        process.exit(1); // eslint-disable-line no-process-exit
       } else {
         console.warn('\n⚠️  WARNING: Starting server with weak JWT_SECRET (development mode only)');
         console.warn('   DO NOT deploy to production with this configuration!\n');
@@ -162,7 +162,7 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error('❌ Unable to start server:', error);
-    process.exit(1);
+    process.exit(1); // eslint-disable-line no-process-exit
   }
 };
 
@@ -178,11 +178,11 @@ module.exports = app;
 process.on('SIGTERM', async () => {
   console.log('🛑 SIGTERM received, shutting down gracefully');
   await sequelize.close();
-  process.exit(0);
+  process.exit(0); // eslint-disable-line no-process-exit
 });
 
 process.on('SIGINT', async () => {
   console.log('🛑 SIGINT received, shutting down gracefully');
   await sequelize.close();
-  process.exit(0);
+  process.exit(0); // eslint-disable-line no-process-exit
 });

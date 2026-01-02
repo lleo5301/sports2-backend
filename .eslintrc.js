@@ -129,7 +129,7 @@ module.exports = {
     'node/exports-style': ['error', 'module.exports'],
 
     // Express/async best practices
-    'require-await': 'error',
+    'require-await': 'warn', // Many stub functions will be async in future
     'no-return-await': 'error',
 
     // Error handling

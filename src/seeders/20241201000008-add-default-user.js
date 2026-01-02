@@ -127,7 +127,7 @@ module.exports = {
       { type: Sequelize.QueryTypes.SELECT }
     );
 
-    const userId = createdUsers[0].id;
+    const _userId = createdUsers[0].id;
 
     console.log('✅ Default user created successfully!');
     console.log('');
@@ -147,7 +147,7 @@ module.exports = {
     console.log('🚀 Ready to login at http://localhost:3000');
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.bulkDelete('users', {
       email: 'user@example.com'
     }, {});

@@ -10,7 +10,7 @@ const {
 } = require('../jwtSecretValidator');
 
 // Generate a secure test secret (64 hex chars = 32 bytes = 256 bits)
-const SECURE_SECRET = 'a'.repeat(16) + 'b'.repeat(16) + 'c'.repeat(16) + 'd'.repeat(16);
+const _SECURE_SECRET = 'a'.repeat(16) + 'b'.repeat(16) + 'c'.repeat(16) + 'd'.repeat(16);
 // A truly random-looking secret for entropy tests
 const RANDOM_SECRET = 'f7a2b9c1d4e6f8a0b3c5d7e9f1a3b5c7d9e1f3a5b7c9d1e3f5a7b9c1d3e5f7a9';
 

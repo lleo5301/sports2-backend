@@ -99,7 +99,7 @@ const User = sequelize.define('User', {
 
 // Instance method to check password
 User.prototype.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
 // Instance method to get full name

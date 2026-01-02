@@ -324,7 +324,7 @@ module.exports = {
     await queryInterface.bulkInsert('players', players, {});
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.bulkDelete('players', null, {});
   }
 };

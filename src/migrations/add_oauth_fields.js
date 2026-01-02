@@ -36,7 +36,9 @@ module.exports = {
           len: [6, 100]
         }
       });
-    } catch (e) {}
+    } catch (e) {
+      // Column may already be configured
+    }
 
     // Add unique constraint for oauth_provider + oauth_id combination
     try {
@@ -48,7 +50,9 @@ module.exports = {
           }
         }
       });
-    } catch (e) {}
+    } catch (e) {
+      // Index may already exist
+    }
   },
 
   down: async (queryInterface, Sequelize) => {

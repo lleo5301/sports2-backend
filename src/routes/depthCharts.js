@@ -24,7 +24,7 @@
  */
 
 const express = require('express');
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { depthChartPermissions } = require('../middleware/permissions');
 const {
@@ -1396,9 +1396,8 @@ function getPerformanceScore(player, positionCode) {
         reasons.push(`Good win rate: ${(winRate * 100).toFixed(0)}%`);
       }
     }
-  }
-  // Business logic: Use batting metrics for position players
-  else {
+  } else {
+    // Business logic: Use batting metrics for position players
     // Batting average is primary hitting metric
     if (player.batting_avg !== null && player.batting_avg > 0.300) {
       score += 40;

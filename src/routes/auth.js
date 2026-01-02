@@ -25,7 +25,7 @@ const { body, validationResult } = require('express-validator');
 const { passwordValidator, newPasswordValidator } = require('../utils/passwordValidator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
-const { User, Team, UserTeam } = require('../models');
+const { User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
 const UserPermission = require('../models/UserPermission'); // Added import for UserPermission
 
@@ -721,7 +721,7 @@ router.post('/apple/callback', (req, res, next) => {
  * @throws {400} Provider and access token are required - Missing required parameters
  * @throws {500} Server error during OAuth token processing - Token verification or database failure
  */
-router.post('/oauth/token', async (req, res) => {
+router.post('/oauth/token', (req, res) => {
   try {
     const { provider, access_token } = req.body;
 

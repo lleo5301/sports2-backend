@@ -29,7 +29,7 @@
  */
 
 const express = require('express');
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
 const { ScheduleEvent, ScheduleEventDate, Location, User, ScheduleTemplate } = require('../models');

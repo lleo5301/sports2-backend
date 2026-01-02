@@ -59,7 +59,7 @@ describe('Schedule Templates API', () => {
 
     it('should return user team templates only', async () => {
       // Create templates for test team
-      const template1 = await ScheduleTemplate.create({
+      const _template1 = await ScheduleTemplate.create({
         name: 'Test Template 1',
         description: 'First test template',
         template_data: { sections: [] },

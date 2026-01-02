@@ -44,7 +44,7 @@
  */
 
 const express = require('express');
-const { body, param, query, validationResult } = require('express-validator');
+const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
 const { Report, Player, Team, ScoutingReport, User } = require('../models');
@@ -69,7 +69,7 @@ const router = express.Router();
  *
  * @type {Array<ValidationChain>}
  */
-const validateReportCreate = [
+const _validateReportCreate = [
   body('title').trim().isLength({ min: 1, max: 200 }).withMessage('Title must be 1-200 characters'),
   body('description').optional().trim().isLength({ max: 1000 }).withMessage('Description must be less than 1000 characters'),
   body('type').isIn(['player-performance', 'team-statistics', 'scouting-analysis', 'recruitment-pipeline', 'custom']).withMessage('Invalid report type'),
@@ -94,7 +94,7 @@ const validateReportCreate = [
  *
  * @type {Array<ValidationChain>}
  */
-const validateReportUpdate = [
+const _validateReportUpdate = [
   body('title').optional().trim().isLength({ min: 1, max: 200 }).withMessage('Title must be 1-200 characters'),
   body('description').optional().trim().isLength({ max: 1000 }).withMessage('Description must be less than 1000 characters'),
   body('status').optional().isIn(['draft', 'published', 'archived']).withMessage('Invalid status'),
@@ -111,7 +111,7 @@ const validateReportUpdate = [
  * @param {Function} next - Express next function
  * @returns {void|Object} Calls next() on success, or returns 400 JSON response on validation failure
  */
-const handleValidationErrors = (req, res, next) => {
+const _handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -1152,7 +1152,7 @@ router.get('/team-statistics', checkPermission('reports_view'), async (req, res)
  */
 router.get('/scouting-analysis', checkPermission('reports_view'), async (req, res) => {
   try {
-    const { start_date, end_date, position } = req.query;
+    const { start_date, end_date, position: _position } = req.query;
 
     console.log('Scouting analysis request - user team_id:', req.user.team_id);
     console.log('Scouting analysis request - query params:', req.query);
@@ -1351,7 +1351,7 @@ router.get('/recruitment-pipeline', checkPermission('reports_view'), async (req,
  */
 router.post('/generate-pdf', checkPermission('reports_create'), async (req, res) => {
   try {
-    const { type, data, options } = req.body;
+    const { type, data: _data, options } = req.body;
 
     // Business logic: Placeholder implementation
     // TODO: Implement actual PDF generation using a library like pdfmake or puppeteer
@@ -1395,7 +1395,7 @@ router.post('/generate-pdf', checkPermission('reports_create'), async (req, res)
  */
 router.post('/export-excel', checkPermission('reports_create'), async (req, res) => {
   try {
-    const { type, data, options } = req.body;
+    const { type, data: _data, options } = req.body;
 
     // Business logic: Placeholder implementation
     // TODO: Implement actual Excel export using a library like exceljs or xlsx

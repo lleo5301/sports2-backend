@@ -63,7 +63,7 @@ const validateTeamCreate = [
  *              All fields are optional for partial updates.
  * @type {Array<ValidationChain>}
  */
-const validateTeamUpdate = [
+const _validateTeamUpdate = [
   body('name').optional().trim().isLength({ min: 1, max: 100 }).withMessage('Name must be 1-100 characters'),
   body('program_name').optional().trim().isLength({ max: 100 }).withMessage('Program name must be less than 100 characters'),
   body('conference').optional().trim().isLength({ max: 100 }).withMessage('Conference must be less than 100 characters'),

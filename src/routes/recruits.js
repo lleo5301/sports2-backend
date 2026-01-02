@@ -50,7 +50,7 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
-const { Player, PreferenceList, Team, User } = require('../models');
+const { Player, PreferenceList, User } = require('../models');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();

@@ -132,7 +132,7 @@ module.exports = {
     console.log(`Created ${scoutingReports.length} sample scouting reports`);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.bulkDelete('scouting_reports', null, {});
   }
 };

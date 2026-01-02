@@ -98,7 +98,7 @@ module.exports = {
     await queryInterface.addIndex('scouts', ['team_id', 'status'], { name: 'scouts_team_id_status_idx' });
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface, _Sequelize) {
     // Remove indexes first
     await queryInterface.removeIndex('scouts', 'scouts_team_id_status_idx');
     await queryInterface.removeIndex('scouts', 'scouts_status_idx');

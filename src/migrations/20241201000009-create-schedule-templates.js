@@ -66,7 +66,7 @@ module.exports = {
     await queryInterface.addIndex('schedule_templates', ['is_active'], { name: 'schedule_templates_is_active_idx' });
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface, _Sequelize) {
     // Remove indexes first
     await queryInterface.removeIndex('schedule_templates', 'schedule_templates_is_active_idx');
     await queryInterface.removeIndex('schedule_templates', 'schedule_templates_is_default_idx');

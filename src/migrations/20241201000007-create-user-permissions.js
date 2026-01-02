@@ -99,7 +99,9 @@ module.exports = {
     // Add indexes
     try {
       await queryInterface.addIndex('user_permissions', ['user_id']);
-    } catch (e) {}
+    } catch (e) {
+      // Index may already exist
+    }
     await queryInterface.addIndex('user_permissions', ['team_id']);
     await queryInterface.addIndex('user_permissions', ['permission_type']);
     await queryInterface.addIndex('user_permissions', ['is_granted']);
@@ -112,7 +114,7 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.dropTable('user_permissions');
   }
 };

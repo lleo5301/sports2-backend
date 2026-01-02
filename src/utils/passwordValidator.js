@@ -15,7 +15,7 @@ const PASSWORD_MIN_LENGTH = 8;
 const UPPERCASE_REGEX = /[A-Z]/;
 const LOWERCASE_REGEX = /[a-z]/;
 const DIGIT_REGEX = /[0-9]/;
-const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/;
+const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/;
 
 /**
  * Check if password meets minimum length requirement
@@ -101,7 +101,7 @@ const validatePassword = (password) => {
   const requirements = getPasswordRequirements(password);
   const errors = [];
 
-  for (const [key, requirement] of Object.entries(requirements)) {
+  for (const [_key, requirement] of Object.entries(requirements)) {
     if (!requirement.met) {
       errors.push(requirement.message);
     }

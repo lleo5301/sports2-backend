@@ -80,19 +80,27 @@ module.exports = {
     // Add indexes (with guards)
     try {
       await queryInterface.addIndex('depth_charts', ['team_id']);
-    } catch (e) {}
+    } catch (e) {
+      // Index may already exist
+    }
     try {
       await queryInterface.addIndex('depth_charts', ['created_by']);
-    } catch (e) {}
+    } catch (e) {
+      // Index may already exist
+    }
     try {
       await queryInterface.addIndex('depth_charts', ['is_active']);
-    } catch (e) {}
+    } catch (e) {
+      // Index may already exist
+    }
     try {
       await queryInterface.addIndex('depth_charts', ['effective_date']);
-    } catch (e) {}
+    } catch (e) {
+      // Index may already exist
+    }
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.dropTable('depth_charts');
   }
 };

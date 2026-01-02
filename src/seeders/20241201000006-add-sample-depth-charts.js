@@ -179,7 +179,7 @@ module.exports = {
     // Create player assignments
     const playerAssignments = [];
 
-    createdPositions.forEach((position, posIndex) => {
+    createdPositions.forEach((position, _posIndex) => {
       // Find players that match this position
       const matchingPlayers = players.filter(player => {
         if (position.position_code === 'P') {
@@ -212,7 +212,7 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.bulkDelete('depth_chart_players', null, {});
     await queryInterface.bulkDelete('depth_chart_positions', null, {});
     await queryInterface.bulkDelete('depth_charts', null, {});

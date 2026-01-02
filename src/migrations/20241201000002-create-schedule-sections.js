@@ -58,7 +58,7 @@ module.exports = {
     await queryInterface.addIndex('schedule_sections', ['sort_order']);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.dropTable('schedule_sections');
   }
 };

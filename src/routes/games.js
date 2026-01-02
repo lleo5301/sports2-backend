@@ -37,7 +37,7 @@ const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { protect } = require('../middleware/auth');
-const { Game, Team, Player } = require('../models');
+const { Game, Team } = require('../models');
 
 const router = express.Router();
 
