@@ -22,6 +22,7 @@ const ScheduleTemplate = require('./ScheduleTemplate');
 const Vendor = require('./Vendor');
 const HighSchoolCoach = require('./HighSchoolCoach');
 const UserTeam = require('./UserTeam');
+const TokenBlacklist = require('./TokenBlacklist');
 
 // Define associations
 
@@ -170,6 +171,10 @@ Team.hasMany(HighSchoolCoach, { foreignKey: 'team_id' });
 HighSchoolCoach.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
 User.hasMany(HighSchoolCoach, { foreignKey: 'created_by' });
 
+// Token Blacklist associations
+TokenBlacklist.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(TokenBlacklist, { foreignKey: 'user_id' });
+
 module.exports = {
   sequelize,
   User,
@@ -192,5 +197,6 @@ module.exports = {
   ScheduleTemplate,
   Vendor,
   HighSchoolCoach,
-  UserTeam
+  UserTeam,
+  TokenBlacklist
 }; 
