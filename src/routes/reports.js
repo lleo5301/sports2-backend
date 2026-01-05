@@ -50,6 +50,7 @@ const { checkPermission } = require('../middleware/permissions');
 const { Report, Player, Team, ScoutingReport, User } = require('../models');
 const { Op } = require('sequelize');
 const notificationService = require('../services/notificationService');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -181,7 +182,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    console.error('Get reports error:', error);
+    logger.error('Get reports error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching reports'
@@ -225,8 +226,8 @@ router.get('/', async (req, res) => {
  */
 router.get('/scouting', async (req, res) => {
   try {
-    console.log('Scouting reports request - user team_id:', req.user.team_id);
-    console.log('Scouting reports request - query params:', req.query);
+    logger.debug('Scouting reports request - user team_id:', req.user.team_id);
+    logger.debug('Scouting reports request - query params:', req.query);
 
     // Pagination: Parse page and limit with defaults
     const page = parseInt(req.query.page) || 1;
@@ -277,7 +278,7 @@ router.get('/scouting', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    console.error('Get scouting reports error:', error);
+    logger.error('Get scouting reports error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching scouting reports'
@@ -343,7 +344,7 @@ router.get('/custom/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    console.error('Get report error:', error);
+    logger.error('Get report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching report'
@@ -402,7 +403,7 @@ router.get('/byId/:id', checkPermission('reports_view'), async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    console.error('Get report error:', error);
+    logger.error('Get report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching report'
@@ -456,7 +457,7 @@ router.post('/', checkPermission('reports_create'), async (req, res) => {
     });
   } catch (error) {
     // Error: Database creation failure (validation, constraints)
-    console.error('Create report error:', error);
+    logger.error('Create report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating report'
@@ -519,7 +520,7 @@ router.put('/byId/:id', checkPermission('reports_edit'), async (req, res) => {
     });
   } catch (error) {
     // Error: Database update failure (validation, constraints)
-    console.error('Update report error:', error);
+    logger.error('Update report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating report'
@@ -574,7 +575,7 @@ router.delete('/byId/:id', checkPermission('reports_delete'), async (req, res) =
     });
   } catch (error) {
     // Error: Database deletion failure
-    console.error('Delete report error:', error);
+    logger.error('Delete report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error deleting report'
@@ -617,12 +618,12 @@ router.delete('/byId/:id', checkPermission('reports_delete'), async (req, res) =
  */
 router.get('/player-performance', async (req, res) => {
   try {
-    console.log('Player performance request - user:', req.user);
-    console.log('Player performance request - user team_id:', req.user.team_id);
+    logger.debug('Player performance request - user:', req.user);
+    logger.debug('Player performance request - user team_id:', req.user.team_id);
 
     // Validation: User must be associated with a team
     if (!req.user.team_id) {
-      console.error('User has no team_id:', req.user.id);
+      logger.error('User has no team_id:', req.user.id);
       return res.status(400).json({
         success: false,
         message: 'User is not associated with a team'
@@ -647,13 +648,13 @@ router.get('/player-performance', async (req, res) => {
       whereClause.position = req.query.position;
     }
 
-    console.log('Player performance query whereClause:', whereClause);
+    logger.debug('Player performance query whereClause:', whereClause);
 
     // Business logic: Check if team has any players (for debugging)
     const playerCount = await Player.count({
       where: { team_id: req.user.team_id }
     });
-    console.log('Total players for team:', playerCount);
+    logger.debug('Total players for team:', playerCount);
 
     // Database: Fetch players with performance statistics
     const players = await Player.findAll({
@@ -667,7 +668,7 @@ router.get('/player-performance', async (req, res) => {
       order: [['last_name', 'ASC'], ['first_name', 'ASC']]
     });
 
-    console.log('Player performance query result count:', players.length);
+    logger.debug('Player performance query result count:', players.length);
 
     res.json({
       success: true,
@@ -679,9 +680,7 @@ router.get('/player-performance', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    console.error('Get player performance error:', error);
-    console.error('Error details:', error.message);
-    console.error('Error stack:', error.stack);
+    logger.error('Get player performance error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching player performance data'
@@ -783,7 +782,7 @@ router.get('/team-statistics', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    console.error('Get team statistics error:', error);
+    logger.error('Get team statistics error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team statistics'
@@ -860,7 +859,7 @@ router.get('/recruitment-pipeline', async (req, res) => {
     });
   } catch (error) {
     // Error: Unexpected error in mock data generation
-    console.error('Get recruitment pipeline error:', error);
+    logger.error('Get recruitment pipeline error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching recruitment pipeline data'
@@ -903,7 +902,7 @@ router.post('/generate-pdf', async (req, res) => {
     });
   } catch (error) {
     // Error: Unexpected error
-    console.error('Generate PDF error:', error);
+    logger.error('Generate PDF error:', error);
     res.status(500).json({
       success: false,
       message: 'Error generating PDF'
@@ -946,7 +945,7 @@ router.post('/export-excel', async (req, res) => {
     });
   } catch (error) {
     // Error: Unexpected error
-    console.error('Export Excel error:', error);
+    logger.error('Export Excel error:', error);
     res.status(500).json({
       success: false,
       message: 'Error exporting to Excel'
@@ -1028,7 +1027,7 @@ router.get('/player-performance', checkPermission('reports_view'), async (req, r
     });
   } catch (error) {
     // Error: Database query failure
-    console.error('Error fetching player performance report:', error);
+    logger.error('Error fetching player performance report:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching player performance report'
@@ -1112,7 +1111,7 @@ router.get('/team-statistics', checkPermission('reports_view'), async (req, res)
     });
   } catch (error) {
     // Error: Database query failure
-    console.error('Error fetching team statistics report:', error);
+    logger.error('Error fetching team statistics report:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team statistics report'
@@ -1150,8 +1149,8 @@ router.get('/scouting-analysis', checkPermission('reports_view'), async (req, re
   try {
     const { start_date, end_date, position } = req.query;
 
-    console.log('Scouting analysis request - user team_id:', req.user.team_id);
-    console.log('Scouting analysis request - query params:', req.query);
+    logger.debug('Scouting analysis request - user team_id:', req.user.team_id);
+    logger.debug('Scouting analysis request - query params:', req.query);
 
     // Business logic: Build where clause for date filtering
     const whereClause = {};
@@ -1171,7 +1170,7 @@ router.get('/scouting-analysis', checkPermission('reports_view'), async (req, re
       order: [['report_date', 'DESC']]
     });
 
-    console.log('Scouting analysis query result count:', reports.count);
+    logger.debug('Scouting analysis query result count:', reports.count);
 
     /**
      * @description Converts letter grades to numeric values for statistical calculations.
@@ -1223,9 +1222,7 @@ router.get('/scouting-analysis', checkPermission('reports_view'), async (req, re
     });
   } catch (error) {
     // Error: Database query failure
-    console.error('Error fetching scouting analysis report:', error);
-    console.error('Error details:', error.message);
-    console.error('Error stack:', error.stack);
+    logger.error('Error fetching scouting analysis report:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching scouting analysis report'
@@ -1314,7 +1311,7 @@ router.get('/recruitment-pipeline', checkPermission('reports_view'), async (req,
     });
   } catch (error) {
     // Error: Database query failure
-    console.error('Error fetching recruitment pipeline report:', error);
+    logger.error('Error fetching recruitment pipeline report:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching recruitment pipeline report'
@@ -1358,7 +1355,7 @@ router.post('/generate-pdf', checkPermission('reports_create'), async (req, res)
     });
   } catch (error) {
     // Error: Unexpected error
-    console.error('Error generating PDF report:', error);
+    logger.error('Error generating PDF report:', error);
     res.status(500).json({
       success: false,
       message: 'Error generating PDF report'
@@ -1402,7 +1399,7 @@ router.post('/export-excel', checkPermission('reports_create'), async (req, res)
     });
   } catch (error) {
     // Error: Unexpected error
-    console.error('Error exporting Excel report:', error);
+    logger.error('Error exporting Excel report:', error);
     res.status(500).json({
       success: false,
       message: 'Error exporting Excel report'
@@ -1440,8 +1437,8 @@ router.post('/export-excel', checkPermission('reports_create'), async (req, res)
  */
 router.post('/scouting', async (req, res) => {
   try {
-    console.log('Create scouting report request:', req.body);
-    console.log('User team_id:', req.user.team_id);
+    logger.debug('Create scouting report request:', req.body);
+    logger.debug('User team_id:', req.user.team_id);
 
     // Validation: Ensure player exists and belongs to user's team
     // This enforces multi-tenant isolation for scouting reports
@@ -1496,7 +1493,7 @@ router.post('/scouting', async (req, res) => {
     });
   } catch (error) {
     // Error: Database creation failure or validation error
-    console.error('Create scouting report error:', error);
+    logger.error('Create scouting report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating scouting report'
@@ -1567,7 +1564,7 @@ router.get('/scouting/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure
-    console.error('Get scouting report error:', error);
+    logger.error('Get scouting report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching scouting report'
@@ -1605,7 +1602,7 @@ router.get('/scouting/:id', async (req, res) => {
  */
 router.put('/scouting/:id', async (req, res) => {
   try {
-    console.log('Update scouting report request:', req.params.id, req.body);
+    logger.debug('Update scouting report request:', req.params.id, req.body);
 
     // Database: Find existing report with team validation via Player
     const existingReport = await ScoutingReport.findOne({
@@ -1668,7 +1665,7 @@ router.put('/scouting/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Database update failure
-    console.error('Update scouting report error:', error);
+    logger.error('Update scouting report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating scouting report'
