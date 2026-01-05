@@ -25,6 +25,7 @@ const { body, validationResult } = require('express-validator');
 const { passwordValidator, newPasswordValidator } = require('../utils/passwordValidator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
+const crypto = require('crypto');
 const { User, Team, UserTeam } = require('../models');
 const { protect } = require('../middleware/auth');
 const UserPermission = require('../models/UserPermission'); // Added import for UserPermission
@@ -32,22 +33,28 @@ const UserPermission = require('../models/UserPermission'); // Added import for 
 const router = express.Router();
 
 /**
- * @description Generates a signed JWT token for user authentication.
- *              The token contains the user's ID in its payload and is signed
- *              with the secret from environment variables. Token expiration
- *              defaults to 7 days if not configured.
+ * @description Generates a signed JWT token for user authentication with revocation support.
+ *              The token contains the user's ID and a unique JWT ID (jti) in its payload.
+ *              The jti enables token blacklisting for logout, password changes, and security revocation.
+ *              Token is signed with the secret from environment variables.
+ *              Token expiration defaults to 7 days if not configured.
  *
  * @param {string|number} id - The user's unique identifier to encode in the token
- * @returns {string} Signed JWT token string
+ * @returns {string} Signed JWT token string containing user ID and unique jti claim
  *
  * @example
  * const token = generateToken(user.id);
  * // Returns: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ * // Decoded payload includes: { id: 123, jti: "a1b2c3d4-e5f6-4789-a012-3456789abcde", iat: ..., exp: ... }
  */
 const generateToken = (id) => {
+  // Security: Generate unique JWT ID (jti) for token blacklist tracking
+  // This allows individual tokens to be revoked for logout, password changes, or security events
+  const jti = crypto.randomUUID();
+
   // Security: Sign token with secret key and set expiration
-  // Token payload contains only user ID to minimize exposure if token is compromised
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  // Token payload contains user ID and jti for authentication and revocation support
+  return jwt.sign({ id, jti }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
 };
