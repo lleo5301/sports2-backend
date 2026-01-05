@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../../server');
-const { sequelize, User, Team, Report, UserPermission } = require('../../models');
+const { sequelize, User, Team, Report, UserPermission, ScoutingReport, Player } = require('../../models');
 const jwt = require('jsonwebtoken');
 
 describe('Reports API - Custom Reports CRUD', () => {
@@ -1063,6 +1063,855 @@ describe('Reports API - Custom Reports CRUD', () => {
       // Verify report still exists
       const dbReport = await Report.findByPk(report.id);
       expect(dbReport).toBeDefined();
+    });
+  });
+});
+
+describe('Reports API - Scouting Reports', () => {
+  let authToken;
+  let testUser;
+  let testTeam;
+  let otherTeam;
+  let otherUser;
+  let otherAuthToken;
+  let testPlayer;
+  let testPlayer2;
+  let otherTeamPlayer;
+
+  beforeAll(async () => {
+    // Ensure database connection
+    await sequelize.authenticate();
+
+    // Create test teams
+    testTeam = await Team.create({
+      name: 'Scouting Test Team',
+      sport: 'baseball',
+      season: 'spring',
+      year: 2024
+    });
+
+    otherTeam = await Team.create({
+      name: 'Other Scouting Test Team',
+      sport: 'baseball',
+      season: 'spring',
+      year: 2024
+    });
+
+    // Create test users
+    testUser = await User.create({
+      first_name: 'Scouting',
+      last_name: 'TestUser',
+      email: 'scouting-test@example.com',
+      password: 'TestP@ss1',
+      role: 'head_coach',
+      team_id: testTeam.id
+    });
+
+    otherUser = await User.create({
+      first_name: 'OtherScouting',
+      last_name: 'User',
+      email: 'other-scouting-test@example.com',
+      password: 'TestP@ss1',
+      role: 'head_coach',
+      team_id: otherTeam.id
+    });
+
+    // Generate auth tokens
+    authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
+    otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+    // Create test players
+    testPlayer = await Player.create({
+      first_name: 'John',
+      last_name: 'Doe',
+      position: 'P',
+      school: 'Test High School',
+      team_id: testTeam.id
+    });
+
+    testPlayer2 = await Player.create({
+      first_name: 'Jane',
+      last_name: 'Smith',
+      position: 'C',
+      school: 'Test High School',
+      team_id: testTeam.id
+    });
+
+    otherTeamPlayer = await Player.create({
+      first_name: 'Other',
+      last_name: 'Player',
+      position: 'SS',
+      school: 'Other High School',
+      team_id: otherTeam.id
+    });
+  });
+
+  afterAll(async () => {
+    // Clean up test data
+    await ScoutingReport.destroy({ where: {}, force: true });
+    await Player.destroy({ where: { id: [testPlayer.id, testPlayer2.id, otherTeamPlayer.id] } });
+    await testUser.destroy();
+    await otherUser.destroy();
+    await testTeam.destroy();
+    await otherTeam.destroy();
+  });
+
+  beforeEach(async () => {
+    // Clean up scouting reports before each test
+    await ScoutingReport.destroy({ where: {}, force: true });
+  });
+
+  describe('GET /api/reports/scouting', () => {
+    it('should return empty array when no scouting reports exist', async () => {
+      const response = await request(app)
+        .get('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBe(0);
+      expect(response.body.pagination).toBeDefined();
+      expect(response.body.pagination.total).toBe(0);
+    });
+
+    it('should return list of scouting reports for authenticated user team', async () => {
+      // Create test scouting reports
+      await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A',
+        hitting_grade: 'A-',
+        pitching_grade: 'B+',
+        fielding_grade: 'A',
+        speed_grade: 'B'
+      });
+
+      await ScoutingReport.create({
+        player_id: testPlayer2.id,
+        created_by: testUser.id,
+        report_date: '2024-01-20',
+        overall_grade: 'B+',
+        hitting_grade: 'A',
+        fielding_grade: 'B'
+      });
+
+      const response = await request(app)
+        .get('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBe(2);
+      expect(response.body.pagination.total).toBe(2);
+      expect(response.body.pagination.page).toBe(1);
+      expect(response.body.pagination.limit).toBe(20);
+      expect(response.body.data[0].Player).toBeDefined();
+      expect(response.body.data[0].Player.first_name).toBeDefined();
+    });
+
+    it('should return reports sorted by date (newest first)', async () => {
+      const report1 = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-10',
+        overall_grade: 'B'
+      });
+
+      const report2 = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-20',
+        overall_grade: 'A'
+      });
+
+      const response = await request(app)
+        .get('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBe(2);
+      expect(response.body.data[0].id).toBe(report2.id); // Newest first
+      expect(response.body.data[1].id).toBe(report1.id);
+    });
+
+    it('should support pagination with page and limit parameters', async () => {
+      // Create 25 reports to test pagination
+      for (let i = 0; i < 25; i++) {
+        await ScoutingReport.create({
+          player_id: testPlayer.id,
+          created_by: testUser.id,
+          report_date: `2024-01-${String(i + 1).padStart(2, '0')}`,
+          overall_grade: 'B'
+        });
+      }
+
+      const response = await request(app)
+        .get('/api/reports/scouting?page=2&limit=10')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBe(10);
+      expect(response.body.pagination.page).toBe(2);
+      expect(response.body.pagination.limit).toBe(10);
+      expect(response.body.pagination.total).toBe(25);
+      expect(response.body.pagination.pages).toBe(3);
+    });
+
+    it('should filter by player_id', async () => {
+      await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      });
+
+      await ScoutingReport.create({
+        player_id: testPlayer2.id,
+        created_by: testUser.id,
+        report_date: '2024-01-16',
+        overall_grade: 'B'
+      });
+
+      const response = await request(app)
+        .get(`/api/reports/scouting?player_id=${testPlayer.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0].player_id).toBe(testPlayer.id);
+      expect(response.body.data[0].Player.first_name).toBe('John');
+    });
+
+    it('should filter by date range', async () => {
+      await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-10',
+        overall_grade: 'A'
+      });
+
+      await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-20',
+        overall_grade: 'B'
+      });
+
+      await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-02-05',
+        overall_grade: 'A-'
+      });
+
+      const response = await request(app)
+        .get('/api/reports/scouting?start_date=2024-01-15&end_date=2024-01-31')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0].report_date).toBe('2024-01-20');
+    });
+
+    it('should only return reports for user team (team isolation)', async () => {
+      // Create report for test team
+      await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      });
+
+      // Create report for other team
+      await ScoutingReport.create({
+        player_id: otherTeamPlayer.id,
+        created_by: otherUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'B'
+      });
+
+      const response = await request(app)
+        .get('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0].Player.team_id).toBe(testTeam.id);
+    });
+
+    it('should include player information in response', async () => {
+      await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      });
+
+      const response = await request(app)
+        .get('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0].Player).toBeDefined();
+      expect(response.body.data[0].Player.id).toBe(testPlayer.id);
+      expect(response.body.data[0].Player.first_name).toBe('John');
+      expect(response.body.data[0].Player.last_name).toBe('Doe');
+      expect(response.body.data[0].Player.position).toBe('P');
+      expect(response.body.data[0].Player.school).toBe('Test High School');
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get('/api/reports/scouting')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/reports/scouting', () => {
+    it('should create a new scouting report', async () => {
+      const reportData = {
+        player_id: testPlayer.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A',
+        hitting_grade: 'A-',
+        pitching_grade: 'B+',
+        fielding_grade: 'A',
+        speed_grade: 'B',
+        overall_notes: 'Excellent prospect with great potential'
+      };
+
+      const response = await request(app)
+        .post('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(reportData)
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Scouting report created successfully');
+      expect(response.body.data.player_id).toBe(testPlayer.id);
+      expect(response.body.data.overall_grade).toBe('A');
+      expect(response.body.data.hitting_grade).toBe('A-');
+      expect(response.body.data.pitching_grade).toBe('B+');
+      expect(response.body.data.created_by).toBe(testUser.id);
+      expect(response.body.data.Player).toBeDefined();
+      expect(response.body.data.User).toBeDefined();
+
+      // Verify in database
+      const dbReport = await ScoutingReport.findByPk(response.body.data.id);
+      expect(dbReport).toBeDefined();
+      expect(dbReport.player_id).toBe(testPlayer.id);
+    });
+
+    it('should create report with minimal required fields', async () => {
+      const reportData = {
+        player_id: testPlayer.id,
+        report_date: '2024-01-15'
+      };
+
+      const response = await request(app)
+        .post('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(reportData)
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.player_id).toBe(testPlayer.id);
+      expect(response.body.data.created_by).toBe(testUser.id);
+    });
+
+    it('should automatically assign created_by from authenticated user', async () => {
+      const reportData = {
+        player_id: testPlayer.id,
+        report_date: '2024-01-15',
+        overall_grade: 'B+'
+      };
+
+      const response = await request(app)
+        .post('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(reportData)
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.created_by).toBe(testUser.id);
+      expect(response.body.data.User).toBeDefined();
+      expect(response.body.data.User.id).toBe(testUser.id);
+    });
+
+    it('should return 404 when player does not exist', async () => {
+      const reportData = {
+        player_id: 999999,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      };
+
+      const response = await request(app)
+        .post('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(reportData)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Player not found');
+    });
+
+    it('should return 404 when player belongs to different team (team isolation)', async () => {
+      const reportData = {
+        player_id: otherTeamPlayer.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      };
+
+      const response = await request(app)
+        .post('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(reportData)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Player not found');
+    });
+
+    it('should include player and creator information in response', async () => {
+      const reportData = {
+        player_id: testPlayer.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      };
+
+      const response = await request(app)
+        .post('/api/reports/scouting')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(reportData)
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.Player).toBeDefined();
+      expect(response.body.data.Player.first_name).toBe('John');
+      expect(response.body.data.Player.last_name).toBe('Doe');
+      expect(response.body.data.User).toBeDefined();
+      expect(response.body.data.User.first_name).toBe('Scouting');
+      expect(response.body.data.User.last_name).toBe('TestUser');
+    });
+
+    it('should require authentication', async () => {
+      const reportData = {
+        player_id: testPlayer.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      };
+
+      const response = await request(app)
+        .post('/api/reports/scouting')
+        .send(reportData)
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('GET /api/reports/scouting/:id', () => {
+    it('should return scouting report by ID', async () => {
+      const report = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A',
+        hitting_grade: 'A-',
+        pitching_grade: 'B+',
+        overall_notes: 'Excellent prospect'
+      });
+
+      const response = await request(app)
+        .get(`/api/reports/scouting/${report.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.id).toBe(report.id);
+      expect(response.body.data.overall_grade).toBe('A');
+      expect(response.body.data.hitting_grade).toBe('A-');
+      expect(response.body.data.pitching_grade).toBe('B+');
+      expect(response.body.data.overall_notes).toBe('Excellent prospect');
+    });
+
+    it('should include player information', async () => {
+      const report = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      });
+
+      const response = await request(app)
+        .get(`/api/reports/scouting/${report.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.Player).toBeDefined();
+      expect(response.body.data.Player.id).toBe(testPlayer.id);
+      expect(response.body.data.Player.first_name).toBe('John');
+      expect(response.body.data.Player.last_name).toBe('Doe');
+      expect(response.body.data.Player.position).toBe('P');
+      expect(response.body.data.Player.school).toBe('Test High School');
+    });
+
+    it('should include creator information', async () => {
+      const report = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      });
+
+      const response = await request(app)
+        .get(`/api/reports/scouting/${report.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.User).toBeDefined();
+      expect(response.body.data.User.id).toBe(testUser.id);
+      expect(response.body.data.User.first_name).toBe('Scouting');
+      expect(response.body.data.User.last_name).toBe('TestUser');
+    });
+
+    it('should return 404 for non-existent report', async () => {
+      const response = await request(app)
+        .get('/api/reports/scouting/999999')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Scouting report not found');
+    });
+
+    it('should not allow access to other team report (team isolation)', async () => {
+      const otherTeamReport = await ScoutingReport.create({
+        player_id: otherTeamPlayer.id,
+        created_by: otherUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      });
+
+      const response = await request(app)
+        .get(`/api/reports/scouting/${otherTeamReport.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Scouting report not found');
+    });
+
+    it('should require authentication', async () => {
+      const report = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      });
+
+      const response = await request(app)
+        .get(`/api/reports/scouting/${report.id}`)
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('PUT /api/reports/scouting/:id', () => {
+    it('should update scouting report', async () => {
+      const report = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'B',
+        hitting_grade: 'B',
+        overall_notes: 'Original notes'
+      });
+
+      const updateData = {
+        overall_grade: 'A',
+        hitting_grade: 'A-',
+        overall_notes: 'Updated notes - showing improvement'
+      };
+
+      const response = await request(app)
+        .put(`/api/reports/scouting/${report.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Scouting report updated successfully');
+      expect(response.body.data.overall_grade).toBe('A');
+      expect(response.body.data.hitting_grade).toBe('A-');
+      expect(response.body.data.overall_notes).toBe('Updated notes - showing improvement');
+
+      // Verify in database
+      const dbReport = await ScoutingReport.findByPk(report.id);
+      expect(dbReport.overall_grade).toBe('A');
+      expect(dbReport.overall_notes).toBe('Updated notes - showing improvement');
+    });
+
+    it('should support partial updates', async () => {
+      const report = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'B',
+        hitting_grade: 'B',
+        pitching_grade: 'A'
+      });
+
+      const updateData = {
+        overall_grade: 'A'
+      };
+
+      const response = await request(app)
+        .put(`/api/reports/scouting/${report.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.overall_grade).toBe('A');
+      expect(response.body.data.hitting_grade).toBe('B'); // Unchanged
+      expect(response.body.data.pitching_grade).toBe('A'); // Unchanged
+    });
+
+    it('should allow changing player_id to another team player', async () => {
+      const report = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      });
+
+      const updateData = {
+        player_id: testPlayer2.id
+      };
+
+      const response = await request(app)
+        .put(`/api/reports/scouting/${report.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.player_id).toBe(testPlayer2.id);
+      expect(response.body.data.Player.first_name).toBe('Jane');
+    });
+
+    it('should not allow changing player_id to other team player (team isolation)', async () => {
+      const report = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'A'
+      });
+
+      const updateData = {
+        player_id: otherTeamPlayer.id
+      };
+
+      const response = await request(app)
+        .put(`/api/reports/scouting/${report.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Player not found');
+    });
+
+    it('should return 404 for non-existent report', async () => {
+      const updateData = {
+        overall_grade: 'A'
+      };
+
+      const response = await request(app)
+        .put('/api/reports/scouting/999999')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Scouting report not found');
+    });
+
+    it('should not allow updating other team report (team isolation)', async () => {
+      const otherTeamReport = await ScoutingReport.create({
+        player_id: otherTeamPlayer.id,
+        created_by: otherUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'B'
+      });
+
+      const updateData = {
+        overall_grade: 'A'
+      };
+
+      const response = await request(app)
+        .put(`/api/reports/scouting/${otherTeamReport.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Scouting report not found');
+
+      // Verify report was not updated
+      const dbReport = await ScoutingReport.findByPk(otherTeamReport.id);
+      expect(dbReport.overall_grade).toBe('B');
+    });
+
+    it('should include player and creator information in response', async () => {
+      const report = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'B'
+      });
+
+      const updateData = {
+        overall_grade: 'A'
+      };
+
+      const response = await request(app)
+        .put(`/api/reports/scouting/${report.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.Player).toBeDefined();
+      expect(response.body.data.Player.first_name).toBe('John');
+      expect(response.body.data.User).toBeDefined();
+      expect(response.body.data.User.first_name).toBe('Scouting');
+    });
+
+    it('should require authentication', async () => {
+      const report = await ScoutingReport.create({
+        player_id: testPlayer.id,
+        created_by: testUser.id,
+        report_date: '2024-01-15',
+        overall_grade: 'B'
+      });
+
+      const updateData = {
+        overall_grade: 'A'
+      };
+
+      const response = await request(app)
+        .put(`/api/reports/scouting/${report.id}`)
+        .send(updateData)
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('GET /api/reports/custom/:id', () => {
+    it('should return custom report by ID', async () => {
+      const report = await Report.create({
+        title: 'Custom Report Test',
+        description: 'Test description',
+        type: 'player-performance',
+        status: 'published',
+        team_id: testTeam.id,
+        created_by: testUser.id,
+        data_sources: ['source1'],
+        sections: [{ name: 'Section 1' }],
+        filters: { position: 'P' }
+      });
+
+      const response = await request(app)
+        .get(`/api/reports/custom/${report.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.id).toBe(report.id);
+      expect(response.body.data.title).toBe('Custom Report Test');
+      expect(response.body.data.description).toBe('Test description');
+      expect(response.body.data.type).toBe('player-performance');
+      expect(response.body.data.status).toBe('published');
+    });
+
+    it('should include creator information', async () => {
+      const report = await Report.create({
+        title: 'Custom Report',
+        type: 'custom',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .get(`/api/reports/custom/${report.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.created_by_user).toBeDefined();
+      expect(response.body.data.created_by_user.id).toBe(testUser.id);
+      expect(response.body.data.created_by_user.first_name).toBe('Scouting');
+      expect(response.body.data.created_by_user.last_name).toBe('TestUser');
+      expect(response.body.data.created_by_user.email).toBe('scouting-test@example.com');
+    });
+
+    it('should return 404 for non-existent report', async () => {
+      const response = await request(app)
+        .get('/api/reports/custom/999999')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Report not found');
+    });
+
+    it('should not allow access to other team report (team isolation)', async () => {
+      const otherTeamReport = await Report.create({
+        title: 'Other Team Custom Report',
+        type: 'custom',
+        team_id: otherTeam.id,
+        created_by: otherUser.id
+      });
+
+      const response = await request(app)
+        .get(`/api/reports/custom/${otherTeamReport.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Report not found');
+    });
+
+    it('should require authentication', async () => {
+      const report = await Report.create({
+        title: 'Custom Report',
+        type: 'custom',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .get(`/api/reports/custom/${report.id}`)
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
     });
   });
 });
