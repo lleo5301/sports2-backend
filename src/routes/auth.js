@@ -607,6 +607,92 @@ router.post('/logout', protect, async (req, res) => {
   }
 });
 
+/**
+ * @route POST /api/auth/revoke-all-sessions
+ * @description Revokes all active sessions (JWT tokens) for the current user.
+ *              Useful for "log out everywhere" functionality when a user suspects
+ *              their account may be compromised or wants to terminate all sessions
+ *              across all devices.
+ *
+ *              Behavior:
+ *              - Creates a user-level revocation marker in the blacklist
+ *              - All tokens issued before the revocation timestamp are invalidated
+ *              - Optionally keeps the current session active by issuing a new token
+ *
+ *              Security flow:
+ *              1. Call revokeAllUserTokens to create revocation marker
+ *              2. If keepCurrent=true, generate and return new token
+ *              3. If keepCurrent=false, all sessions including current are terminated
+ *
+ *              Use cases:
+ *              - User suspects account compromise
+ *              - User wants to log out from all devices except current one
+ *              - Security team initiates forced logout
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {boolean} [req.body.keepCurrent=false] - If true, keeps current session active by issuing new token
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Revocation confirmation message
+ * @returns {string} [response.data.token] - New JWT token (only if keepCurrent=true)
+ *
+ * @example
+ * // Log out everywhere except current session
+ * POST /api/auth/revoke-all-sessions
+ * { "keepCurrent": true }
+ * // Returns: { success: true, message: "...", data: { token: "new_jwt..." } }
+ *
+ * @example
+ * // Log out everywhere including current session
+ * POST /api/auth/revoke-all-sessions
+ * { "keepCurrent": false }
+ * // Returns: { success: true, message: "..." }
+ *
+ * @throws {500} Server error during revocation - Blacklist operation failure
+ */
+router.post('/revoke-all-sessions', protect, async (req, res) => {
+  try {
+    // Business logic: Check if user wants to keep current session active
+    const keepCurrent = req.body.keepCurrent === true;
+
+    // Security: Revoke all tokens for this user
+    // Creates a marker that invalidates all tokens issued before now
+    await tokenBlacklistService.revokeAllUserTokens(
+      req.user.id,
+      'security_revoke'
+    );
+
+    // Business logic: If keeping current session, generate new token
+    if (keepCurrent) {
+      // Security: Generate fresh token (issued after revocation marker)
+      const newToken = generateToken(req.user.id);
+
+      res.json({
+        success: true,
+        message: 'All other sessions have been revoked. You remain logged in on this device.',
+        data: {
+          token: newToken
+        }
+      });
+    } else {
+      // Business logic: All sessions including current are terminated
+      res.json({
+        success: true,
+        message: 'All sessions have been revoked. Please log in again.'
+      });
+    }
+  } catch (error) {
+    // Error: Log and return generic server error
+    console.error('Revoke all sessions error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error during session revocation'
+    });
+  }
+});
+
 // ============================================================================
 // OAuth Routes
 // These routes handle social authentication via Google and Apple sign-in.
