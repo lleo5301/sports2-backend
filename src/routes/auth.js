@@ -21,6 +21,7 @@
 
 const express = require('express');
 const emailService = require('../services/emailService');
+const tokenBlacklistService = require('../services/tokenBlacklistService');
 const { body, validationResult } = require('express-validator');
 const { passwordValidator, newPasswordValidator } = require('../utils/passwordValidator');
 const jwt = require('jsonwebtoken');
@@ -534,6 +535,74 @@ router.put('/change-password', protect, [
     res.status(500).json({
       success: false,
       error: 'Server error while changing password'
+    });
+  }
+});
+
+/**
+ * @route POST /api/auth/logout
+ * @description Logs out the current user by blacklisting their JWT token.
+ *              Extracts the JWT ID (jti) from the current token and adds it
+ *              to the blacklist with 'logout' reason. The token remains technically
+ *              valid but will be rejected by the auth middleware on subsequent requests.
+ *
+ *              Security flow:
+ *              1. Extract token from Authorization header
+ *              2. Decode to get jti and expiration
+ *              3. Add to blacklist with token expiration date
+ *              4. Auth middleware will reject this token on future requests
+ *
+ *              Frontend should call this endpoint before clearing localStorage.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Logout confirmation message
+ *
+ * @throws {401} Not authorized, no token - Missing Authorization header
+ * @throws {401} Invalid token - Token decode failure or missing jti
+ * @throws {500} Server error during logout - Blacklist operation failure
+ */
+router.post('/logout', protect, async (req, res) => {
+  try {
+    // Security: Extract token from Authorization header
+    // The protect middleware already validated this token
+    const token = req.headers.authorization.split(' ')[1];
+
+    // Security: Decode token to extract jti and expiration
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Validation: Ensure token has jti (all tokens generated after enhancement should have it)
+    if (!decoded.jti) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token format'
+      });
+    }
+
+    // Security: Convert expiration timestamp to Date object for blacklist storage
+    // exp is in seconds since epoch, need to convert to milliseconds
+    const expiresAt = new Date(decoded.exp * 1000);
+
+    // Business logic: Add token to blacklist with 'logout' reason
+    await tokenBlacklistService.addToBlacklist(
+      decoded.jti,
+      req.user.id,
+      expiresAt,
+      'logout'
+    );
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    // Error: Log and return generic server error
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error during logout'
     });
   }
 });
