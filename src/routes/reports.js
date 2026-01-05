@@ -436,7 +436,7 @@ router.get('/byId/:id', checkPermission('reports_view'), async (req, res) => {
  * @throws {403} Forbidden - User lacks reports_create permission
  * @throws {500} Server error - Database creation failure
  */
-router.post('/', checkPermission('reports_create'), async (req, res) => {
+router.post('/', validateReportCreate, handleValidationErrors, checkPermission('reports_create'), async (req, res) => {
   try {
     // Database: Create new report with team and creator context
     const report = await Report.create({
@@ -490,7 +490,7 @@ router.post('/', checkPermission('reports_create'), async (req, res) => {
  * @throws {404} Not found - Report not found or belongs to different team
  * @throws {500} Server error - Database update failure
  */
-router.put('/byId/:id', checkPermission('reports_edit'), async (req, res) => {
+router.put('/byId/:id', validateReportUpdate, handleValidationErrors, checkPermission('reports_edit'), async (req, res) => {
   try {
     // Database: Find report with team scoping for security
     const report = await Report.findOne({
