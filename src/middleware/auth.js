@@ -1,3 +1,21 @@
+/**
+ * @fileoverview Authentication and authorization middleware for protecting routes
+ * and enforcing access control. This module provides JWT token validation,
+ * role-based access control (RBAC), and team-based authorization middleware
+ * used throughout the application to secure protected endpoints.
+ *
+ * Security features:
+ * - JWT token verification with Bearer scheme
+ * - User authentication state attachment to request object
+ * - Role-based access control for head coach privileges
+ * - Team-based authorization for multi-tenant data isolation
+ * - Secure error handling that doesn't expose system internals
+ *
+ * @module middleware/auth
+ * @requires jsonwebtoken
+ * @requires ../models
+ */
+
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
