@@ -90,13 +90,13 @@ module.exports = {
     await queryInterface.addIndex('coaches', ['team_id', 'status'], { name: 'coaches_team_id_status_idx' });
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface, _Sequelize) {
     // Remove indexes first
     await queryInterface.removeIndex('coaches', 'coaches_team_id_status_idx');
     await queryInterface.removeIndex('coaches', 'coaches_status_idx');
     await queryInterface.removeIndex('coaches', 'coaches_school_name_idx');
     await queryInterface.removeIndex('coaches', 'coaches_team_id_idx');
-    
+
     await queryInterface.dropTable('coaches');
   }
 };

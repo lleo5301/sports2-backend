@@ -22,9 +22,9 @@ module.exports = {
     // Verify we have players
     const players = await queryInterface.sequelize.query(
       'SELECT COUNT(*) as count FROM players WHERE team_id = ?',
-      { 
+      {
         replacements: [teamId],
-        type: Sequelize.QueryTypes.SELECT 
+        type: Sequelize.QueryTypes.SELECT
       }
     );
 
@@ -33,9 +33,9 @@ module.exports = {
     // Verify we have reports
     const reports = await queryInterface.sequelize.query(
       'SELECT COUNT(*) as count FROM reports WHERE team_id = ?',
-      { 
+      {
         replacements: [teamId],
-        type: Sequelize.QueryTypes.SELECT 
+        type: Sequelize.QueryTypes.SELECT
       }
     );
 
@@ -44,9 +44,9 @@ module.exports = {
     // Verify we have schedules
     const schedules = await queryInterface.sequelize.query(
       'SELECT COUNT(*) as count FROM schedules WHERE team_id = ?',
-      { 
+      {
         replacements: [teamId],
-        type: Sequelize.QueryTypes.SELECT 
+        type: Sequelize.QueryTypes.SELECT
       }
     );
 
@@ -55,9 +55,9 @@ module.exports = {
     // Verify we have depth charts
     const depthCharts = await queryInterface.sequelize.query(
       'SELECT COUNT(*) as count FROM depth_charts WHERE team_id = ?',
-      { 
+      {
         replacements: [teamId],
-        type: Sequelize.QueryTypes.SELECT 
+        type: Sequelize.QueryTypes.SELECT
       }
     );
 
@@ -71,20 +71,20 @@ module.exports = {
 
     if (existingUsers.length > 0) {
       console.log('✅ Default user already exists - verifying relationships...');
-      
+
       const userId = existingUsers[0].id;
-      
+
       // Check user permissions
       const permissions = await queryInterface.sequelize.query(
         'SELECT COUNT(*) as count FROM user_permissions WHERE user_id = ?',
-        { 
+        {
           replacements: [userId],
-          type: Sequelize.QueryTypes.SELECT 
+          type: Sequelize.QueryTypes.SELECT
         }
       );
-      
+
       console.log(`🔐 User has ${permissions[0].count} permissions assigned`);
-      
+
       // Verify the user can access all the seeded data
       console.log('✅ Default user has access to:');
       console.log(`   - Team: ${teamId} (Texas Longhorns)`);
@@ -93,7 +93,7 @@ module.exports = {
       console.log(`   - Schedules: ${schedules[0].count} schedules`);
       console.log(`   - Depth Charts: ${depthCharts[0].count} depth charts`);
       console.log(`   - Permissions: ${permissions[0].count} permissions`);
-      
+
       return;
     }
 
@@ -120,15 +120,15 @@ module.exports = {
     };
 
     await queryInterface.bulkInsert('users', [defaultUser], {});
-    
+
     // Get the created user ID
     const createdUsers = await queryInterface.sequelize.query(
       "SELECT id FROM users WHERE email = 'user@example.com'",
       { type: Sequelize.QueryTypes.SELECT }
     );
-    
-    const userId = createdUsers[0].id;
-    
+
+    const _userId = createdUsers[0].id;
+
     console.log('✅ Default user created successfully!');
     console.log('');
     console.log('🔐 LOGIN CREDENTIALS:');
@@ -147,7 +147,7 @@ module.exports = {
     console.log('🚀 Ready to login at http://localhost:3000');
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.bulkDelete('users', {
       email: 'user@example.com'
     }, {});

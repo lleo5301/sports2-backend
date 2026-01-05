@@ -62,13 +62,13 @@ const Vendor = sequelize.define('Vendor', {
   },
   vendor_type: {
     type: DataTypes.ENUM(
-      'Equipment', 
-      'Apparel', 
-      'Technology', 
-      'Food Service', 
-      'Transportation', 
-      'Medical', 
-      'Facilities', 
+      'Equipment',
+      'Apparel',
+      'Technology',
+      'Food Service',
+      'Transportation',
+      'Medical',
+      'Facilities',
       'Other'
     ),
     allowNull: false

@@ -216,20 +216,26 @@ const Player = sequelize.define('Player', {
   hooks: {
     beforeCreate: (player) => {
       // Set default values for statistics if not provided
-      if (player.batting_avg === null) player.batting_avg = 0.000;
-      if (player.era === null) player.era = 0.00;
+      if (player.batting_avg === null) {
+        player.batting_avg = 0.000;
+      }
+      if (player.era === null) {
+        player.era = 0.00;
+      }
     }
   }
 });
 
 // Instance method to get full name
-Player.prototype.getFullName = function() {
+Player.prototype.getFullName = function () {
   return `${this.first_name} ${this.last_name}`;
 };
 
 // Instance method to get age
-Player.prototype.getAge = function() {
-  if (!this.birth_date) return null;
+Player.prototype.getAge = function () {
+  if (!this.birth_date) {
+    return null;
+  }
   const today = new Date();
   const birthDate = new Date(this.birth_date);
   let age = today.getFullYear() - birthDate.getFullYear();
@@ -240,4 +246,4 @@ Player.prototype.getAge = function() {
   return age;
 };
 
-module.exports = Player; 
+module.exports = Player;

@@ -31,7 +31,7 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
-const { ScheduleTemplate, Team, User } = require('../models');
+const { ScheduleTemplate, User } = require('../models');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();

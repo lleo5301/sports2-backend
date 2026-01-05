@@ -203,7 +203,7 @@ describe('passwordValidator', () => {
         'Test_Pass1',
         'Hello123$World',
         '!Abc1234',
-        'Passw0rd@',
+        'Passw0rd@'
       ];
 
       validPasswords.forEach((password) => {
@@ -275,7 +275,7 @@ describe('passwordValidator', () => {
         'abc123',
         'letmein',
         'admin',
-        'iloveyou',
+        'iloveyou'
       ];
 
       weakPasswords.forEach((password) => {
@@ -366,9 +366,12 @@ describe('passwordValidator', () => {
     });
 
     it('should include all error messages in thrown error', () => {
+      expect(() => {
+        expressValidatorCheck('test');
+      }).toThrow();
+
       try {
         expressValidatorCheck('test');
-        fail('Expected error to be thrown');
       } catch (error) {
         expect(error.message).toContain('8 characters');
         expect(error.message).toContain('uppercase');

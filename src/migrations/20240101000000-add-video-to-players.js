@@ -21,7 +21,7 @@ module.exports = {
     }
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface, _Sequelize) {
     try {
       await queryInterface.describeTable('players');
       const table = await queryInterface.describeTable('players');

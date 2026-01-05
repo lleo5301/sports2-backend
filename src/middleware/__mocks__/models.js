@@ -1,11 +1,9 @@
 module.exports = {
   User: {
-    findByPk: jest.fn(),
+    findByPk: jest.fn()
   },
   UserPermission: {
     findOne: jest.fn(),
-    findAll: jest.fn(),
-  },
+    findAll: jest.fn()
+  }
 };
-
-

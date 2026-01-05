@@ -47,13 +47,13 @@ module.exports = {
       },
       vendor_type: {
         type: Sequelize.ENUM(
-          'Equipment', 
-          'Apparel', 
-          'Technology', 
-          'Food Service', 
-          'Transportation', 
-          'Medical', 
-          'Facilities', 
+          'Equipment',
+          'Apparel',
+          'Technology',
+          'Food Service',
+          'Transportation',
+          'Medical',
+          'Facilities',
           'Other'
         ),
         allowNull: false
@@ -136,7 +136,7 @@ module.exports = {
     await queryInterface.addIndex('vendors', ['team_id', 'status'], { name: 'vendors_team_id_status_idx' });
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface, _Sequelize) {
     // Remove indexes first
     await queryInterface.removeIndex('vendors', 'vendors_team_id_status_idx');
     await queryInterface.removeIndex('vendors', 'vendors_company_name_idx');

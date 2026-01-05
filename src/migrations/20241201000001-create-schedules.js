@@ -68,7 +68,7 @@ module.exports = {
     await queryInterface.addIndex('schedules', ['is_active']);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.dropTable('schedules');
   }
-}; 
+};

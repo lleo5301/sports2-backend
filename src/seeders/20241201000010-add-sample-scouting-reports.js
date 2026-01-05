@@ -7,7 +7,7 @@ module.exports = {
       'SELECT p.id FROM players p JOIN teams t ON p.team_id = t.id LIMIT 5',
       { type: Sequelize.QueryTypes.SELECT }
     );
-    
+
     if (players.length === 0) {
       console.log('No players found to create scouting reports for');
       return;
@@ -132,7 +132,7 @@ module.exports = {
     console.log(`Created ${scoutingReports.length} sample scouting reports`);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.bulkDelete('scouting_reports', null, {});
   }
 };

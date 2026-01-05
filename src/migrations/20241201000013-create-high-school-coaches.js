@@ -27,11 +27,11 @@ module.exports = {
       },
       position: {
         type: Sequelize.ENUM(
-          'Head Coach', 
-          'Assistant Coach', 
-          'JV Coach', 
-          'Freshman Coach', 
-          'Pitching Coach', 
+          'Head Coach',
+          'Assistant Coach',
+          'JV Coach',
+          'Freshman Coach',
+          'Pitching Coach',
           'Hitting Coach'
         ),
         allowNull: false
@@ -142,7 +142,7 @@ module.exports = {
     await queryInterface.addIndex('high_school_coaches', ['team_id', 'status'], { name: 'hs_coaches_team_id_status_idx' });
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface, _Sequelize) {
     // Remove indexes first
     await queryInterface.removeIndex('high_school_coaches', 'hs_coaches_team_id_status_idx');
     await queryInterface.removeIndex('high_school_coaches', 'hs_coaches_relationship_idx');

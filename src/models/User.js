@@ -98,13 +98,13 @@ const User = sequelize.define('User', {
 });
 
 // Instance method to check password
-User.prototype.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+User.prototype.matchPassword = async function (enteredPassword) {
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
 // Instance method to get full name
-User.prototype.getFullName = function() {
+User.prototype.getFullName = function () {
   return `${this.first_name} ${this.last_name}`;
 };
 
-module.exports = User; 
+module.exports = User;

@@ -25,7 +25,7 @@ const PLACEHOLDER_PATTERNS = [
   /super[_-]?secret/i,
   /jwt[_-]?secret[_-]?key/i,
   /your.*secret.*key/i,
-  /change.*before.*production/i,
+  /change.*before.*production/i
 ];
 
 // Known weak/placeholder values to block explicitly
@@ -41,7 +41,7 @@ const BLOCKED_VALUES = [
   'development_secret',
   'test_secret',
   'supersecret',
-  'mysecretkey',
+  'mysecretkey'
 ];
 
 /**
@@ -52,7 +52,9 @@ const BLOCKED_VALUES = [
  * @returns {number} - Entropy score (0-1 range, normalized)
  */
 function calculateEntropyScore(str) {
-  if (!str || str.length === 0) return 0;
+  if (!str || str.length === 0) {
+    return 0;
+  }
 
   // Count character frequency
   const freq = {};
@@ -81,15 +83,21 @@ function calculateEntropyScore(str) {
  * @returns {boolean} - True if the secret appears to be repetitive
  */
 function isRepetitivePattern(secret) {
-  if (!secret || secret.length < 4) return true;
+  if (!secret || secret.length < 4) {
+    return true;
+  }
 
   // Check for single character repetition (e.g., "aaaaaaaaaaaaaaaa")
-  if (new Set(secret).size === 1) return true;
+  if (new Set(secret).size === 1) {
+    return true;
+  }
 
   // Check for simple alternating pattern (e.g., "abababababababab")
   if (new Set(secret).size === 2 && secret.length > 8) {
     const pattern = secret.slice(0, 2);
-    if (secret === pattern.repeat(secret.length / 2)) return true;
+    if (secret === pattern.repeat(secret.length / 2)) {
+      return true;
+    }
   }
 
   // Check for sequential patterns (e.g., "12345678901234567890")
@@ -233,5 +241,5 @@ module.exports = {
   calculateEntropyScore,
   isRepetitivePattern,
   PLACEHOLDER_PATTERNS,
-  BLOCKED_VALUES,
+  BLOCKED_VALUES
 };

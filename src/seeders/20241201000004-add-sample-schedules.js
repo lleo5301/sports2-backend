@@ -7,7 +7,7 @@ module.exports = {
       'SELECT id FROM teams LIMIT 1',
       { type: Sequelize.QueryTypes.SELECT }
     );
-    
+
     const teamId = teams[0]?.id || 1;
     const now = new Date();
 
@@ -112,7 +112,7 @@ module.exports = {
     const createdSections = await queryInterface.bulkInsert('schedule_sections', sections, { returning: true });
 
     // Create activities for each section
-    createdSections.forEach((section, sectionIndex) => {
+    createdSections.forEach((section, _sectionIndex) => {
       if (section.type === 'general') {
         activities.push(
           {
@@ -218,9 +218,9 @@ module.exports = {
     await queryInterface.bulkInsert('schedule_activities', activities, {});
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.bulkDelete('schedule_activities', null, {});
     await queryInterface.bulkDelete('schedule_sections', null, {});
     await queryInterface.bulkDelete('schedules', null, {});
   }
-}; 
+};

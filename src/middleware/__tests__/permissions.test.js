@@ -16,8 +16,8 @@ describe('permissions middleware', () => {
     jest.doMock('../../models', () => ({
       UserPermission: {
         findOne: (...args) => mockFindOne(...args),
-        findAll: (...args) => mockFindAll(...args),
-      },
+        findAll: (...args) => mockFindAll(...args)
+      }
     }));
     ({ checkPermission, checkAnyPermission, checkAllPermissions } = require('../permissions'));
     jest.clearAllMocks();
@@ -63,5 +63,3 @@ describe('permissions middleware', () => {
     expect(response.status).toHaveBeenCalledWith(403);
   });
 });
-
-

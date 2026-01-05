@@ -193,4 +193,4 @@ module.exports = {
   Vendor,
   HighSchoolCoach,
   UserTeam
-}; 
+};

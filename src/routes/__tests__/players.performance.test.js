@@ -8,7 +8,7 @@ describe('Player Performance API', () => {
   let authToken;
   let testUser;
   let testTeam;
-  let testPlayers = [];
+  const testPlayers = [];
 
   beforeAll(async () => {
     // Ensure we're using the test database
@@ -42,11 +42,11 @@ describe('Player Performance API', () => {
 
     // Generate auth token
     authToken = jwt.sign(
-      { 
-        id: testUser.id, 
-        email: testUser.email, 
+      {
+        id: testUser.id,
+        email: testUser.email,
         role: testUser.role,
-        team_id: testUser.team_id 
+        team_id: testUser.team_id
       },
       process.env.JWT_SECRET || 'test-secret',
       { expiresIn: '1h' }
@@ -227,7 +227,7 @@ describe('Player Performance API', () => {
 
       expect(response.body.success).toBe(true);
       const battingAvgs = response.body.data.map(p => parseFloat(p.display_stats.batting_avg));
-      
+
       // Check that batting averages are in descending order
       for (let i = 1; i < battingAvgs.length; i++) {
         expect(battingAvgs[i]).toBeLessThanOrEqual(battingAvgs[i - 1]);
@@ -242,7 +242,7 @@ describe('Player Performance API', () => {
 
       expect(response.body.success).toBe(true);
       const homeRuns = response.body.data.map(p => p.home_runs || 0);
-      
+
       // Check that home runs are in descending order
       for (let i = 1; i < homeRuns.length; i++) {
         expect(homeRuns[i]).toBeLessThanOrEqual(homeRuns[i - 1]);
@@ -259,7 +259,7 @@ describe('Player Performance API', () => {
       // Filter only pitchers (those with ERA values)
       const pitchers = response.body.data.filter(p => p.position === 'P');
       const eras = pitchers.map(p => parseFloat(p.display_stats.era));
-      
+
       // Check that ERAs are in ascending order
       for (let i = 1; i < eras.length; i++) {
         expect(eras[i]).toBeGreaterThanOrEqual(eras[i - 1]);
@@ -273,12 +273,12 @@ describe('Player Performance API', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      
+
       // Find John Slugger (position player)
       const slugger = response.body.data.find(p => p.first_name === 'John');
       expect(slugger).toBeDefined();
       expect(slugger.calculated_stats.performance_score).toBeGreaterThan(0);
-      
+
       // Find Mike Fastball (pitcher)
       const pitcher = response.body.data.find(p => p.first_name === 'Mike');
       expect(pitcher).toBeDefined();
@@ -303,7 +303,7 @@ describe('Player Performance API', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      
+
       // Check that rankings are sequential starting from 1
       const ranks = response.body.data.map(p => p.rank);
       expect(ranks[0]).toBe(1);

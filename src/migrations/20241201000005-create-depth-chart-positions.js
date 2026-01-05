@@ -72,12 +72,16 @@ module.exports = {
     });
 
     // Add indexes
-    try { await queryInterface.addIndex('depth_chart_positions', ['depth_chart_id']); } catch (e) {}
+    try {
+      await queryInterface.addIndex('depth_chart_positions', ['depth_chart_id']);
+    } catch (e) {
+      // Index may already exist
+    }
     await queryInterface.addIndex('depth_chart_positions', ['position_code']);
     await queryInterface.addIndex('depth_chart_positions', ['sort_order']);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.dropTable('depth_chart_positions');
   }
-}; 
+};

@@ -101,4 +101,4 @@ const Game = sequelize.define('Game', {
 
 // Associations are defined in models/index.js
 
-module.exports = Game; 
+module.exports = Game;

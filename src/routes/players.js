@@ -389,7 +389,6 @@ router.put('/byId/:id', uploadVideo, [
   body('injury_details').optional().isString(),
   body('has_comparison').optional().isBoolean(),
   body('comparison_player').optional().isLength({ min: 1, max: 100 }),
-  // Validation: Status field with allowed values
   body('status').optional().isIn(['active', 'inactive', 'graduated', 'transferred'])
 ], handleUploadError, async (req, res) => {
   try {
@@ -403,16 +402,15 @@ router.put('/byId/:id', uploadVideo, [
       });
     }
 
-    // Database: Find player with team isolation check
+    // Permission: Fetch player with team isolation check
     const player = await Player.findOne({
       where: {
         id: req.params.id,
-        // Permission: Only allow updates to players within user's team
         team_id: req.user.team_id
       }
     });
 
-    // Error: Return 404 if player not found (also handles unauthorized team access)
+    // Error: Return 404 if player not found or doesn't belong to user's team
     if (!player) {
       return res.status(404).json({
         success: false,
@@ -420,26 +418,46 @@ router.put('/byId/:id', uploadVideo, [
       });
     }
 
-    // Business logic: Prepare update data from request body
-    const updateData = { ...req.body };
-
-    // Business logic: Handle video file replacement
-    if (req.file) {
-      // File cleanup: Delete old video file from filesystem if it exists
-      if (player.video_url) {
-        const oldVideoPath = path.join(__dirname, '../../uploads/videos', path.basename(player.video_url));
-        if (fs.existsSync(oldVideoPath)) {
-          fs.unlinkSync(oldVideoPath);
+    // Business logic: Handle video file replacement - delete old file if new one provided
+    if (req.file && player.video_url) {
+      try {
+        // Extract filename from path (e.g., '/uploads/videos/file.mp4' -> 'file.mp4')
+        const oldFileName = path.basename(player.video_url);
+        const oldFilePath = path.join(__dirname, '../uploads/videos', oldFileName);
+        // Delete old file if it exists
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
         }
+      } catch (err) {
+        // Log error but don't fail the update - file deletion is non-critical
+        console.error('Error deleting old video file:', err);
       }
-      // Store path to new video file
+    }
+
+    // Business logic: Prepare update data - only update provided fields
+    const updateData = {};
+    const allowedFields = [
+      'first_name', 'last_name', 'school_type', 'position', 'height', 'weight',
+      'birth_date', 'graduation_year', 'school', 'city', 'state', 'phone',
+      'email', 'has_medical_issues', 'injury_details', 'has_comparison',
+      'comparison_player', 'status'
+    ];
+
+    allowedFields.forEach(field => {
+      if (field in req.body) {
+        updateData[field] = req.body[field];
+      }
+    });
+
+    // Business logic: Store new video path if new file was uploaded
+    if (req.file) {
       updateData.video_url = `/uploads/videos/${req.file.filename}`;
     }
 
-    // Database: Apply updates to the player record
+    // Database: Update the player record
     await player.update(updateData);
 
-    // Database: Fetch the updated player with associations for complete response
+    // Database: Fetch updated player with associations for complete response
     const updatedPlayer = await Player.findByPk(player.id, {
       include: [
         {
@@ -469,10 +487,8 @@ router.put('/byId/:id', uploadVideo, [
 
 /**
  * @route DELETE /api/players/byId/:id
- * @description Permanently deletes a player record from the database.
+ * @description Deletes a player record and associated video file from storage.
  *              Only allows deletion of players belonging to the authenticated user's team.
- *              Note: This is a hard delete - associated scouting reports may be cascade deleted
- *              depending on foreign key constraints.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  *
@@ -480,23 +496,22 @@ router.put('/byId/:id', uploadVideo, [
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {string} response.message - Success confirmation message
+ * @returns {string} response.message - Confirmation message
  *
  * @throws {404} Not found - Player doesn't exist or doesn't belong to user's team
- * @throws {500} Server error - Database operation failure
+ * @throws {500} Server error - Database or file operation failure
  */
 router.delete('/byId/:id', async (req, res) => {
   try {
-    // Database: Find player with team isolation check
+    // Permission: Fetch player with team isolation check
     const player = await Player.findOne({
       where: {
         id: req.params.id,
-        // Permission: Only allow deletion of players within user's team
         team_id: req.user.team_id
       }
     });
 
-    // Error: Return 404 if player not found (also handles unauthorized team access)
+    // Error: Return 404 if player not found or doesn't belong to user's team
     if (!player) {
       return res.status(404).json({
         success: false,
@@ -504,8 +519,23 @@ router.delete('/byId/:id', async (req, res) => {
       });
     }
 
-    // Database: Hard delete the player record
-    // Note: Associated records (scouting reports, etc.) may be cascade deleted
+    // Business logic: Delete associated video file from storage if it exists
+    if (player.video_url) {
+      try {
+        // Extract filename from path (e.g., '/uploads/videos/file.mp4' -> 'file.mp4')
+        const fileName = path.basename(player.video_url);
+        const filePath = path.join(__dirname, '../uploads/videos', fileName);
+        // Delete file if it exists
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err) {
+        // Log error but don't fail the delete - file deletion is non-critical
+        console.error('Error deleting video file:', err);
+      }
+    }
+
+    // Database: Delete the player record
     await player.destroy();
 
     res.json({
@@ -521,405 +551,4 @@ router.delete('/byId/:id', async (req, res) => {
   }
 });
 
-/**
- * @route GET /api/players/stats/summary
- * @description Retrieves aggregated statistics summary for the authenticated user's team.
- *              Calculates total active players, active high school recruits, recent scouting
- *              report count (last 30 days), and team batting average.
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Statistics summary
- * @returns {number} response.data.total_players - Count of active players on the team
- * @returns {number} response.data.active_recruits - Count of active high school (HS) players
- * @returns {number} response.data.recent_reports - Count of scouting reports created in last 30 days
- * @returns {string} response.data.team_avg - Team batting average formatted as '.XXX'
- *
- * @throws {500} Server error - Database query failure
- */
-router.get('/stats/summary', async (req, res) => {
-  try {
-    // Database: Count total active players for the team
-    const totalPlayers = await Player.count({
-      where: {
-        team_id: req.user.team_id,
-        status: 'active'
-      }
-    });
-
-    // Business logic: Active recruits are high school players with active status
-    // These are prospects being scouted for recruitment
-    const activeRecruits = await Player.count({
-      where: {
-        team_id: req.user.team_id,
-        status: 'active',
-        school_type: 'HS'
-      }
-    });
-
-    // Business logic: Calculate the date 30 days ago for recent activity filtering
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    // Database: Count scouting reports created in last 30 days for team's players
-    const recentReports = await ScoutingReport.count({
-      include: [{
-        model: Player,
-        where: {
-          // Permission: Only count reports for team's players
-          team_id: req.user.team_id
-        },
-        attributes: []
-      }],
-      where: {
-        created_at: {
-          [Op.gte]: thirtyDaysAgo
-        }
-      }
-    });
-
-    // Database: Calculate team batting average using SQL AVG aggregate
-    const teamAvgResult = await Player.findOne({
-      where: {
-        team_id: req.user.team_id,
-        status: 'active',
-        // Business logic: Only include players with batting average data
-        batting_avg: {
-          [Op.not]: null
-        }
-      },
-      attributes: [
-        [sequelize.fn('AVG', sequelize.col('batting_avg')), 'team_avg']
-      ]
-    });
-
-    // Business logic: Format batting average to 3 decimal places, default to '.000'
-    const teamAvg = teamAvgResult ? parseFloat(teamAvgResult.getDataValue('team_avg')).toFixed(3) : '.000';
-
-    res.json({
-      success: true,
-      data: {
-        total_players: totalPlayers,
-        active_recruits: activeRecruits,
-        recent_reports: recentReports,
-        team_avg: teamAvg
-      }
-    });
-  } catch (error) {
-    console.error('Get stats summary error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error while fetching statistics'
-    });
-  }
-});
-
-/**
- * @route GET /api/players/byId/:id/stats
- * @description Retrieves detailed batting and pitching statistics for a specific player.
- *              Returns all statistical fields with defaults for null values.
- *              Only returns stats for players belonging to the authenticated user's team.
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- *
- * @param {string} req.params.id - Player UUID
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Player statistics
- * @returns {string} response.data.id - Player UUID
- * @returns {string} response.data.name - Player full name
- * @returns {string} response.data.position - Player position
- * @returns {string} response.data.school_type - School type (HS/COLL)
- * @returns {Object} response.data.batting - Batting statistics (avg, obp, slg, ops, runs, hits, etc.)
- * @returns {Object} response.data.pitching - Pitching statistics (era, wins, losses, saves, etc.)
- *
- * @throws {404} Not found - Player doesn't exist or doesn't belong to user's team
- * @throws {500} Server error - Database query failure
- */
-router.get('/byId/:id/stats', async (req, res) => {
-  try {
-    // Database: Fetch player with only statistical attributes for efficiency
-    const player = await Player.findOne({
-      where: {
-        id: req.params.id,
-        // Permission: Only return stats for players within user's team
-        team_id: req.user.team_id
-      },
-      // Performance: Select only required attributes to minimize data transfer
-      attributes: [
-        'id', 'first_name', 'last_name', 'position', 'school_type',
-        // Batting statistics
-        'batting_avg', 'on_base_pct', 'slugging_pct', 'ops',
-        'runs', 'hits', 'doubles', 'triples', 'home_runs', 'rbis',
-        'walks', 'strikeouts', 'stolen_bases', 'caught_stealing',
-        // Pitching statistics
-        'era', 'wins', 'losses', 'saves', 'innings_pitched',
-        'hits_allowed', 'runs_allowed', 'earned_runs', 'walks_allowed',
-        'strikeouts_pitched', 'whip', 'batting_avg_against'
-      ]
-    });
-
-    // Error: Return 404 if player not found (also handles unauthorized team access)
-    if (!player) {
-      return res.status(404).json({
-        success: false,
-        error: 'Player not found'
-      });
-    }
-
-    // Business logic: Format statistics with sensible defaults for null values
-    // Separates batting and pitching stats into distinct objects for UI consumption
-    const stats = {
-      id: player.id,
-      name: `${player.first_name} ${player.last_name}`,
-      position: player.position,
-      school_type: player.school_type,
-      // Batting statistics with defaults
-      batting: {
-        avg: player.batting_avg || '.000',
-        obp: player.on_base_pct || '.000',
-        slg: player.slugging_pct || '.000',
-        ops: player.ops || '.000',
-        runs: player.runs || 0,
-        hits: player.hits || 0,
-        doubles: player.doubles || 0,
-        triples: player.triples || 0,
-        home_runs: player.home_runs || 0,
-        rbis: player.rbis || 0,
-        walks: player.walks || 0,
-        strikeouts: player.strikeouts || 0,
-        stolen_bases: player.stolen_bases || 0,
-        caught_stealing: player.caught_stealing || 0
-      },
-      // Pitching statistics with defaults
-      pitching: {
-        era: player.era || 0.00,
-        wins: player.wins || 0,
-        losses: player.losses || 0,
-        saves: player.saves || 0,
-        innings_pitched: player.innings_pitched || 0,
-        hits_allowed: player.hits_allowed || 0,
-        runs_allowed: player.runs_allowed || 0,
-        earned_runs: player.earned_runs || 0,
-        walks_allowed: player.walks_allowed || 0,
-        strikeouts_pitched: player.strikeouts_pitched || 0,
-        whip: player.whip || 0.00,
-        batting_avg_against: player.batting_avg_against || '.000'
-      }
-    };
-
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    console.error('Get player stats error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error while fetching player statistics'
-    });
-  }
-});
-
-/**
- * @route GET /api/players/performance
- * @description Retrieves player performance rankings with calculated statistics and team averages.
- *              Calculates derived stats like win percentage, K/9, and a composite performance score.
- *              Performance score formula:
- *              - Pitchers: (1/ERA * 50) + (wins * 10) + (strikeouts * 2)
- *              - Position players: (batting_avg * 100) + (home_runs * 5) + (rbi * 2) + (stolen_bases * 3)
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- * @middleware express-validator - Query parameter validation
- *
- * @param {string} [req.query.position] - Filter by player position
- * @param {string} [req.query.school_type] - Filter by school type ('HS' or 'COLL')
- * @param {string} [req.query.status='active'] - Filter by player status
- * @param {string} [req.query.sort_by='batting_avg'] - Field to sort by
- * @param {string} [req.query.order='DESC'] - Sort order ('ASC' or 'DESC')
- * @param {number} [req.query.limit=50] - Maximum number of players to return (1-100)
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {Array<Object>} response.data - Array of players with rankings and calculated stats
- * @returns {number} response.data[].rank - Player rank based on sort order
- * @returns {Object} response.data[].calculated_stats - Derived statistics (win_pct, k9, performance_score)
- * @returns {Object} response.data[].display_stats - Formatted stats for display (batting_avg, era, win_pct, k9)
- * @returns {Object} response.summary - Summary statistics
- * @returns {number} response.summary.total_players - Count of players returned
- * @returns {number} response.summary.team_batting_avg - Team average batting average
- * @returns {number} response.summary.team_era - Team average ERA
- * @returns {Object} response.summary.filters - Applied filter values
- *
- * @throws {400} Validation error - Invalid query parameters
- * @throws {500} Server error - Database query failure
- */
-router.get('/performance', [
-  // Validation: Limit must be between 1-100 when provided
-  query('limit').if(query('limit').notEmpty()).isInt({ min: 1, max: 100 })
-], async (req, res) => {
-  try {
-    // Validation: Check for validation errors from express-validator
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation error',
-        details: errors.array()
-      });
-    }
-
-    // Business logic: Extract query parameters with defaults
-    const {
-      position,
-      school_type,
-      status = 'active',
-      sort_by = 'batting_avg',
-      order = 'DESC',
-      limit = 50
-    } = req.query;
-
-    // Permission: Team isolation - only return players belonging to user's team
-    const whereClause = {
-      team_id: req.user.team_id
-    };
-
-    // Business logic: Apply optional filters when provided
-    if (position) {
-      whereClause.position = position;
-    }
-
-    if (school_type) {
-      whereClause.school_type = school_type;
-    }
-
-    if (status) {
-      whereClause.status = status;
-    }
-
-    // Database: Fetch players with stats, sorted by specified field
-    const players = await Player.findAll({
-      where: whereClause,
-      attributes: [
-        'id', 'first_name', 'last_name', 'position', 'school_type', 'status',
-        'height', 'weight', 'graduation_year', 'school', 'city', 'state',
-        // Batting stats
-        'batting_avg', 'home_runs', 'rbi', 'stolen_bases',
-        // Pitching stats
-        'era', 'wins', 'losses', 'strikeouts', 'innings_pitched',
-        // Timestamps
-        'created_at', 'updated_at'
-      ],
-      // Business logic: Multi-level sort - primary by requested field, then alphabetically by name
-      order: [
-        [sort_by, order],
-        ['last_name', 'ASC'],
-        ['first_name', 'ASC']
-      ],
-      limit: parseInt(limit),
-      raw: false
-    });
-
-    // Business logic: Calculate derived statistics and rankings for each player
-    const playersWithStats = players.map((player, index) => {
-      const playerData = player.toJSON();
-
-      // Parse raw statistics with defaults for null values
-      const battingAvg = parseFloat(playerData.batting_avg) || 0;
-      const homeRuns = parseInt(playerData.home_runs) || 0;
-      const rbi = parseInt(playerData.rbi) || 0;
-      const stolenBases = parseInt(playerData.stolen_bases) || 0;
-      const era = parseFloat(playerData.era) || 0;
-      const wins = parseInt(playerData.wins) || 0;
-      const losses = parseInt(playerData.losses) || 0;
-      const strikeouts = parseInt(playerData.strikeouts) || 0;
-      const inningsPitched = parseFloat(playerData.innings_pitched) || 0;
-
-      // Calculated stat: Win percentage for pitchers
-      const totalGames = wins + losses;
-      const winPct = totalGames > 0 ? (wins / totalGames) : 0;
-
-      // Calculated stat: K/9 (strikeouts per 9 innings) - standard pitching metric
-      const k9 = inningsPitched > 0 ? (strikeouts * 9) / inningsPitched : 0;
-
-      // Business logic: Calculate composite performance score based on position
-      // This provides a single comparable metric across different player types
-      let performanceScore = 0;
-      if (playerData.position === 'P') {
-        // Pitcher scoring: Rewards low ERA (inverse relationship), wins, and strikeouts
-        performanceScore = (era > 0 ? (1 / era) * 50 : 0) + (wins * 10) + (strikeouts * 2);
-      } else {
-        // Position player scoring: Weighted combination of offensive stats
-        performanceScore = (battingAvg * 100) + (homeRuns * 5) + (rbi * 2) + (stolenBases * 3);
-      }
-
-      return {
-        ...playerData,
-        // Business logic: Rank is 1-indexed based on sort order
-        rank: index + 1,
-        // Calculated statistics for data analysis
-        calculated_stats: {
-          win_pct: winPct,
-          k9: k9,
-          performance_score: Math.round(performanceScore * 10) / 10
-        },
-        // Formatted statistics for display in UI
-        display_stats: {
-          batting_avg: battingAvg.toFixed(3),
-          era: era.toFixed(2),
-          win_pct: winPct.toFixed(3),
-          k9: k9.toFixed(1)
-        }
-      };
-    });
-
-    // Database: Calculate team-wide aggregates for comparison context
-    const teamStats = await Player.aggregate('batting_avg', 'AVG', {
-      where: {
-        team_id: req.user.team_id,
-        status: 'active',
-        batting_avg: { [Op.not]: null }
-      }
-    });
-
-    const teamERA = await Player.aggregate('era', 'AVG', {
-      where: {
-        team_id: req.user.team_id,
-        status: 'active',
-        era: { [Op.not]: null }
-      }
-    });
-
-    // Business logic: Build summary with team stats and applied filters
-    const summary = {
-      total_players: playersWithStats.length,
-      team_batting_avg: parseFloat(teamStats) || 0,
-      team_era: parseFloat(teamERA) || 0,
-      filters: {
-        position,
-        school_type,
-        status,
-        sort_by,
-        order
-      }
-    };
-
-    res.json({
-      success: true,
-      data: playersWithStats,
-      summary
-    });
-
-  } catch (error) {
-    console.error('Get player performance error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error while fetching player performance data'
-    });
-  }
-});
-
-module.exports = router; 
+module.exports = router;

@@ -58,10 +58,10 @@ const fileFilter = (req, file, cb) => {
 
 // Configure multer for videos
 const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
+  storage,
+  fileFilter,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit
+    fileSize: 100 * 1024 * 1024 // 100MB limit
   }
 });
 
@@ -106,7 +106,7 @@ const logoUpload = multer({
   storage: logoStorage,
   fileFilter: imageFileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit for logos
+    fileSize: 5 * 1024 * 1024 // 5MB limit for logos
   }
 });
 

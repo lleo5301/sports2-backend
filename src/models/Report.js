@@ -104,11 +104,11 @@ Report.associate = (models) => {
     foreignKey: 'team_id',
     as: 'team'
   });
-  
+
   Report.belongsTo(models.User, {
     foreignKey: 'created_by',
     as: 'created_by_user'
   });
 };
 
-module.exports = Report; 
+module.exports = Report;

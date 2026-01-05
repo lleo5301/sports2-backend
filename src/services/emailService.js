@@ -48,7 +48,7 @@ class EmailService {
       this.isConfigured = true;
 
       // Verify connection configuration
-      this.transporter.verify((error, success) => {
+      this.transporter.verify((error, _success) => {
         if (error) {
           console.error('❌ Email service configuration error:', error);
           this.isConfigured = false;
@@ -157,7 +157,7 @@ The Sports2 Team
 </html>
     `;
 
-    return await this.sendEmail({ to: email, subject, text, html });
+    return this.sendEmail({ to: email, subject, text, html });
   }
 
   /**
@@ -224,7 +224,7 @@ The Sports2 Team
 </html>
     `;
 
-    return await this.sendEmail({ to: email, subject, text, html });
+    return this.sendEmail({ to: email, subject, text, html });
   }
 
   /**
@@ -287,7 +287,7 @@ View details: ${actionUrl}`;
 </html>
     `;
 
-    return await this.sendEmail({ to: email, subject, text, html });
+    return this.sendEmail({ to: email, subject, text, html });
   }
 
   /**
@@ -295,7 +295,7 @@ View details: ${actionUrl}`;
    * @param {string} testEmail - Email to send test to
    */
   async testEmail(testEmail) {
-    return await this.sendEmail({
+    return this.sendEmail({
       to: testEmail,
       subject: 'Sports2 Email Test',
       text: 'This is a test email from Sports2. If you receive this, email is working correctly!',

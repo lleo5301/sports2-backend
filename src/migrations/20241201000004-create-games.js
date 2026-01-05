@@ -87,14 +87,18 @@ module.exports = {
     });
 
     // Add indexes
-    try { await queryInterface.addIndex('games', ['team_id']); } catch (e) {}
+    try {
+      await queryInterface.addIndex('games', ['team_id']);
+    } catch (e) {
+      // Index may already exist
+    }
     await queryInterface.addIndex('games', ['game_date']);
     await queryInterface.addIndex('games', ['season']);
     await queryInterface.addIndex('games', ['result']);
     await queryInterface.addIndex('games', ['created_by']);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.dropTable('games');
   }
-}; 
+};

@@ -248,7 +248,9 @@ router.get('/', validateVendorList, async (req, res) => {
   try {
     // Validation: Check for any validation errors from middleware
     const validationError = handleValidationErrors(req, res);
-    if (validationError) return;
+    if (validationError) {
+      return;
+    }
 
     // Extract query parameters with defaults
     const {
@@ -469,7 +471,9 @@ router.post('/', validateVendorCreate, async (req, res) => {
   try {
     // Validation: Check for any validation errors from middleware
     const validationError = handleValidationErrors(req, res);
-    if (validationError) return;
+    if (validationError) {
+      return;
+    }
 
     // Database: Create vendor with automatic team and creator assignment
     // Business logic: team_id and created_by are set from authenticated user
@@ -560,7 +564,9 @@ router.put('/:id', validateVendorUpdate, async (req, res) => {
   try {
     // Validation: Check for any validation errors from middleware
     const validationError = handleValidationErrors(req, res);
-    if (validationError) return;
+    if (validationError) {
+      return;
+    }
 
     // Database: Find vendor with team scoping for multi-tenant isolation
     const vendor = await Vendor.findOne({

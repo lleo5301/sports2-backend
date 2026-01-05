@@ -113,7 +113,3 @@ const ScheduleEventDate = sequelize.define('ScheduleEventDate', {
 });
 
 module.exports = ScheduleEventDate;
-
-
-
-

@@ -61,7 +61,7 @@
  */
 
 const express = require('express');
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
 const { Location, User } = require('../models');
@@ -686,7 +686,7 @@ router.delete('/:id',
       const eventsUsingLocation = await ScheduleEvent.count({
         where: {
           [Op.or]: [
-            { location_id: req.params.id },
+            { location_id: req.params.id }
           ]
         }
       });

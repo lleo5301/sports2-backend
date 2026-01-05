@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-  up: async (queryInterface, Sequelize) => {
+  up: async (queryInterface, _Sequelize) => {
     // Check if teams already exist to prevent duplicates
     const [existingTeams] = await queryInterface.sequelize.query(
       'SELECT COUNT(*) as count FROM teams'
@@ -78,7 +78,7 @@ module.exports = {
     await queryInterface.bulkInsert('teams', teams, {});
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.bulkDelete('teams', null, {});
   }
-}; 
+};
