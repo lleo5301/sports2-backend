@@ -468,12 +468,20 @@ router.put('/me', protect, [
 
 /**
  * @route PUT /api/auth/change-password
- * @description Changes the authenticated user's password.
+ * @description Changes the authenticated user's password and revokes all existing tokens.
  *              Requires verification of current password before allowing change.
  *              New password is automatically hashed by User model hooks before storage.
  *
+ *              Security flow:
+ *              1. Verify current password
+ *              2. Revoke all existing tokens for the user
+ *              3. Update password in database
+ *              4. Generate and return new token for continued session
+ *
  *              Security measures:
  *              - Current password verification prevents unauthorized changes
+ *              - All existing tokens are invalidated to prevent compromise
+ *              - New token issued to keep user logged in
  *              - Minimum password length enforced
  *              - Password hashing handled by model layer
  * @access Private - Requires authentication
@@ -486,6 +494,8 @@ router.put('/me', protect, [
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
  * @returns {string} response.message - Success confirmation message
+ * @returns {Object} response.data - Token data
+ * @returns {string} response.data.token - New JWT authentication token
  *
  * @throws {400} Validation failed - New password too short or missing required fields
  * @throws {400} Current password is incorrect - Password verification failed
@@ -521,13 +531,26 @@ router.put('/change-password', protect, [
       });
     }
 
+    // Security: Revoke all existing tokens for this user
+    // This prevents any compromised tokens from continuing to work after password change
+    await tokenBlacklistService.revokeAllUserTokens(
+      req.user.id,
+      'password_change'
+    );
+
     // Security: Update password (automatically hashed by model beforeUpdate hook)
     user.password = new_password;
     await user.save();
 
+    // Security: Generate new token so user remains logged in after password change
+    const newToken = generateToken(user.id);
+
     res.json({
       success: true,
-      message: 'Password updated successfully'
+      message: 'Password updated successfully. All other sessions have been logged out.',
+      data: {
+        token: newToken
+      }
     });
   } catch (error) {
     // Error: Log and return generic server error
