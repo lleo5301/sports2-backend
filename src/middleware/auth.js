@@ -19,6 +19,54 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
+/**
+ * @description Authentication middleware that protects routes by verifying JWT tokens.
+ *              Validates the Bearer token from the Authorization header, decodes the user ID,
+ *              attaches the authenticated user object to the request, and passes control to
+ *              the next middleware. This is the primary authentication gate for all protected
+ *              routes in the application.
+ *
+ *              Security features:
+ *              - Validates JWT token signature and expiration
+ *              - Ensures user still exists in database (handles deleted users)
+ *              - Excludes password from attached user object
+ *              - Uses secure Bearer token scheme
+ *              - Provides specific error messages for debugging while maintaining security
+ *
+ *              Token flow:
+ *              1. Extract token from "Authorization: Bearer <token>" header
+ *              2. Verify token signature using JWT_SECRET environment variable
+ *              3. Decode user ID from token payload
+ *              4. Fetch user from database (excluding password)
+ *              5. Attach user object to req.user for downstream middleware/routes
+ *              6. Call next() to continue request processing
+ *
+ * @async
+ * @function protect
+ * @param {express.Request} req - Express request object with Authorization header
+ * @param {express.Response} res - Express response object for sending error responses
+ * @param {express.NextFunction} next - Express next middleware function
+ *
+ * @returns {void} Calls next() on successful authentication, or sends 401 JSON response on failure.
+ *                 On success, attaches req.user with authenticated user object (password excluded).
+ *
+ * @throws {401} Not authorized, no token - No Authorization header or doesn't start with "Bearer"
+ * @throws {401} Not authorized - Token signature invalid, token expired, or JWT verification failed
+ * @throws {401} User not found - Token is valid but user no longer exists in database
+ *
+ * @example
+ * // Usage in route definition - protect ensures only authenticated users can access
+ * const { protect } = require('../middleware/auth');
+ * router.get('/api/auth/me', protect, async (req, res) => {
+ *   // req.user is available here with authenticated user data
+ *   res.json({ success: true, data: req.user });
+ * });
+ *
+ * @example
+ * // Chaining with other middleware for role-based access control
+ * const { protect, isHeadCoach } = require('../middleware/auth');
+ * router.post('/api/teams/:teamId/settings', protect, isHeadCoach, updateTeamSettings);
+ */
 const protect = async (req, res, next) => {
   let token;
 
