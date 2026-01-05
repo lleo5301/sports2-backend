@@ -1,7 +1,9 @@
 const request = require('supertest');
 const app = require('../../server');
-const { sequelize, User, Team, UserPermission } = require('../../models');
+const { sequelize, User, Team, UserPermission, Schedule, ScheduleSection, ScheduleActivity } = require('../../models');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
 
 describe('Teams API - Core Operations', () => {
   let authToken;
@@ -650,6 +652,718 @@ describe('Teams API - Core Operations', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.id).toBe(otherTeam.id);
+    });
+  });
+
+  describe('POST /api/teams/logo', () => {
+    const testImagePath = path.join(__dirname, 'test-logo.png');
+    const logosDir = path.join(__dirname, '../../uploads/logos');
+
+    beforeAll(() => {
+      // Create a simple test image file
+      if (!fs.existsSync(path.dirname(testImagePath))) {
+        fs.mkdirSync(path.dirname(testImagePath), { recursive: true });
+      }
+      // Create a minimal PNG file (1x1 transparent pixel)
+      const pngBuffer = Buffer.from([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+        0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+        0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+        0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+        0x42, 0x60, 0x82
+      ]);
+      fs.writeFileSync(testImagePath, pngBuffer);
+
+      // Ensure uploads directory exists
+      if (!fs.existsSync(logosDir)) {
+        fs.mkdirSync(logosDir, { recursive: true });
+      }
+    });
+
+    afterAll(() => {
+      // Clean up test image
+      if (fs.existsSync(testImagePath)) {
+        fs.unlinkSync(testImagePath);
+      }
+    });
+
+    it('should upload a team logo with head_coach role', async () => {
+      const response = await request(app)
+        .post('/api/teams/logo')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .attach('logo', testImagePath)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Logo uploaded successfully');
+      expect(response.body.data.logo_url).toMatch(/^\/uploads\/logos\//);
+
+      // Verify the logo was saved in the database
+      const team = await Team.findByPk(adminTeam.id);
+      expect(team.school_logo_url).toBe(response.body.data.logo_url);
+
+      // Clean up uploaded file
+      const uploadedFilePath = path.join(logosDir, path.basename(response.body.data.logo_url));
+      if (fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
+
+      // Reset team logo
+      await team.update({ school_logo_url: null });
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .post('/api/teams/logo')
+        .attach('logo', testImagePath)
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should require head_coach or super_admin role', async () => {
+      const response = await request(app)
+        .post('/api/teams/logo')
+        .set('Authorization', `Bearer ${authToken}`)
+        .attach('logo', testImagePath)
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('super admins and head coaches');
+    });
+
+    it('should return error if no logo file provided', async () => {
+      const response = await request(app)
+        .post('/api/teams/logo')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('No logo file provided');
+    });
+
+    it('should replace existing logo when uploading a new one', async () => {
+      // First upload
+      const response1 = await request(app)
+        .post('/api/teams/logo')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .attach('logo', testImagePath)
+        .expect(200);
+
+      const firstLogoUrl = response1.body.data.logo_url;
+      const firstFilePath = path.join(logosDir, path.basename(firstLogoUrl));
+
+      // Second upload (should replace first)
+      const response2 = await request(app)
+        .post('/api/teams/logo')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .attach('logo', testImagePath)
+        .expect(200);
+
+      const secondLogoUrl = response2.body.data.logo_url;
+      const secondFilePath = path.join(logosDir, path.basename(secondLogoUrl));
+
+      expect(response2.body.success).toBe(true);
+      expect(secondLogoUrl).not.toBe(firstLogoUrl);
+
+      // Verify team has new logo
+      const team = await Team.findByPk(adminTeam.id);
+      expect(team.school_logo_url).toBe(secondLogoUrl);
+
+      // Clean up
+      if (fs.existsSync(secondFilePath)) {
+        fs.unlinkSync(secondFilePath);
+      }
+      await team.update({ school_logo_url: null });
+    });
+
+    it('should return 404 if team not found', async () => {
+      // Create user with invalid team_id
+      const noTeamUser = await User.create({
+        first_name: 'NoTeam',
+        last_name: 'Logo',
+        email: 'noteam-logo-test@example.com',
+        password: 'TestP@ss1',
+        role: 'head_coach',
+        team_id: 99999
+      });
+
+      const noTeamToken = jwt.sign({ id: noTeamUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+      const response = await request(app)
+        .post('/api/teams/logo')
+        .set('Authorization', `Bearer ${noTeamToken}`)
+        .attach('logo', testImagePath)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Team not found');
+
+      // Clean up
+      await noTeamUser.destroy();
+    });
+  });
+
+  describe('DELETE /api/teams/logo', () => {
+    const logosDir = path.join(__dirname, '../../uploads/logos');
+    const testLogoFilename = 'test-delete-logo.png';
+    const testLogoPath = path.join(logosDir, testLogoFilename);
+
+    beforeEach(async () => {
+      // Create a test logo file
+      if (!fs.existsSync(logosDir)) {
+        fs.mkdirSync(logosDir, { recursive: true });
+      }
+      const pngBuffer = Buffer.from([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+        0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+        0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+        0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+        0x42, 0x60, 0x82
+      ]);
+      fs.writeFileSync(testLogoPath, pngBuffer);
+    });
+
+    afterEach(() => {
+      // Clean up test logo file if it still exists
+      if (fs.existsSync(testLogoPath)) {
+        fs.unlinkSync(testLogoPath);
+      }
+    });
+
+    it('should delete team logo with head_coach role', async () => {
+      // Set logo on team
+      await adminTeam.update({ school_logo_url: `/uploads/logos/${testLogoFilename}` });
+
+      const response = await request(app)
+        .delete('/api/teams/logo')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Logo removed successfully');
+
+      // Verify logo was removed from database
+      const team = await Team.findByPk(adminTeam.id);
+      expect(team.school_logo_url).toBeNull();
+
+      // Verify file was deleted
+      expect(fs.existsSync(testLogoPath)).toBe(false);
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .delete('/api/teams/logo')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should require head_coach or super_admin role', async () => {
+      const response = await request(app)
+        .delete('/api/teams/logo')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('super admins and head coaches');
+    });
+
+    it('should succeed even if no logo exists', async () => {
+      // Ensure no logo exists
+      await adminTeam.update({ school_logo_url: null });
+
+      const response = await request(app)
+        .delete('/api/teams/logo')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Logo removed successfully');
+    });
+
+    it('should return 404 if team not found', async () => {
+      // Create user with invalid team_id
+      const noTeamUser = await User.create({
+        first_name: 'NoTeam',
+        last_name: 'DeleteLogo',
+        email: 'noteam-delete-logo-test@example.com',
+        password: 'TestP@ss1',
+        role: 'head_coach',
+        team_id: 99999
+      });
+
+      const noTeamToken = jwt.sign({ id: noTeamUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+      const response = await request(app)
+        .delete('/api/teams/logo')
+        .set('Authorization', `Bearer ${noTeamToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Team not found');
+
+      // Clean up
+      await noTeamUser.destroy();
+    });
+  });
+
+  describe('PUT /api/teams/branding', () => {
+    it('should update team branding colors with head_coach role', async () => {
+      const brandingUpdate = {
+        primary_color: '#FF5733',
+        secondary_color: '#33FF57'
+      };
+
+      const response = await request(app)
+        .put('/api/teams/branding')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .send(brandingUpdate)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Team branding updated successfully');
+      expect(response.body.data.primary_color).toBe('#FF5733');
+      expect(response.body.data.secondary_color).toBe('#33FF57');
+
+      // Verify in database
+      const team = await Team.findByPk(adminTeam.id);
+      expect(team.primary_color).toBe('#FF5733');
+      expect(team.secondary_color).toBe('#33FF57');
+
+      // Restore original colors
+      await team.update({
+        primary_color: null,
+        secondary_color: null
+      });
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .put('/api/teams/branding')
+        .send({ primary_color: '#FF5733' })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should require head_coach or super_admin role', async () => {
+      const response = await request(app)
+        .put('/api/teams/branding')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ primary_color: '#FF5733' })
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('super admins and head coaches');
+    });
+
+    it('should allow updating only primary color', async () => {
+      const response = await request(app)
+        .put('/api/teams/branding')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .send({ primary_color: '#AABBCC' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.primary_color).toBe('#AABBCC');
+
+      // Restore
+      const team = await Team.findByPk(adminTeam.id);
+      await team.update({ primary_color: null });
+    });
+
+    it('should allow updating only secondary color', async () => {
+      const response = await request(app)
+        .put('/api/teams/branding')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .send({ secondary_color: '#DDEEFF' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.secondary_color).toBe('#DDEEFF');
+
+      // Restore
+      const team = await Team.findByPk(adminTeam.id);
+      await team.update({ secondary_color: null });
+    });
+
+    it('should validate primary color hex format', async () => {
+      const response = await request(app)
+        .put('/api/teams/branding')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .send({ primary_color: 'red' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Validation failed');
+    });
+
+    it('should validate secondary color hex format', async () => {
+      const response = await request(app)
+        .put('/api/teams/branding')
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .send({ secondary_color: '#ZZZ' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Validation failed');
+    });
+
+    it('should return 404 if team not found', async () => {
+      // Create user with invalid team_id
+      const noTeamUser = await User.create({
+        first_name: 'NoTeam',
+        last_name: 'Branding',
+        email: 'noteam-branding-test@example.com',
+        password: 'TestP@ss1',
+        role: 'head_coach',
+        team_id: 99999
+      });
+
+      const noTeamToken = jwt.sign({ id: noTeamUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+      const response = await request(app)
+        .put('/api/teams/branding')
+        .set('Authorization', `Bearer ${noTeamToken}`)
+        .send({ primary_color: '#FF5733' })
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Team not found');
+
+      // Clean up
+      await noTeamUser.destroy();
+    });
+  });
+
+  describe('GET /api/teams/branding', () => {
+    it('should return team branding information', async () => {
+      // Set branding on test team
+      await testTeam.update({
+        primary_color: '#123456',
+        secondary_color: '#ABCDEF',
+        school_logo_url: '/uploads/logos/test-logo.png'
+      });
+
+      const response = await request(app)
+        .get('/api/teams/branding')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.name).toBe('Teams Test Team');
+      expect(response.body.data.program_name).toBe('Test Program');
+      expect(response.body.data.primary_color).toBe('#123456');
+      expect(response.body.data.secondary_color).toBe('#ABCDEF');
+      expect(response.body.data.logo_url).toBe('/uploads/logos/test-logo.png');
+
+      // Restore
+      await testTeam.update({
+        primary_color: '#FF0000',
+        secondary_color: '#0000FF',
+        school_logo_url: null
+      });
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get('/api/teams/branding')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should return default colors if none are set', async () => {
+      // Ensure no colors are set
+      await testTeam.update({
+        primary_color: null,
+        secondary_color: null,
+        school_logo_url: null
+      });
+
+      const response = await request(app)
+        .get('/api/teams/branding')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.primary_color).toBe('#3B82F6'); // Default blue
+      expect(response.body.data.secondary_color).toBe('#EF4444'); // Default red
+      expect(response.body.data.logo_url).toBeNull();
+
+      // Restore original colors
+      await testTeam.update({
+        primary_color: '#FF0000',
+        secondary_color: '#0000FF'
+      });
+    });
+
+    it('should return 404 if team not found', async () => {
+      // Create user with invalid team_id
+      const noTeamUser = await User.create({
+        first_name: 'NoTeam',
+        last_name: 'GetBranding',
+        email: 'noteam-get-branding-test@example.com',
+        password: 'TestP@ss1',
+        role: 'assistant_coach',
+        team_id: 99999
+      });
+
+      const noTeamToken = jwt.sign({ id: noTeamUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+      const response = await request(app)
+        .get('/api/teams/branding')
+        .set('Authorization', `Bearer ${noTeamToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Team not found');
+
+      // Clean up
+      await noTeamUser.destroy();
+    });
+  });
+
+  describe('GET /api/teams/recent-schedules', () => {
+    let pastSchedule;
+    let pastSection;
+    let pastActivity;
+
+    beforeAll(async () => {
+      // Create past schedule with activities
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 5);
+
+      pastSchedule = await Schedule.create({
+        team_id: testTeam.id,
+        name: 'Past Practice Schedule',
+        date: pastDate,
+        location: 'Past Stadium',
+        is_active: true,
+        created_by: testUser.id
+      });
+
+      pastSection = await ScheduleSection.create({
+        schedule_id: pastSchedule.id,
+        type: 'practice',
+        sort_order: 1
+      });
+
+      pastActivity = await ScheduleActivity.create({
+        section_id: pastSection.id,
+        activity: 'Past Team Practice',
+        time: '14:00',
+        location: 'Past Field',
+        notes: 'Completed practice'
+      });
+    });
+
+    afterAll(async () => {
+      // Clean up
+      if (pastActivity) await pastActivity.destroy();
+      if (pastSection) await pastSection.destroy();
+      if (pastSchedule) await pastSchedule.destroy();
+    });
+
+    it('should return recent past schedule events', async () => {
+      const response = await request(app)
+        .get('/api/teams/recent-schedules')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThanOrEqual(1);
+
+      // Find our test activity
+      const event = response.body.data.find(e => e.title === 'Past Team Practice');
+      expect(event).toBeDefined();
+      expect(event.time).toBe('14:00');
+      expect(event.location).toBe('Past Field');
+      expect(event.type).toBe('practice');
+      expect(event.notes).toBe('Completed practice');
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get('/api/teams/recent-schedules')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should respect limit parameter', async () => {
+      const response = await request(app)
+        .get('/api/teams/recent-schedules?limit=2')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBeLessThanOrEqual(2);
+    });
+
+    it('should only return events from user\'s team', async () => {
+      const response = await request(app)
+        .get('/api/teams/recent-schedules')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      // All events should belong to testTeam (verified by schedule creation)
+      expect(response.body.data.every(e => e.id)).toBe(true);
+    });
+
+    it('should return events in descending date order (most recent first)', async () => {
+      const response = await request(app)
+        .get('/api/teams/recent-schedules')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      if (response.body.data.length > 1) {
+        // Verify dates are in descending order
+        for (let i = 0; i < response.body.data.length - 1; i++) {
+          const date1 = new Date(`${response.body.data[i].date} ${response.body.data[i].time}`);
+          const date2 = new Date(`${response.body.data[i + 1].date} ${response.body.data[i + 1].time}`);
+          expect(date1.getTime()).toBeGreaterThanOrEqual(date2.getTime());
+        }
+      }
+    });
+
+    it('should use default limit of 5 when not specified', async () => {
+      const response = await request(app)
+        .get('/api/teams/recent-schedules')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBeLessThanOrEqual(5);
+    });
+  });
+
+  describe('GET /api/teams/upcoming-schedules', () => {
+    let futureSchedule;
+    let futureSection;
+    let futureActivity;
+
+    beforeAll(async () => {
+      // Create future schedule with activities
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 5);
+
+      futureSchedule = await Schedule.create({
+        team_id: testTeam.id,
+        name: 'Future Game Schedule',
+        date: futureDate,
+        location: 'Future Stadium',
+        is_active: true,
+        created_by: testUser.id
+      });
+
+      futureSection = await ScheduleSection.create({
+        schedule_id: futureSchedule.id,
+        type: 'game',
+        sort_order: 1
+      });
+
+      futureActivity = await ScheduleActivity.create({
+        section_id: futureSection.id,
+        activity: 'Upcoming Championship Game',
+        time: '18:00',
+        location: 'Championship Field',
+        notes: 'Big game'
+      });
+    });
+
+    afterAll(async () => {
+      // Clean up
+      if (futureActivity) await futureActivity.destroy();
+      if (futureSection) await futureSection.destroy();
+      if (futureSchedule) await futureSchedule.destroy();
+    });
+
+    it('should return upcoming schedule events', async () => {
+      const response = await request(app)
+        .get('/api/teams/upcoming-schedules')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThanOrEqual(1);
+
+      // Find our test activity
+      const event = response.body.data.find(e => e.title === 'Upcoming Championship Game');
+      expect(event).toBeDefined();
+      expect(event.time).toBe('18:00');
+      expect(event.location).toBe('Championship Field');
+      expect(event.type).toBe('game');
+      expect(event.notes).toBe('Big game');
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get('/api/teams/upcoming-schedules')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should respect limit parameter', async () => {
+      const response = await request(app)
+        .get('/api/teams/upcoming-schedules?limit=2')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBeLessThanOrEqual(2);
+    });
+
+    it('should only return events from user\'s team', async () => {
+      const response = await request(app)
+        .get('/api/teams/upcoming-schedules')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      // All events should belong to testTeam
+      expect(response.body.data.every(e => e.id)).toBe(true);
+    });
+
+    it('should return events in ascending date order (soonest first)', async () => {
+      const response = await request(app)
+        .get('/api/teams/upcoming-schedules')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      if (response.body.data.length > 1) {
+        // Verify dates are in ascending order
+        for (let i = 0; i < response.body.data.length - 1; i++) {
+          const date1 = new Date(`${response.body.data[i].date} ${response.body.data[i].time}`);
+          const date2 = new Date(`${response.body.data[i + 1].date} ${response.body.data[i + 1].time}`);
+          expect(date1.getTime()).toBeLessThanOrEqual(date2.getTime());
+        }
+      }
+    });
+
+    it('should use default limit of 5 when not specified', async () => {
+      const response = await request(app)
+        .get('/api/teams/upcoming-schedules')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBeLessThanOrEqual(5);
     });
   });
 });
