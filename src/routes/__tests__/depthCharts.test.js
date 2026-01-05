@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../../server');
-const { sequelize, User, Team, DepthChart, DepthChartPosition, UserPermission } = require('../../models');
+const { sequelize, User, Team, DepthChart, DepthChartPosition, DepthChartPlayer, Player, UserPermission } = require('../../models');
 const jwt = require('jsonwebtoken');
 
 describe('DepthCharts API - Core CRUD Operations', () => {
@@ -89,6 +89,20 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       is_granted: true
     });
 
+    await UserPermission.create({
+      user_id: testUser.id,
+      team_id: testTeam.id,
+      permission_type: 'depth_chart_assign_players',
+      is_granted: true
+    });
+
+    await UserPermission.create({
+      user_id: testUser.id,
+      team_id: testTeam.id,
+      permission_type: 'depth_chart_unassign_players',
+      is_granted: true
+    });
+
     // Grant permissions to other user for their team
     await UserPermission.create({
       user_id: otherUser.id,
@@ -107,8 +121,10 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
   afterAll(async () => {
     // Clean up test data
+    await DepthChartPlayer.destroy({ where: {}, force: true });
     await DepthChartPosition.destroy({ where: {}, force: true });
     await DepthChart.destroy({ where: {}, force: true });
+    await Player.destroy({ where: {}, force: true });
     await UserPermission.destroy({ where: { user_id: [testUser.id, otherUser.id] } });
     await testUser.destroy();
     await otherUser.destroy();
@@ -117,9 +133,11 @@ describe('DepthCharts API - Core CRUD Operations', () => {
   });
 
   beforeEach(async () => {
-    // Clean up depth charts before each test
+    // Clean up depth charts and players before each test
+    await DepthChartPlayer.destroy({ where: {}, force: true });
     await DepthChartPosition.destroy({ where: {}, force: true });
     await DepthChart.destroy({ where: {}, force: true });
+    await Player.destroy({ where: {}, force: true });
   });
 
   describe('GET /api/depth-charts', () => {
@@ -1473,6 +1491,1127 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.sort_order).toBe(10);
+      });
+    });
+  });
+
+  describe('Player Assignment - POST /positions/:positionId/players, DELETE /players/:assignmentId', () => {
+    let testDepthChart;
+    let testPosition;
+    let testPlayer;
+
+    beforeEach(async () => {
+      testDepthChart = await DepthChart.create({
+        name: 'Player Assignment Test Chart',
+        description: 'Chart for testing player assignments',
+        team_id: testTeam.id,
+        created_by: testUser.id,
+        is_active: true
+      });
+
+      testPosition = await DepthChartPosition.create({
+        depth_chart_id: testDepthChart.id,
+        position_code: 'P',
+        position_name: 'Pitcher',
+        color: '#EF4444',
+        sort_order: 1,
+        is_active: true
+      });
+
+      testPlayer = await Player.create({
+        first_name: 'John',
+        last_name: 'Pitcher',
+        position: 'P',
+        school_type: 'HS',
+        graduation_year: 2026,
+        batting_avg: 0.250,
+        home_runs: 2,
+        rbi: 10,
+        stolen_bases: 5,
+        era: 2.50,
+        wins: 8,
+        losses: 2,
+        strikeouts: 75,
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+    });
+
+    describe('POST /api/depth-charts/positions/:positionId/players', () => {
+      const validAssignmentData = {
+        player_id: null,
+        depth_order: 1,
+        notes: 'Starting pitcher'
+      };
+
+      it('should assign a player to a position', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            ...validAssignmentData,
+            player_id: testPlayer.id
+          })
+          .expect(201);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.player_id).toBe(testPlayer.id);
+        expect(response.body.data.depth_order).toBe(1);
+        expect(response.body.data.notes).toBe('Starting pitcher');
+        expect(response.body.data.Player).toBeDefined();
+        expect(response.body.data.Player.first_name).toBe('John');
+        expect(response.body.data.Player.last_name).toBe('Pitcher');
+      });
+
+      it('should assign a player with minimal fields', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: testPlayer.id,
+            depth_order: 1
+          })
+          .expect(201);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.player_id).toBe(testPlayer.id);
+      });
+
+      it('should reject missing player_id', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            depth_order: 1
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should reject invalid player_id', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: 'invalid',
+            depth_order: 1
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should reject missing depth_order', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: testPlayer.id
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should reject depth_order less than 1', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: testPlayer.id,
+            depth_order: 0
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should reject notes that are too long (>500 characters)', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: testPlayer.id,
+            depth_order: 1,
+            notes: 'a'.repeat(501)
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should return 404 for non-existent position', async () => {
+        const response = await request(app)
+          .post('/api/depth-charts/positions/99999/players')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: testPlayer.id,
+            depth_order: 1
+          })
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Position not found');
+      });
+
+      it('should return 404 for non-existent player', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: 99999,
+            depth_order: 1
+          })
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Player not found');
+      });
+
+      it('should return 404 when trying to assign to another team\'s position (team isolation)', async () => {
+        const otherTeamChart = await DepthChart.create({
+          name: 'Other Team Chart',
+          team_id: otherTeam.id,
+          created_by: otherUser.id,
+          is_active: true
+        });
+
+        const otherPosition = await DepthChartPosition.create({
+          depth_chart_id: otherTeamChart.id,
+          position_code: 'C',
+          position_name: 'Catcher',
+          is_active: true
+        });
+
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${otherPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: testPlayer.id,
+            depth_order: 1
+          })
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Position not found');
+      });
+
+      it('should return 404 when trying to assign another team\'s player (team isolation)', async () => {
+        const otherPlayer = await Player.create({
+          first_name: 'Other',
+          last_name: 'Player',
+          position: 'P',
+          school_type: 'HS',
+          status: 'active',
+          team_id: otherTeam.id,
+          created_by: otherUser.id
+        });
+
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: otherPlayer.id,
+            depth_order: 1
+          })
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Player not found');
+      });
+
+      it('should reject duplicate assignment (player already assigned to same position)', async () => {
+        // First assignment
+        await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: testPlayer.id,
+            depth_order: 1
+          })
+          .expect(201);
+
+        // Try to assign again to same position
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: testPlayer.id,
+            depth_order: 2
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Player is already assigned to this position');
+      });
+
+      it('should reject invalid position ID parameter', async () => {
+        const response = await request(app)
+          .post('/api/depth-charts/positions/invalid/players')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            player_id: testPlayer.id,
+            depth_order: 1
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should require authentication', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .send({
+            player_id: testPlayer.id,
+            depth_order: 1
+          })
+          .expect(401);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Not authorized, no token');
+      });
+
+      it('should require depth_chart_assign_players permission', async () => {
+        const noPermUser = await User.create({
+          first_name: 'No',
+          last_name: 'AssignPerm',
+          email: 'no-assign-perm-depthchart@example.com',
+          password: 'TestP@ss1',
+          role: 'assistant_coach',
+          team_id: testTeam.id
+        });
+
+        const noPermToken = jwt.sign({ id: noPermUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+        const response = await request(app)
+          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .set('Authorization', `Bearer ${noPermToken}`)
+          .send({
+            player_id: testPlayer.id,
+            depth_order: 1
+          })
+          .expect(403);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('depth_chart_assign_players');
+
+        await noPermUser.destroy();
+      });
+    });
+
+    describe('DELETE /api/depth-charts/players/:assignmentId', () => {
+      let testAssignment;
+
+      beforeEach(async () => {
+        testAssignment = await DepthChartPlayer.create({
+          depth_chart_id: testDepthChart.id,
+          position_id: testPosition.id,
+          player_id: testPlayer.id,
+          depth_order: 1,
+          notes: 'Starting pitcher',
+          assigned_by: testUser.id,
+          is_active: true
+        });
+      });
+
+      it('should remove a player assignment', async () => {
+        const response = await request(app)
+          .delete(`/api/depth-charts/players/${testAssignment.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toBe('Player assignment removed successfully');
+
+        const deletedAssignment = await DepthChartPlayer.findByPk(testAssignment.id);
+        expect(deletedAssignment).not.toBeNull();
+        expect(deletedAssignment.is_active).toBe(false);
+      });
+
+      it('should return 404 for non-existent assignment', async () => {
+        const response = await request(app)
+          .delete('/api/depth-charts/players/99999')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Assignment not found');
+      });
+
+      it('should return 404 when trying to delete another team\'s assignment (team isolation)', async () => {
+        const otherTeamChart = await DepthChart.create({
+          name: 'Other Team Chart',
+          team_id: otherTeam.id,
+          created_by: otherUser.id,
+          is_active: true
+        });
+
+        const otherPosition = await DepthChartPosition.create({
+          depth_chart_id: otherTeamChart.id,
+          position_code: 'C',
+          position_name: 'Catcher',
+          is_active: true
+        });
+
+        const otherPlayer = await Player.create({
+          first_name: 'Other',
+          last_name: 'Player',
+          position: 'C',
+          school_type: 'HS',
+          status: 'active',
+          team_id: otherTeam.id,
+          created_by: otherUser.id
+        });
+
+        const otherAssignment = await DepthChartPlayer.create({
+          depth_chart_id: otherTeamChart.id,
+          position_id: otherPosition.id,
+          player_id: otherPlayer.id,
+          depth_order: 1,
+          assigned_by: otherUser.id,
+          is_active: true
+        });
+
+        const response = await request(app)
+          .delete(`/api/depth-charts/players/${otherAssignment.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Assignment not found');
+
+        const unchangedAssignment = await DepthChartPlayer.findByPk(otherAssignment.id);
+        expect(unchangedAssignment.is_active).toBe(true);
+      });
+
+      it('should reject invalid assignment ID parameter', async () => {
+        const response = await request(app)
+          .delete('/api/depth-charts/players/invalid')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should require authentication', async () => {
+        const response = await request(app)
+          .delete(`/api/depth-charts/players/${testAssignment.id}`)
+          .expect(401);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Not authorized, no token');
+      });
+
+      it('should require depth_chart_unassign_players permission', async () => {
+        const noPermUser = await User.create({
+          first_name: 'No',
+          last_name: 'UnassignPerm',
+          email: 'no-unassign-perm-depthchart@example.com',
+          password: 'TestP@ss1',
+          role: 'assistant_coach',
+          team_id: testTeam.id
+        });
+
+        const noPermToken = jwt.sign({ id: noPermUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+        const response = await request(app)
+          .delete(`/api/depth-charts/players/${testAssignment.id}`)
+          .set('Authorization', `Bearer ${noPermToken}`)
+          .expect(403);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('depth_chart_unassign_players');
+
+        await noPermUser.destroy();
+      });
+    });
+  });
+
+  describe('Available and Recommended Players - GET /:id/available-players, GET /:id/recommended-players/:positionId', () => {
+    let testDepthChart;
+    let testPosition;
+    let assignedPlayer;
+    let availablePlayer1;
+    let availablePlayer2;
+
+    beforeEach(async () => {
+      testDepthChart = await DepthChart.create({
+        name: 'Recommendations Test Chart',
+        team_id: testTeam.id,
+        created_by: testUser.id,
+        is_active: true
+      });
+
+      testPosition = await DepthChartPosition.create({
+        depth_chart_id: testDepthChart.id,
+        position_code: 'P',
+        position_name: 'Pitcher',
+        is_active: true
+      });
+
+      assignedPlayer = await Player.create({
+        first_name: 'Assigned',
+        last_name: 'Player',
+        position: 'P',
+        school_type: 'HS',
+        graduation_year: 2026,
+        batting_avg: 0.250,
+        era: 2.50,
+        wins: 8,
+        losses: 2,
+        strikeouts: 75,
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      await DepthChartPlayer.create({
+        depth_chart_id: testDepthChart.id,
+        position_id: testPosition.id,
+        player_id: assignedPlayer.id,
+        depth_order: 1,
+        assigned_by: testUser.id,
+        is_active: true
+      });
+
+      availablePlayer1 = await Player.create({
+        first_name: 'Available',
+        last_name: 'Player1',
+        position: 'P',
+        school_type: 'HS',
+        graduation_year: 2027,
+        batting_avg: 0.300,
+        era: 2.00,
+        wins: 10,
+        losses: 1,
+        strikeouts: 100,
+        has_medical_issues: false,
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      availablePlayer2 = await Player.create({
+        first_name: 'Available',
+        last_name: 'Player2',
+        position: 'C',
+        school_type: 'HS',
+        graduation_year: 2026,
+        batting_avg: 0.350,
+        home_runs: 8,
+        rbi: 30,
+        stolen_bases: 15,
+        has_medical_issues: false,
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+    });
+
+    describe('GET /api/depth-charts/:id/available-players', () => {
+      it('should return available players (not assigned to this chart)', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/available-players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data).toHaveLength(2);
+
+        const playerIds = response.body.data.map(p => p.id);
+        expect(playerIds).toContain(availablePlayer1.id);
+        expect(playerIds).toContain(availablePlayer2.id);
+        expect(playerIds).not.toContain(assignedPlayer.id);
+      });
+
+      it('should only return active players', async () => {
+        const inactivePlayer = await Player.create({
+          first_name: 'Inactive',
+          last_name: 'Player',
+          position: 'P',
+          school_type: 'HS',
+          status: 'inactive',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
+
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/available-players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        const playerIds = response.body.data.map(p => p.id);
+        expect(playerIds).not.toContain(inactivePlayer.id);
+      });
+
+      it('should return empty array when all players are assigned', async () => {
+        await DepthChartPlayer.create({
+          depth_chart_id: testDepthChart.id,
+          position_id: testPosition.id,
+          player_id: availablePlayer1.id,
+          depth_order: 2,
+          assigned_by: testUser.id,
+          is_active: true
+        });
+
+        await DepthChartPlayer.create({
+          depth_chart_id: testDepthChart.id,
+          position_id: testPosition.id,
+          player_id: availablePlayer2.id,
+          depth_order: 3,
+          assigned_by: testUser.id,
+          is_active: true
+        });
+
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/available-players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data).toHaveLength(0);
+      });
+
+      it('should return 404 for non-existent depth chart', async () => {
+        const response = await request(app)
+          .get('/api/depth-charts/99999/available-players')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Depth chart not found');
+      });
+
+      it('should return 404 when accessing another team\'s depth chart (team isolation)', async () => {
+        const otherTeamChart = await DepthChart.create({
+          name: 'Other Team Chart',
+          team_id: otherTeam.id,
+          created_by: otherUser.id,
+          is_active: true
+        });
+
+        const response = await request(app)
+          .get(`/api/depth-charts/${otherTeamChart.id}/available-players`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Depth chart not found');
+      });
+
+      it('should reject invalid depth chart ID parameter', async () => {
+        const response = await request(app)
+          .get('/api/depth-charts/invalid/available-players')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should require authentication', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/available-players`)
+          .expect(401);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Not authorized, no token');
+      });
+
+      it('should require depth_chart_assign_players permission', async () => {
+        const noPermUser = await User.create({
+          first_name: 'No',
+          last_name: 'ViewAvailablePerm',
+          email: 'no-view-available-perm@example.com',
+          password: 'TestP@ss1',
+          role: 'assistant_coach',
+          team_id: testTeam.id
+        });
+
+        const noPermToken = jwt.sign({ id: noPermUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/available-players`)
+          .set('Authorization', `Bearer ${noPermToken}`)
+          .expect(403);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('depth_chart_assign_players');
+
+        await noPermUser.destroy();
+      });
+    });
+
+    describe('GET /api/depth-charts/:id/recommended-players/:positionId', () => {
+      it('should return recommended players with scores', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data).toBeDefined();
+        expect(Array.isArray(response.body.data)).toBe(true);
+
+        if (response.body.data.length > 0) {
+          const firstRecommendation = response.body.data[0];
+          expect(firstRecommendation.score).toBeDefined();
+          expect(firstRecommendation.reasons).toBeDefined();
+          expect(Array.isArray(firstRecommendation.reasons)).toBe(true);
+        }
+      });
+
+      it('should rank pitcher with exact position match higher', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+
+        const pitcherRec = response.body.data.find(p => p.id === availablePlayer1.id);
+        const catcherRec = response.body.data.find(p => p.id === availablePlayer2.id);
+
+        if (pitcherRec && catcherRec) {
+          expect(pitcherRec.score).toBeGreaterThan(catcherRec.score);
+        }
+      });
+
+      it('should include performance metrics in scoring', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+
+        const pitcherRec = response.body.data.find(p => p.id === availablePlayer1.id);
+        if (pitcherRec) {
+          expect(pitcherRec.score).toBeGreaterThan(0);
+          const reasonsStr = pitcherRec.reasons.join(' ');
+          expect(reasonsStr.toLowerCase()).toMatch(/position|era|strikeout|graduation|medical/);
+        }
+      });
+
+      it('should limit recommendations to 10 players', async () => {
+        for (let i = 0; i < 15; i++) {
+          await Player.create({
+            first_name: `Player`,
+            last_name: `${i}`,
+            position: 'P',
+            school_type: 'HS',
+            status: 'active',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          });
+        }
+
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.length).toBeLessThanOrEqual(10);
+      });
+
+      it('should return 404 for non-existent depth chart', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/99999/recommended-players/${testPosition.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Depth chart not found');
+      });
+
+      it('should return 404 for non-existent position', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/99999`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Position not found');
+      });
+
+      it('should return 404 when accessing another team\'s depth chart (team isolation)', async () => {
+        const otherTeamChart = await DepthChart.create({
+          name: 'Other Team Chart',
+          team_id: otherTeam.id,
+          created_by: otherUser.id,
+          is_active: true
+        });
+
+        const otherPosition = await DepthChartPosition.create({
+          depth_chart_id: otherTeamChart.id,
+          position_code: 'P',
+          position_name: 'Pitcher',
+          is_active: true
+        });
+
+        const response = await request(app)
+          .get(`/api/depth-charts/${otherTeamChart.id}/recommended-players/${otherPosition.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Depth chart not found');
+      });
+
+      it('should reject invalid depth chart ID parameter', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/invalid/recommended-players/${testPosition.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should reject invalid position ID parameter', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/invalid`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should require authentication', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .expect(401);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Not authorized, no token');
+      });
+
+      it('should require depth_chart_assign_players permission', async () => {
+        const noPermUser = await User.create({
+          first_name: 'No',
+          last_name: 'ViewRecPerm',
+          email: 'no-view-rec-perm@example.com',
+          password: 'TestP@ss1',
+          role: 'assistant_coach',
+          team_id: testTeam.id
+        });
+
+        const noPermToken = jwt.sign({ id: noPermUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .set('Authorization', `Bearer ${noPermToken}`)
+          .expect(403);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('depth_chart_assign_players');
+
+        await noPermUser.destroy();
+      });
+    });
+  });
+
+  describe('Chart Duplication and History - POST /:id/duplicate, GET /:id/history', () => {
+    let testDepthChart;
+    let testPosition;
+
+    beforeEach(async () => {
+      testDepthChart = await DepthChart.create({
+        name: 'Original Chart',
+        description: 'Original chart description',
+        team_id: testTeam.id,
+        created_by: testUser.id,
+        is_default: false,
+        is_active: true,
+        version: 1
+      });
+
+      testPosition = await DepthChartPosition.create({
+        depth_chart_id: testDepthChart.id,
+        position_code: 'P',
+        position_name: 'Pitcher',
+        color: '#EF4444',
+        icon: 'Shield',
+        sort_order: 1,
+        max_players: 5,
+        description: 'Pitchers',
+        is_active: true
+      });
+    });
+
+    describe('POST /api/depth-charts/:id/duplicate', () => {
+      it('should duplicate a depth chart with positions', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/${testDepthChart.id}/duplicate`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toBe('Depth chart duplicated successfully');
+        expect(response.body.data.id).toBeDefined();
+        expect(response.body.data.id).not.toBe(testDepthChart.id);
+
+        const duplicatedChart = await DepthChart.findByPk(response.body.data.id, {
+          include: [{ model: DepthChartPosition, where: { is_active: true }, required: false }]
+        });
+
+        expect(duplicatedChart).not.toBeNull();
+        expect(duplicatedChart.name).toBe('Original Chart (Copy)');
+        expect(duplicatedChart.description).toBe('Original chart description');
+        expect(duplicatedChart.is_default).toBe(false);
+        expect(duplicatedChart.version).toBe(1);
+        expect(duplicatedChart.DepthChartPositions).toHaveLength(1);
+        expect(duplicatedChart.DepthChartPositions[0].position_code).toBe('P');
+      });
+
+      it('should not copy player assignments', async () => {
+        const testPlayer = await Player.create({
+          first_name: 'Test',
+          last_name: 'Player',
+          position: 'P',
+          school_type: 'HS',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
+
+        await DepthChartPlayer.create({
+          depth_chart_id: testDepthChart.id,
+          position_id: testPosition.id,
+          player_id: testPlayer.id,
+          depth_order: 1,
+          assigned_by: testUser.id,
+          is_active: true
+        });
+
+        const response = await request(app)
+          .post(`/api/depth-charts/${testDepthChart.id}/duplicate`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+
+        const duplicatedChartId = response.body.data.id;
+        const playerAssignments = await DepthChartPlayer.findAll({
+          where: {
+            depth_chart_id: duplicatedChartId,
+            is_active: true
+          }
+        });
+
+        expect(playerAssignments).toHaveLength(0);
+      });
+
+      it('should duplicate chart with multiple positions', async () => {
+        await DepthChartPosition.create({
+          depth_chart_id: testDepthChart.id,
+          position_code: 'C',
+          position_name: 'Catcher',
+          sort_order: 2,
+          is_active: true
+        });
+
+        await DepthChartPosition.create({
+          depth_chart_id: testDepthChart.id,
+          position_code: '1B',
+          position_name: 'First Base',
+          sort_order: 3,
+          is_active: true
+        });
+
+        const response = await request(app)
+          .post(`/api/depth-charts/${testDepthChart.id}/duplicate`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+
+        const duplicatedChart = await DepthChart.findByPk(response.body.data.id, {
+          include: [{ model: DepthChartPosition, where: { is_active: true }, required: false }]
+        });
+
+        expect(duplicatedChart.DepthChartPositions).toHaveLength(3);
+      });
+
+      it('should return 404 for non-existent depth chart', async () => {
+        const response = await request(app)
+          .post('/api/depth-charts/99999/duplicate')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Depth chart not found');
+      });
+
+      it('should return 404 when trying to duplicate another team\'s chart (team isolation)', async () => {
+        const otherTeamChart = await DepthChart.create({
+          name: 'Other Team Chart',
+          team_id: otherTeam.id,
+          created_by: otherUser.id,
+          is_active: true
+        });
+
+        const response = await request(app)
+          .post(`/api/depth-charts/${otherTeamChart.id}/duplicate`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Depth chart not found');
+      });
+
+      it('should reject invalid depth chart ID parameter', async () => {
+        const response = await request(app)
+          .post('/api/depth-charts/invalid/duplicate')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should require authentication', async () => {
+        const response = await request(app)
+          .post(`/api/depth-charts/${testDepthChart.id}/duplicate`)
+          .expect(401);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Not authorized, no token');
+      });
+
+      it('should require depth_chart_create permission', async () => {
+        const noPermUser = await User.create({
+          first_name: 'No',
+          last_name: 'DuplicatePerm',
+          email: 'no-duplicate-perm@example.com',
+          password: 'TestP@ss1',
+          role: 'assistant_coach',
+          team_id: testTeam.id
+        });
+
+        const noPermToken = jwt.sign({ id: noPermUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+        const response = await request(app)
+          .post(`/api/depth-charts/${testDepthChart.id}/duplicate`)
+          .set('Authorization', `Bearer ${noPermToken}`)
+          .expect(403);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('depth_chart_create');
+
+        await noPermUser.destroy();
+      });
+    });
+
+    describe('GET /api/depth-charts/:id/history', () => {
+      it('should return basic history for a depth chart', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/history`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data).toBeDefined();
+        expect(Array.isArray(response.body.data)).toBe(true);
+        expect(response.body.data.length).toBeGreaterThan(0);
+
+        const firstEntry = response.body.data[0];
+        expect(firstEntry.action).toBe('Created');
+        expect(firstEntry.description).toContain('Original Chart');
+        expect(firstEntry.created_at).toBeDefined();
+      });
+
+      it('should return history even for soft-deleted charts', async () => {
+        await testDepthChart.update({ is_active: false });
+
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/history`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data).toBeDefined();
+      });
+
+      it('should return 404 for non-existent depth chart', async () => {
+        const response = await request(app)
+          .get('/api/depth-charts/99999/history')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Depth chart not found');
+      });
+
+      it('should return 404 when accessing another team\'s chart history (team isolation)', async () => {
+        const otherTeamChart = await DepthChart.create({
+          name: 'Other Team Chart',
+          team_id: otherTeam.id,
+          created_by: otherUser.id,
+          is_active: true
+        });
+
+        const response = await request(app)
+          .get(`/api/depth-charts/${otherTeamChart.id}/history`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Depth chart not found');
+      });
+
+      it('should reject invalid depth chart ID parameter', async () => {
+        const response = await request(app)
+          .get('/api/depth-charts/invalid/history')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Validation failed');
+      });
+
+      it('should require authentication', async () => {
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/history`)
+          .expect(401);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Not authorized, no token');
+      });
+
+      it('should require depth_chart_view permission', async () => {
+        const noPermUser = await User.create({
+          first_name: 'No',
+          last_name: 'ViewHistoryPerm',
+          email: 'no-view-history-perm@example.com',
+          password: 'TestP@ss1',
+          role: 'assistant_coach',
+          team_id: testTeam.id
+        });
+
+        const noPermToken = jwt.sign({ id: noPermUser.id }, process.env.JWT_SECRET || 'test_secret');
+
+        const response = await request(app)
+          .get(`/api/depth-charts/${testDepthChart.id}/history`)
+          .set('Authorization', `Bearer ${noPermToken}`)
+          .expect(403);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain('depth_chart_view');
+
+        await noPermUser.destroy();
       });
     });
   });
