@@ -1,6 +1,7 @@
 require('dotenv').config();
 require('express-async-errors');
 
+const logger = require('./utils/logger');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -122,46 +123,46 @@ const startServer = async () => {
     const isStrictMode = ['production', 'staging'].includes(nodeEnv);
 
     if (!jwtValidation.valid) {
-      console.error('\n❌ JWT_SECRET SECURITY ERROR');
-      console.error('═'.repeat(50));
+      logger.error('\n❌ JWT_SECRET SECURITY ERROR');
+      logger.error('═'.repeat(50));
       jwtValidation.errors.forEach(err => {
-        console.error(`  • ${err}`);
+        logger.error(`  • ${err}`);
       });
-      console.error('═'.repeat(50));
-      console.error('\n' + getSecretGenerationInstructions());
-      console.error('');
+      logger.error('═'.repeat(50));
+      logger.error('\n' + getSecretGenerationInstructions());
+      logger.error('');
 
       if (isStrictMode) {
-        console.error(`\n🛑 Server startup aborted. Fix JWT_SECRET before deploying to ${nodeEnv}.\n`);
+        logger.error(`\n🛑 Server startup aborted. Fix JWT_SECRET before deploying to ${nodeEnv}.\n`);
         process.exit(1);
       } else {
-        console.warn('\n⚠️  WARNING: Starting server with weak JWT_SECRET (development mode only)');
-        console.warn('   DO NOT deploy to production with this configuration!\n');
+        logger.warn('\n⚠️  WARNING: Starting server with weak JWT_SECRET (development mode only)');
+        logger.warn('   DO NOT deploy to production with this configuration!\n');
       }
     } else if (jwtValidation.warnings.length > 0) {
-      console.warn('\n⚠️  JWT_SECRET warnings:');
+      logger.warn('\n⚠️  JWT_SECRET warnings:');
       jwtValidation.warnings.forEach(warn => {
-        console.warn(`  • ${warn}`);
+        logger.warn(`  • ${warn}`);
       });
-      console.warn('');
+      logger.warn('');
     }
 
     await sequelize.authenticate();
-    console.log('✅ Database connection established successfully.');
-    
+    logger.info('✅ Database connection established successfully.');
+
     // Sync database (in development and staging)
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'staging') {
       await sequelize.sync({ alter: true });
-      console.log('✅ Database synchronized.');
+      logger.info('✅ Database synchronized.');
     }
-    
+
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+      logger.info(`🚀 Server running on port ${PORT}`);
+      logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
+      logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
     });
   } catch (error) {
-    console.error('❌ Unable to start server:', error);
+    logger.error('❌ Unable to start server:', error);
     process.exit(1);
   }
 };
@@ -176,13 +177,13 @@ module.exports = app;
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('🛑 SIGTERM received, shutting down gracefully');
+  logger.info('🛑 SIGTERM received, shutting down gracefully');
   await sequelize.close();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('🛑 SIGINT received, shutting down gracefully');
+  logger.info('🛑 SIGINT received, shutting down gracefully');
   await sequelize.close();
   process.exit(0);
 });
