@@ -2,18 +2,19 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const AppleStrategy = require('passport-apple').Strategy;
 const { User, Team } = require('../models');
+const logger = require('../utils/logger');
 
 // Only configure OAuth strategies if environment variables are set
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  console.log('✅ Google OAuth configured');
+  logger.info('✅ Google OAuth configured');
 } else {
-  console.log('⚠️  Google OAuth not configured - set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
+  logger.info('⚠️  Google OAuth not configured - set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
 }
 
 if (process.env.APPLE_CLIENT_ID && process.env.APPLE_TEAM_ID && process.env.APPLE_KEY_ID) {
-  console.log('✅ Apple OAuth configured');
+  logger.info('✅ Apple OAuth configured');
 } else {
-  console.log('⚠️  Apple OAuth not configured - set APPLE_CLIENT_ID, APPLE_TEAM_ID, and APPLE_KEY_ID');
+  logger.info('⚠️  Apple OAuth not configured - set APPLE_CLIENT_ID, APPLE_TEAM_ID, and APPLE_KEY_ID');
 }
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
