@@ -40,6 +40,7 @@ const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Coach, User } = require('../models');
 const { protect } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -180,7 +181,7 @@ router.get('/', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get coaches error:', error);
+    logger.error('Get coaches error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching coaches'
@@ -250,7 +251,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get coach error:', error);
+    logger.error('Get coach error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching coach'
@@ -348,7 +349,7 @@ router.post('/', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Create coach error:', error);
+    logger.error('Create coach error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while creating coach'
@@ -458,7 +459,7 @@ router.put('/:id', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Update coach error:', error);
+    logger.error('Update coach error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while updating coach'
@@ -521,7 +522,7 @@ router.delete('/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Delete coach error:', error);
+    logger.error('Delete coach error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while deleting coach'

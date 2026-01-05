@@ -22,6 +22,7 @@ const { uploadVideo, handleUploadError } = require('../middleware/upload');
 const notificationService = require('../services/notificationService');
 const path = require('path');
 const fs = require('fs');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -129,7 +130,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Get players error:', error);
+    logger.error('Get players error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching players'
@@ -201,7 +202,7 @@ router.get('/byId/:id', async (req, res) => {
       data: player
     });
   } catch (error) {
-    console.error('Get player error:', error);
+    logger.error('Get player error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching player'
@@ -322,7 +323,7 @@ router.post('/', uploadVideo, [
       data: createdPlayer
     });
   } catch (error) {
-    console.error('Create player error:', error);
+    logger.error('Create player error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while creating player'
@@ -459,7 +460,7 @@ router.put('/byId/:id', uploadVideo, [
       data: updatedPlayer
     });
   } catch (error) {
-    console.error('Update player error:', error);
+    logger.error('Update player error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while updating player'
@@ -513,7 +514,7 @@ router.delete('/byId/:id', async (req, res) => {
       message: 'Player deleted successfully'
     });
   } catch (error) {
-    console.error('Delete player error:', error);
+    logger.error('Delete player error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while deleting player'
@@ -608,7 +609,7 @@ router.get('/stats/summary', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get stats summary error:', error);
+    logger.error('Get stats summary error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching statistics'
@@ -716,7 +717,7 @@ router.get('/byId/:id/stats', async (req, res) => {
       data: stats
     });
   } catch (error) {
-    console.error('Get player stats error:', error);
+    logger.error('Get player stats error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching player statistics'
@@ -914,7 +915,7 @@ router.get('/performance', [
     });
 
   } catch (error) {
-    console.error('Get player performance error:', error);
+    logger.error('Get player performance error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching player performance data'

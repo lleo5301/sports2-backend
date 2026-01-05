@@ -40,6 +40,7 @@ const { protect } = require('../middleware/auth');
 const { User, Team } = require('../models');
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -347,7 +348,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Get settings error:', error);
+    logger.error('Get settings error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching settings'
@@ -419,7 +420,7 @@ router.put('/general',
       });
     } catch (error) {
       // Error: Log and return generic server error to avoid exposing internal details
-      console.error('Update general settings error:', error);
+      logger.error('Update general settings error:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating general settings'
@@ -516,7 +517,7 @@ router.put('/account',
       });
     } catch (error) {
       // Error: Log and return generic server error to avoid exposing internal details
-      console.error('Update account settings error:', error);
+      logger.error('Update account settings error:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating account settings'
@@ -586,7 +587,7 @@ router.put('/notifications',
       });
     } catch (error) {
       // Error: Log and return generic server error to avoid exposing internal details
-      console.error('Update notification settings error:', error);
+      logger.error('Update notification settings error:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating notification settings'
@@ -655,7 +656,7 @@ router.put('/security',
       });
     } catch (error) {
       // Error: Log and return generic server error to avoid exposing internal details
-      console.error('Update security settings error:', error);
+      logger.error('Update security settings error:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating security settings'
@@ -731,7 +732,7 @@ router.put('/change-password',
       });
     } catch (error) {
       // Error: Log and return generic server error to avoid exposing internal details
-      console.error('Change password error:', error);
+      logger.error('Change password error:', error);
       res.status(500).json({
         success: false,
         message: 'Error changing password'
@@ -789,7 +790,7 @@ router.put('/two-factor',
       });
     } catch (error) {
       // Error: Log and return generic server error to avoid exposing internal details
-      console.error('Toggle two-factor error:', error);
+      logger.error('Toggle two-factor error:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating two-factor authentication'
@@ -832,7 +833,7 @@ router.get('/two-factor/qr', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Get two-factor QR error:', error);
+    logger.error('Get two-factor QR error:', error);
     res.status(500).json({
       success: false,
       message: 'Error generating QR code'
@@ -886,7 +887,7 @@ router.post('/two-factor/verify',
       }
     } catch (error) {
       // Error: Log and return generic server error to avoid exposing internal details
-      console.error('Verify two-factor error:', error);
+      logger.error('Verify two-factor error:', error);
       res.status(500).json({
         success: false,
         message: 'Error verifying two-factor code'
@@ -957,7 +958,7 @@ router.get('/login-history', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Get login history error:', error);
+    logger.error('Get login history error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching login history'
@@ -1037,7 +1038,7 @@ router.get('/export-data', async (req, res) => {
     res.json(userData);
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Export data error:', error);
+    logger.error('Export data error:', error);
     res.status(500).json({
       success: false,
       message: 'Error exporting user data'
@@ -1099,7 +1100,7 @@ router.delete('/account',
       });
     } catch (error) {
       // Error: Log and return generic server error to avoid exposing internal details
-      console.error('Delete account error:', error);
+      logger.error('Delete account error:', error);
       res.status(500).json({
         success: false,
         message: 'Error deleting account'
@@ -1167,7 +1168,7 @@ router.put('/profile-picture', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Upload profile picture error:', error);
+    logger.error('Upload profile picture error:', error);
     res.status(500).json({
       success: false,
       message: 'Error uploading profile picture'
@@ -1224,7 +1225,7 @@ router.get('/privacy', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Get privacy settings error:', error);
+    logger.error('Get privacy settings error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching privacy settings'
@@ -1292,7 +1293,7 @@ router.put('/privacy',
       });
     } catch (error) {
       // Error: Log and return generic server error to avoid exposing internal details
-      console.error('Update privacy settings error:', error);
+      logger.error('Update privacy settings error:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating privacy settings'
@@ -1364,7 +1365,7 @@ router.get('/notifications/preferences', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Error fetching notification preferences:', error);
+    logger.error('Error fetching notification preferences:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching notification preferences'
@@ -1407,7 +1408,7 @@ router.put('/notifications/preferences', validateNotificationSettings, handleVal
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Error updating notification preferences:', error);
+    logger.error('Error updating notification preferences:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating notification preferences'
@@ -1451,7 +1452,7 @@ router.post('/notifications/test-email', async (req, res) => {
     }
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Error sending test email:', error);
+    logger.error('Error sending test email:', error);
     res.status(500).json({
       success: false,
       message: 'Error sending test email'
@@ -1509,7 +1510,7 @@ router.get('/sessions', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Error fetching active sessions:', error);
+    logger.error('Error fetching active sessions:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching active sessions'

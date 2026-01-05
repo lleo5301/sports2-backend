@@ -34,6 +34,7 @@ const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
 const { ScheduleEvent, ScheduleEventDate, Location, User, ScheduleTemplate } = require('../models');
 const { Op } = require('sequelize');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -250,7 +251,7 @@ router.get('/', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get schedule events error:', error);
+    logger.error('Get schedule events error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching schedule events'
@@ -354,7 +355,7 @@ router.get('/:id', param('id').isInt().withMessage('Event ID must be an integer'
       data: event
     });
   } catch (error) {
-    console.error('Get schedule event error:', error);
+    logger.error('Get schedule event error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching schedule event'
@@ -507,7 +508,7 @@ router.post('/', validateScheduleEventCreate, handleValidationErrors, checkPermi
       data: createdEvent
     });
   } catch (error) {
-    console.error('Create schedule event error:', error);
+    logger.error('Create schedule event error:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating schedule event'
@@ -639,7 +640,7 @@ router.put('/:id',
         data: updatedEvent
       });
     } catch (error) {
-      console.error('Update schedule event error:', error);
+      logger.error('Update schedule event error:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating schedule event'
@@ -713,7 +714,7 @@ router.delete('/:id',
         message: 'Schedule event deleted successfully'
       });
     } catch (error) {
-      console.error('Delete schedule event error:', error);
+      logger.error('Delete schedule event error:', error);
       res.status(500).json({
         success: false,
         message: 'Error deleting schedule event'

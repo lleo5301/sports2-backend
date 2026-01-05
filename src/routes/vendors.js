@@ -70,6 +70,7 @@ const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Vendor, User } = require('../models');
 const { protect } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -318,7 +319,7 @@ router.get('/', validateVendorList, async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get vendors error:', error);
+    logger.error('Get vendors error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching vendors'
@@ -405,7 +406,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get vendor error:', error);
+    logger.error('Get vendor error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching vendor'
@@ -497,7 +498,7 @@ router.post('/', validateVendorCreate, async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Create vendor error:', error);
+    logger.error('Create vendor error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while creating vendor'
@@ -599,7 +600,7 @@ router.put('/:id', validateVendorUpdate, async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Update vendor error:', error);
+    logger.error('Update vendor error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while updating vendor'
@@ -664,7 +665,7 @@ router.delete('/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Delete vendor error:', error);
+    logger.error('Delete vendor error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while deleting vendor'

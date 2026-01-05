@@ -38,6 +38,7 @@ const { body, param, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { protect } = require('../middleware/auth');
 const { Game, Team, Player } = require('../models');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -197,7 +198,7 @@ router.get('/', [
       }
     });
   } catch (error) {
-    console.error('Error fetching games:', error);
+    logger.error('Error fetching games:', error);
     res.status(500).json({ error: 'Failed to fetch games' });
   }
 });
@@ -256,7 +257,7 @@ router.get('/byId/:id', async (req, res) => {
 
     res.json({ success: true, data: game });
   } catch (error) {
-    console.error('Error fetching game:', error);
+    logger.error('Error fetching game:', error);
     res.status(500).json({ error: 'Failed to fetch game' });
   }
 });
@@ -322,7 +323,7 @@ router.post('/', validateGame, handleValidationErrors, async (req, res) => {
       data: createdGame
     });
   } catch (error) {
-    console.error('Error creating game:', error);
+    logger.error('Error creating game:', error);
     res.status(500).json({ error: 'Failed to create game' });
   }
 });
@@ -403,7 +404,7 @@ router.put('/byId/:id', [
       data: updatedGame
     });
   } catch (error) {
-    console.error('Error updating game:', error);
+    logger.error('Error updating game:', error);
     res.status(500).json({ error: 'Failed to update game' });
   }
 });
@@ -453,7 +454,7 @@ router.delete('/byId/:id', [
 
     res.json({ success: true, message: 'Game deleted successfully' });
   } catch (error) {
-    console.error('Error deleting game:', error);
+    logger.error('Error deleting game:', error);
     res.status(500).json({ error: 'Failed to delete game' });
   }
 });
@@ -513,7 +514,7 @@ router.get('/log', [
 
     res.json({ success: true, data: games });
   } catch (error) {
-    console.error('Error fetching game log:', error);
+    logger.error('Error fetching game log:', error);
     res.status(500).json({ error: 'Failed to fetch game log' });
   }
 });
@@ -585,7 +586,7 @@ router.get('/team-stats', async (req, res) => {
 
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('Error fetching team game stats:', error);
+    logger.error('Error fetching team game stats:', error);
     res.status(500).json({ error: 'Failed to fetch team game stats' });
   }
 });
@@ -650,7 +651,7 @@ router.get('/upcoming', [
 
     res.json({ success: true, data: games });
   } catch (error) {
-    console.error('Error fetching upcoming games:', error);
+    logger.error('Error fetching upcoming games:', error);
     res.status(500).json({ error: 'Failed to fetch upcoming games' });
   }
 });
@@ -760,7 +761,7 @@ router.get('/season-stats', [
     // Return as array of season stats objects
     res.json({ success: true, data: Object.values(seasonStats) });
   } catch (error) {
-    console.error('Error fetching season stats:', error);
+    logger.error('Error fetching season stats:', error);
     res.status(500).json({ error: 'Failed to fetch season stats' });
   }
 });
@@ -871,7 +872,7 @@ router.get('/player-stats/:playerId', async (req, res) => {
       data: playerGameStats
     });
   } catch (error) {
-    console.error('Error fetching player game statistics:', error);
+    logger.error('Error fetching player game statistics:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch player game statistics'

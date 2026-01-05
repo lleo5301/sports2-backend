@@ -35,6 +35,7 @@ const {
   User,
   Team
 } = require('../models');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -151,7 +152,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Error fetching depth charts:', error);
+    logger.error('Error fetching depth charts:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching depth charts'
@@ -244,7 +245,7 @@ router.get('/byId/:id', async (req, res) => {
       data: depthChart
     });
   } catch (error) {
-    console.error('Error fetching depth chart:', error);
+    logger.error('Error fetching depth chart:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching depth chart'
@@ -354,7 +355,7 @@ router.post('/',
         data: createdDepthChart
       });
     } catch (error) {
-      console.error('Error creating depth chart:', error);
+      logger.error('Error creating depth chart:', error);
       res.status(500).json({
         success: false,
         message: 'Error creating depth chart'
@@ -444,7 +445,7 @@ router.put('/byId/:id',
         data: depthChart
       });
     } catch (error) {
-      console.error('Error updating depth chart:', error);
+      logger.error('Error updating depth chart:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating depth chart'
@@ -508,7 +509,7 @@ router.delete('/byId/:id',
         message: 'Depth chart deleted successfully'
       });
     } catch (error) {
-      console.error('Error deleting depth chart:', error);
+      logger.error('Error deleting depth chart:', error);
       res.status(500).json({
         success: false,
         message: 'Error deleting depth chart'
@@ -582,7 +583,7 @@ router.post('/:id/positions',
         data: position
       });
     } catch (error) {
-      console.error('Error adding position:', error);
+      logger.error('Error adding position:', error);
       res.status(500).json({
         success: false,
         message: 'Error adding position'
@@ -656,7 +657,7 @@ router.put('/positions/:positionId',
         data: position
       });
     } catch (error) {
-      console.error('Error updating position:', error);
+      logger.error('Error updating position:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating position'
@@ -721,7 +722,7 @@ router.delete('/positions/:positionId',
         message: 'Position deleted successfully'
       });
     } catch (error) {
-      console.error('Error deleting position:', error);
+      logger.error('Error deleting position:', error);
       res.status(500).json({
         success: false,
         message: 'Error deleting position'
@@ -848,7 +849,7 @@ router.post('/positions/:positionId/players',
         data: createdAssignment
       });
     } catch (error) {
-      console.error('Error assigning player:', error);
+      logger.error('Error assigning player:', error);
       res.status(500).json({
         success: false,
         message: 'Error assigning player'
@@ -918,7 +919,7 @@ router.delete('/players/:assignmentId',
         message: 'Player assignment removed successfully'
       });
     } catch (error) {
-      console.error('Error removing player assignment:', error);
+      logger.error('Error removing player assignment:', error);
       res.status(500).json({
         success: false,
         message: 'Error removing player assignment'
@@ -1012,7 +1013,7 @@ router.get('/:id/available-players',
         data: availablePlayers
       });
     } catch (error) {
-      console.error('Error fetching available players:', error);
+      logger.error('Error fetching available players:', error);
       res.status(500).json({
         success: false,
         message: 'Error fetching available players'
@@ -1097,7 +1098,7 @@ router.get('/byId/:id/available-players',
         data: availablePlayers
       });
     } catch (error) {
-      console.error('Error fetching available players:', error);
+      logger.error('Error fetching available players:', error);
       res.status(500).json({
         success: false,
         message: 'Error fetching available players'
@@ -1274,7 +1275,7 @@ router.get('/:id/recommended-players/:positionId',
         data: recommendedPlayers
       });
     } catch (error) {
-      console.error('Error fetching recommended players:', error);
+      logger.error('Error fetching recommended players:', error);
       res.status(500).json({
         success: false,
         message: 'Error fetching recommended players'
@@ -1573,7 +1574,7 @@ router.get('/byId/:id/recommended-players/:positionId',
         data: recommendations
       });
     } catch (error) {
-      console.error('Error fetching recommended players:', error);
+      logger.error('Error fetching recommended players:', error);
       res.status(500).json({
         success: false,
         message: 'Error fetching recommended players'
@@ -1677,7 +1678,7 @@ router.post('/:id/duplicate',
         data: { id: newChart.id }
       });
     } catch (error) {
-      console.error('Error duplicating depth chart:', error);
+      logger.error('Error duplicating depth chart:', error);
       res.status(500).json({
         success: false,
         message: 'Error duplicating depth chart'
@@ -1758,7 +1759,7 @@ router.get('/:id/history',
         data: history
       });
     } catch (error) {
-      console.error('Error fetching depth chart history:', error);
+      logger.error('Error fetching depth chart history:', error);
       res.status(500).json({
         success: false,
         message: 'Error fetching depth chart history'
