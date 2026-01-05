@@ -97,7 +97,42 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Middleware to check if user is head coach
+/**
+ * @description Role-based access control (RBAC) middleware that restricts access to head coach users only.
+ *              Verifies that the authenticated user has the 'head_coach' role before allowing access
+ *              to the requested resource. This middleware must be chained after the protect middleware
+ *              which attaches the authenticated user object to the request.
+ *
+ *              Authorization flow:
+ *              1. Check if req.user exists (attached by protect middleware)
+ *              2. Verify user.role equals 'head_coach'
+ *              3. Call next() to continue if authorized, or return 403 if not
+ *
+ *              Security notes:
+ *              - Always chain after protect middleware to ensure req.user is present
+ *              - Returns 403 Forbidden (not 401 Unauthorized) since user is authenticated but lacks permissions
+ *              - Generic error message prevents information disclosure about authorization logic
+ *
+ * @function isHeadCoach
+ * @param {express.Request} req - Express request object with req.user attached by protect middleware
+ * @param {express.Response} res - Express response object for sending error responses
+ * @param {express.NextFunction} next - Express next middleware function
+ *
+ * @returns {void} Calls next() if user has head_coach role, or sends 403 JSON response if not authorized.
+ *
+ * @throws {403} Access denied. Head coach privileges required - User is authenticated but does not have head_coach role
+ *
+ * @example
+ * // Typical usage: Chain with protect middleware for head-coach-only endpoints
+ * const { protect, isHeadCoach } = require('../middleware/auth');
+ * router.post('/api/teams/:teamId/settings', protect, isHeadCoach, updateTeamSettings);
+ * router.delete('/api/teams/:teamId/players/:playerId', protect, isHeadCoach, deletePlayer);
+ *
+ * @example
+ * // Triple middleware chain for team-specific head coach actions
+ * const { protect, isHeadCoach, isSameTeam } = require('../middleware/auth');
+ * router.put('/api/teams/:teamId/roster', protect, isHeadCoach, isSameTeam, updateRoster);
+ */
 const isHeadCoach = (req, res, next) => {
   if (req.user && req.user.role === 'head_coach') {
     next();
