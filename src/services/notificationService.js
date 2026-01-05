@@ -1,5 +1,6 @@
 const { User } = require('../models');
 const emailService = require('./emailService');
+const logger = require('../utils/logger');
 
 /**
  * Notification Service for Sports2 Application
@@ -45,7 +46,7 @@ class NotificationService {
 
       return recipients;
     } catch (error) {
-      console.error('Error fetching notification recipients:', error);
+      logger.error('Error fetching notification recipients:', error);
       return [];
     }
   }
@@ -72,13 +73,13 @@ class NotificationService {
         actionUrl
       ).catch(error => {
         // Log error but don't throw - we don't want to break the main flow
-        console.error(`Failed to send notification to ${recipient.email}:`, error);
+        logger.error('Failed to send notification to recipient:', { email: recipient.email, error });
       });
     });
 
     // Fire and forget - don't await completion
     Promise.all(emailPromises).catch(error => {
-      console.error('Error sending notification emails:', error);
+      logger.error('Error sending notification emails:', error);
     });
   }
 
@@ -105,7 +106,7 @@ class NotificationService {
       await this.sendEmailNotifications(recipients, title, message, actionUrl);
     } catch (error) {
       // Log error but don't throw - we don't want to break the main flow
-      console.error('Error sending player added notification:', error);
+      logger.error('Error sending player added notification:', error);
     }
   }
 
@@ -134,7 +135,7 @@ class NotificationService {
       await this.sendEmailNotifications(recipients, title, message, actionUrl);
     } catch (error) {
       // Log error but don't throw - we don't want to break the main flow
-      console.error('Error sending scouting report notification:', error);
+      logger.error('Error sending scouting report notification:', error);
     }
   }
 
@@ -162,7 +163,7 @@ class NotificationService {
       await this.sendEmailNotifications(recipients, title, message, actionUrl);
     } catch (error) {
       // Log error but don't throw - we don't want to break the main flow
-      console.error('Error sending schedule published notification:', error);
+      logger.error('Error sending schedule published notification:', error);
     }
   }
 }

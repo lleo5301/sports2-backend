@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const logger = require('../utils/logger');
 
 /**
  * Email Service for Sports2 Application
@@ -21,7 +22,7 @@ class EmailService {
                              process.env.SMTP_USER !== 'admin@mail.theprogram1814.com';
 
       if (!hasCustomConfig) {
-        console.warn('⚠️  Email service not configured - SMTP credentials not provided. Email functionality will be disabled.');
+        logger.warn('⚠️  Email service not configured - SMTP credentials not provided. Email functionality will be disabled.');
         return;
       }
 
@@ -40,7 +41,7 @@ class EmailService {
 
       // Check if nodemailer.createTransporter exists
       if (typeof nodemailer.createTransporter !== 'function') {
-        console.error('❌ Email service error: nodemailer.createTransporter is not available');
+        logger.error('❌ Email service error: nodemailer.createTransporter is not available');
         return;
       }
 
@@ -50,14 +51,14 @@ class EmailService {
       // Verify connection configuration
       this.transporter.verify((error, success) => {
         if (error) {
-          console.error('❌ Email service configuration error:', error);
+          logger.error('❌ Email service configuration error:', error);
           this.isConfigured = false;
         } else {
-          console.log('✅ Email service ready');
+          logger.info('✅ Email service ready');
         }
       });
     } catch (error) {
-      console.error('❌ Failed to initialize email service:', error.message);
+      logger.error('❌ Failed to initialize email service:', error);
       this.transporter = null;
       this.isConfigured = false;
     }
@@ -74,7 +75,7 @@ class EmailService {
    */
   async sendEmail({ to, subject, text, html }) {
     if (!this.isConfigured || !this.transporter) {
-      console.warn(`⚠️  Email not sent to ${to} - Email service not configured`);
+      logger.warn('⚠️  Email not sent - Email service not configured', { to });
       return { success: false, error: 'Email service not configured' };
     }
 
@@ -88,10 +89,10 @@ class EmailService {
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      console.log('✅ Email sent successfully:', result.messageId);
+      logger.info('✅ Email sent successfully', { messageId: result.messageId });
       return { success: true, messageId: result.messageId };
     } catch (error) {
-      console.error('❌ Failed to send email:', error);
+      logger.error('❌ Failed to send email:', error);
       return { success: false, error: error.message };
     }
   }
