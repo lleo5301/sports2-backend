@@ -1,9 +1,11 @@
+const logger = require('../utils/logger');
+
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
-  // Log error for debugging
-  console.error('Error:', err);
+  // Log error for debugging (sanitized to prevent sensitive data exposure)
+  logger.error('Error:', err);
 
   // Sequelize validation error
   if (err.name === 'SequelizeValidationError') {
@@ -36,8 +38,7 @@ const errorHandler = (err, req, res, next) => {
 
   res.status(error.statusCode || 500).json({
     success: false,
-    error: error.message || 'Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    error: error.message || 'Server Error'
   });
 };
 
