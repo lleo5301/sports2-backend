@@ -28,6 +28,7 @@ const passport = require('passport');
 const { User, Team, UserTeam } = require('../models');
 const { protect } = require('../middleware/auth');
 const UserPermission = require('../models/UserPermission'); // Added import for UserPermission
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -182,11 +183,11 @@ router.post('/register', [
       );
     } catch (emailError) {
       // Error: Log email failure but don't fail the registration
-      console.error('Failed to send welcome email:', emailError);
+      logger.error('Failed to send welcome email:', emailError);
     }
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Registration error:', error);
+    logger.error('Registration error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error during registration'
@@ -305,7 +306,7 @@ router.post('/login', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Login error:', error);
+    logger.error('Login error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error during login'
@@ -371,7 +372,7 @@ router.get('/me', protect, async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get profile error:', error);
+    logger.error('Get profile error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching profile'
@@ -450,7 +451,7 @@ router.put('/me', protect, [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Update profile error:', error);
+    logger.error('Update profile error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while updating profile'
@@ -523,7 +524,7 @@ router.put('/change-password', protect, [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Change password error:', error);
+    logger.error('Change password error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while changing password'
@@ -609,7 +610,7 @@ router.get('/google/callback', (req, res, next) => {
     res.redirect(redirectUrl);
   } catch (error) {
     // Error: Redirect to landing page with error indicator on failure
-    console.error('Google OAuth callback error:', error);
+    logger.error('Google OAuth callback error:', error);
     const landingUrl = process.env.LANDING_URL || 'http://localhost';
     const errorUrl = `${landingUrl}/login?error=oauth_failed`;
     res.redirect(errorUrl);
@@ -686,7 +687,7 @@ router.post('/apple/callback', (req, res, next) => {
     res.redirect(redirectUrl);
   } catch (error) {
     // Error: Redirect to landing page with error indicator on failure
-    console.error('Apple OAuth callback error:', error);
+    logger.error('Apple OAuth callback error:', error);
     const landingUrl = process.env.LANDING_URL || 'http://localhost';
     const errorUrl = `${landingUrl}/login?error=oauth_failed`;
     res.redirect(errorUrl);
@@ -746,7 +747,7 @@ router.post('/oauth/token', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('OAuth token error:', error);
+    logger.error('OAuth token error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error during OAuth token processing'
@@ -814,7 +815,7 @@ router.get('/permissions', protect, async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return error message
-    console.error('Error fetching user permissions:', error);
+    logger.error('Error fetching user permissions:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching user permissions'
