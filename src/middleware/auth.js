@@ -141,7 +141,45 @@ const isHeadCoach = (req, res, next) => {
   }
 };
 
-// Middleware to check if user belongs to the same team
+/**
+ * @description Team-based authorization middleware that verifies the authenticated user belongs
+ *              to the team specified in the route parameter. Enforces multi-tenant data isolation
+ *              by ensuring users can only access resources from their own team. This middleware
+ *              must be chained after the protect middleware which attaches the authenticated user
+ *              object to the request.
+ *
+ *              Authorization flow:
+ *              1. Check if req.user exists (attached by protect middleware)
+ *              2. Compare user.team_id with route parameter req.params.teamId
+ *              3. Call next() to continue if user belongs to the team, or return 403 if not
+ *
+ *              Security notes:
+ *              - Always chain after protect middleware to ensure req.user is present
+ *              - Returns 403 Forbidden (not 401 Unauthorized) since user is authenticated but lacks team access
+ *              - Prevents cross-team data access and enforces team-level data isolation
+ *              - Typically used with isHeadCoach for team-specific administrative actions
+ *
+ * @function isSameTeam
+ * @param {express.Request} req - Express request object with req.user (from protect) and req.params.teamId
+ * @param {express.Response} res - Express response object for sending error responses
+ * @param {express.NextFunction} next - Express next middleware function
+ *
+ * @returns {void} Calls next() if user belongs to the team, or sends 403 JSON response if not authorized.
+ *
+ * @throws {403} Access denied. Team membership required - User is authenticated but does not belong to the specified team
+ *
+ * @example
+ * // Typical usage: Chain with protect middleware for team-specific endpoints
+ * const { protect, isSameTeam } = require('../middleware/auth');
+ * router.get('/api/teams/:teamId/players', protect, isSameTeam, getTeamPlayers);
+ * router.get('/api/teams/:teamId/stats', protect, isSameTeam, getTeamStats);
+ *
+ * @example
+ * // Triple middleware chain for team-specific head coach actions
+ * const { protect, isHeadCoach, isSameTeam } = require('../middleware/auth');
+ * router.put('/api/teams/:teamId/roster', protect, isHeadCoach, isSameTeam, updateRoster);
+ * router.post('/api/teams/:teamId/plays', protect, isHeadCoach, isSameTeam, createPlay);
+ */
 const isSameTeam = (req, res, next) => {
   if (req.user && req.user.team_id === req.params.teamId) {
     next();
