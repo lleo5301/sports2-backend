@@ -38,6 +38,7 @@ const { body, param, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { protect } = require('../middleware/auth');
 const { Game, Team } = require('../models');
+const { createSortValidators, buildOrderClause } = require('../utils/sorting');
 
 const router = express.Router();
 
@@ -101,15 +102,18 @@ const validateGame = [
  * @description Retrieves all games for the authenticated user's team with pagination.
  *              Supports filtering by season and result, and free-text search.
  *              Search performs case-insensitive matching across opponent, location, season, and notes.
- *              Games are sorted by date descending (most recent first).
+ *              Supports configurable sorting via orderBy and sortDirection query parameters.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
+ * @middleware express-validator - Query parameter validation for sorting and search
  *
  * @param {number} [req.query.page=1] - Page number for pagination (1-indexed)
  * @param {number} [req.query.limit=20] - Number of games per page (default 20)
  * @param {string} [req.query.season] - Optional filter by season (e.g., "2024")
  * @param {string} [req.query.result] - Optional filter by result ('W', 'L', or 'T')
  * @param {string} [req.query.search] - Free-text search across opponent, location, season, and notes fields
+ * @param {string} [req.query.orderBy=game_date] - Column to sort by (game_date, opponent, home_away, result, team_score, opponent_score, season, created_at)
+ * @param {string} [req.query.sortDirection=DESC] - Sort direction ('ASC' or 'DESC', case-insensitive)
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
@@ -131,18 +135,37 @@ const validateGame = [
  * @returns {number} response.pagination.total - Total number of games
  * @returns {number} response.pagination.pages - Total number of pages
  *
+ * @throws {400} Validation error - Invalid orderBy column or sortDirection value
  * @throws {500} Server error - Database query failure
  */
 router.get('/', [
   // Validation: Search must be a string if provided
   query('search').optional().isString().withMessage('Search must be a string'),
-  handleValidationErrors
+  ...createSortValidators('games')
 ], async (req, res) => {
   try {
+    // Validation: Check for validation errors from express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
     // Pagination: Parse page and limit from query params with defaults
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
+
+    const {
+      season,
+      result,
+      search,
+      orderBy,
+      sortDirection
+    } = req.query;
 
     // Permission: Filter games to user's team only (multi-tenant isolation)
     const whereClause = {
@@ -150,30 +173,32 @@ router.get('/', [
     };
 
     // Business logic: Apply optional season filter
-    if (req.query.season) {
-      whereClause.season = req.query.season;
+    if (season) {
+      whereClause.season = season;
     }
 
     // Business logic: Apply optional result filter (W/L/T)
-    if (req.query.result) {
-      whereClause.result = req.query.result;
+    if (result) {
+      whereClause.result = result;
     }
 
     // Business logic: Free-text search using case-insensitive ILIKE across multiple fields
-    if (req.query.search) {
+    if (search) {
       whereClause[Op.or] = [
-        { opponent: { [Op.iLike]: `%${req.query.search}%` } },
-        { location: { [Op.iLike]: `%${req.query.search}%` } },
-        { season: { [Op.iLike]: `%${req.query.search}%` } },
-        { notes: { [Op.iLike]: `%${req.query.search}%` } }
+        { opponent: { [Op.iLike]: `%${search}%` } },
+        { location: { [Op.iLike]: `%${search}%` } },
+        { season: { [Op.iLike]: `%${search}%` } },
+        { notes: { [Op.iLike]: `%${search}%` } }
       ];
     }
+
+    // Business logic: Build dynamic order clause from query parameters (defaults to game_date DESC)
+    const orderClause = buildOrderClause('games', orderBy, sortDirection);
 
     // Database: Fetch games with team association and pagination
     const games = await Game.findAndCountAll({
       where: whereClause,
-      // Business logic: Sort by game date descending (most recent first)
-      order: [['game_date', 'DESC']],
+      order: orderClause,
       limit,
       offset,
       include: [
@@ -362,32 +387,27 @@ router.post('/', validateGame, handleValidationErrors, async (req, res) => {
  * @throws {404} Not found - Game doesn't exist or doesn't belong to user's team
  * @throws {500} Server error - Database operation failure
  */
-router.put('/byId/:id', [
-  // Validation: Ensure ID is a valid integer
-  param('id').isInt().withMessage('Game ID must be an integer'),
-  ...validateGame
-], handleValidationErrors, async (req, res) => {
+router.put('/byId/:id', validateGame, handleValidationErrors, async (req, res) => {
   try {
-    // Database: Find game with team isolation
+    // Permission: Verify game belongs to user's team before updating
     const game = await Game.findOne({
       where: {
         id: req.params.id,
-        // Permission: Only allow updates to games within user's team
         team_id: req.user.team_id
       }
     });
 
-    // Error: Return 404 if game not found (includes team access check)
+    // Error: Return 404 if game not found or doesn't belong to user
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
 
-    // Database: Update game with provided fields
+    // Database: Update the game with provided fields
     await game.update(req.body);
 
-    // Database: Fetch updated game with associations for complete response
+    // Database: Fetch the updated game with associations for complete response
     const updatedGame = await Game.findOne({
-      where: { id: req.params.id },
+      where: { id: game.id },
       include: [
         {
           model: Team,
@@ -410,8 +430,7 @@ router.put('/byId/:id', [
 
 /**
  * @route DELETE /api/games/byId/:id
- * @description Deletes a game.
- *              Only allows deletion of games belonging to the user's team.
+ * @description Deletes a game from the authenticated user's team.
  *              Note: Uses /byId/:id path pattern for consistency with other routes.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
@@ -427,16 +446,15 @@ router.put('/byId/:id', [
  */
 router.delete('/byId/:id', async (req, res) => {
   try {
-    // Database: Find game with team isolation
+    // Permission: Verify game belongs to user's team before deleting
     const game = await Game.findOne({
       where: {
         id: req.params.id,
-        // Permission: Only allow deletion of games within user's team
         team_id: req.user.team_id
       }
     });
 
-    // Error: Return 404 if game not found (includes team access check)
+    // Error: Return 404 if game not found or doesn't belong to user
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
@@ -455,158 +473,80 @@ router.delete('/byId/:id', async (req, res) => {
 });
 
 /**
- * @route GET /api/games/statistics/all
- * @description Retrieves overall game statistics for the user's team across all games.
- *              Only includes games with recorded results (not scheduled future games).
+ * @route GET /api/games/stats
+ * @description Retrieves aggregate statistics for games.
+ *              Calculates win rate, average runs scored, and average runs allowed.
+ *              Can be filtered by season.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
+ *
+ * @param {string} [req.query.season] - Optional season filter to scope statistics
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
  * @returns {Object} response.data - Statistics object
- * @returns {number} response.data.total_games - Total number of completed games (has result)
+ * @returns {number} response.data.totalGames - Total number of games (played)
  * @returns {number} response.data.wins - Total number of wins
  * @returns {number} response.data.losses - Total number of losses
  * @returns {number} response.data.ties - Total number of ties
- * @returns {number} response.data.win_rate - Win rate percentage (0-100)
- * @returns {number} response.data.avg_runs_scored - Average runs scored per game
- * @returns {number} response.data.avg_runs_allowed - Average runs allowed per game
- * @returns {number} response.data.total_runs_scored - Total runs scored across all games
- * @returns {number} response.data.total_runs_allowed - Total runs allowed across all games
+ * @returns {number} response.data.winRate - Win rate percentage (0-100)
+ * @returns {number} response.data.avgRunsScored - Average runs scored per game
+ * @returns {number} response.data.avgRunsAllowed - Average runs allowed per game
+ * @returns {string} [response.data.season] - Season filter applied (if provided)
  *
  * @throws {500} Server error - Database query failure
  */
-router.get('/statistics/all', async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
-    // Business logic: Fetch all games for team with results (not scheduled)
+    // Permission: Filter games to user's team only
+    const whereClause = {
+      team_id: req.user.team_id,
+      // Business logic: Only count games with results (not scheduled future games)
+      result: { [Op.not]: null }
+    };
+
+    // Business logic: Apply optional season filter
+    if (req.query.season) {
+      whereClause.season = req.query.season;
+    }
+
+    // Database: Fetch all completed games for statistics calculation
     const games = await Game.findAll({
-      where: {
-        team_id: req.user.team_id,
-        result: {
-          [Op.ne]: null
-        }
-      }
+      where: whereClause,
+      attributes: ['team_score', 'opponent_score', 'result']
     });
 
     // Business logic: Calculate statistics
-    if (games.length === 0) {
-      return res.json({
-        success: true,
-        data: {
-          total_games: 0,
-          wins: 0,
-          losses: 0,
-          ties: 0,
-          win_rate: 0,
-          avg_runs_scored: 0,
-          avg_runs_allowed: 0,
-          total_runs_scored: 0,
-          total_runs_allowed: 0
-        }
-      });
-    }
-
     const stats = {
-      total_games: games.length,
+      totalGames: games.length,
       wins: games.filter(g => g.result === 'W').length,
       losses: games.filter(g => g.result === 'L').length,
       ties: games.filter(g => g.result === 'T').length,
-      total_runs_scored: games.reduce((sum, g) => sum + (g.team_score || 0), 0),
-      total_runs_allowed: games.reduce((sum, g) => sum + (g.opponent_score || 0), 0)
+      avgRunsScored: games.length > 0 
+        ? (games.reduce((sum, g) => sum + (g.team_score || 0), 0) / games.length).toFixed(2)
+        : 0,
+      avgRunsAllowed: games.length > 0
+        ? (games.reduce((sum, g) => sum + (g.opponent_score || 0), 0) / games.length).toFixed(2)
+        : 0
     };
 
-    stats.win_rate = (stats.wins / stats.total_games) * 100;
-    stats.avg_runs_scored = stats.total_runs_scored / stats.total_games;
-    stats.avg_runs_allowed = stats.total_runs_allowed / stats.total_games;
+    // Business logic: Calculate win rate (wins / total games played)
+    stats.winRate = stats.totalGames > 0
+      ? ((stats.wins / stats.totalGames) * 100).toFixed(2)
+      : 0;
+
+    // Response: Include season filter if applied
+    if (req.query.season) {
+      stats.season = req.query.season;
+    }
 
     res.json({
       success: true,
       data: stats
     });
   } catch (error) {
-    console.error('Error fetching statistics:', error);
+    console.error('Error fetching game statistics:', error);
     res.status(500).json({ error: 'Failed to fetch statistics' });
-  }
-});
-
-/**
- * @route GET /api/games/statistics/season/:season
- * @description Retrieves game statistics for a specific season.
- *              Only includes games with recorded results (not scheduled future games).
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- *
- * @param {string} req.params.season - Season identifier (e.g., "2024")
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Statistics object for the season
- * @returns {string} response.data.season - Season identifier
- * @returns {number} response.data.total_games - Total games in season
- * @returns {number} response.data.wins - Season wins
- * @returns {number} response.data.losses - Season losses
- * @returns {number} response.data.ties - Season ties
- * @returns {number} response.data.win_rate - Season win rate percentage
- * @returns {number} response.data.avg_runs_scored - Average runs per game
- * @returns {number} response.data.avg_runs_allowed - Average runs allowed per game
- * @returns {number} response.data.total_runs_scored - Total runs scored in season
- * @returns {number} response.data.total_runs_allowed - Total runs allowed in season
- *
- * @throws {500} Server error - Database query failure
- */
-router.get('/statistics/season/:season', async (req, res) => {
-  try {
-    // Business logic: Fetch games for specific season with results
-    const games = await Game.findAll({
-      where: {
-        team_id: req.user.team_id,
-        season: req.params.season,
-        result: {
-          [Op.ne]: null
-        }
-      }
-    });
-
-    // Business logic: Calculate season statistics
-    if (games.length === 0) {
-      return res.json({
-        success: true,
-        data: {
-          season: req.params.season,
-          total_games: 0,
-          wins: 0,
-          losses: 0,
-          ties: 0,
-          win_rate: 0,
-          avg_runs_scored: 0,
-          avg_runs_allowed: 0,
-          total_runs_scored: 0,
-          total_runs_allowed: 0
-        }
-      });
-    }
-
-    const stats = {
-      season: req.params.season,
-      total_games: games.length,
-      wins: games.filter(g => g.result === 'W').length,
-      losses: games.filter(g => g.result === 'L').length,
-      ties: games.filter(g => g.result === 'T').length,
-      total_runs_scored: games.reduce((sum, g) => sum + (g.team_score || 0), 0),
-      total_runs_allowed: games.reduce((sum, g) => sum + (g.opponent_score || 0), 0)
-    };
-
-    stats.win_rate = (stats.wins / stats.total_games) * 100;
-    stats.avg_runs_scored = stats.total_runs_scored / stats.total_games;
-    stats.avg_runs_allowed = stats.total_runs_allowed / stats.total_games;
-
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    console.error('Error fetching season statistics:', error);
-    res.status(500).json({ error: 'Failed to fetch season statistics' });
   }
 });
 

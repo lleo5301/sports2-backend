@@ -19,6 +19,7 @@ const { Player, Team, User, ScoutingReport } = require('../models');
 const { protect } = require('../middleware/auth');
 const { sequelize } = require('../config/database');
 const { uploadVideo, handleUploadError } = require('../middleware/upload');
+const { createSortValidators, buildOrderClause } = require('../utils/sorting');
 const notificationService = require('../services/notificationService');
 const path = require('path');
 const fs = require('fs');
@@ -34,13 +35,17 @@ router.use(protect);
  * @description Retrieves a paginated list of players belonging to the authenticated user's team.
  *              Supports filtering by school type, position, status, and free-text search.
  *              Search performs case-insensitive matching across first_name, last_name, school, city, and state.
+ *              Supports configurable sorting via orderBy and sortDirection query parameters.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
+ * @middleware express-validator - Query parameter validation for sorting
  *
  * @param {string} [req.query.school_type] - Filter by school type ('HS' for high school, 'COLL' for college)
  * @param {string} [req.query.position] - Filter by position ('P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'OF', 'DH')
  * @param {string} [req.query.status] - Filter by player status ('active', 'inactive', 'graduated', 'transferred')
  * @param {string} [req.query.search] - Free-text search across name, school, city, and state fields
+ * @param {string} [req.query.orderBy=created_at] - Column to sort by (first_name, last_name, position, school_type, graduation_year, created_at, status)
+ * @param {string} [req.query.sortDirection=DESC] - Sort direction ('ASC' or 'DESC', case-insensitive)
  * @param {number} [req.query.page=1] - Page number for pagination (1-indexed)
  * @param {number} [req.query.limit=20] - Number of records per page
  *
@@ -53,15 +58,28 @@ router.use(protect);
  * @returns {number} response.pagination.total - Total number of matching records
  * @returns {number} response.pagination.pages - Total number of pages
  *
+ * @throws {400} Validation error - Invalid orderBy column or sortDirection value
  * @throws {500} Server error - Database query failure
  */
-router.get('/', async (req, res) => {
+router.get('/', createSortValidators('players'), async (req, res) => {
   try {
+    // Validation: Check for validation errors from express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
     const {
       school_type,
       position,
       status,
       search,
+      orderBy,
+      sortDirection,
       page = 1,
       limit = 20
     } = req.query;
@@ -98,7 +116,10 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    // Database: Fetch players with count for pagination, ordered by newest first
+    // Business logic: Build dynamic order clause from query parameters (defaults to created_at DESC)
+    const orderClause = buildOrderClause('players', orderBy, sortDirection);
+
+    // Database: Fetch players with count for pagination, ordered by user-specified criteria
     const { count, rows: players } = await Player.findAndCountAll({
       where: whereClause,
       include: [
@@ -112,7 +133,7 @@ router.get('/', async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: [['created_at', 'DESC']],
+      order: orderClause,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
@@ -371,7 +392,7 @@ router.post('/', uploadVideo, [
  * @throws {500} Server error - Database or file operation failure
  */
 router.put('/byId/:id', uploadVideo, [
-  // Validation: All fields optional for partial updates
+  // Validation: Optional fields with appropriate constraints
   body('first_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('last_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('school_type').optional().isIn(['HS', 'COLL']),
@@ -410,7 +431,7 @@ router.put('/byId/:id', uploadVideo, [
       }
     });
 
-    // Error: Return 404 if player not found or doesn't belong to user's team
+    // Error: Return 404 if player not found (also handles unauthorized team access)
     if (!player) {
       return res.status(404).json({
         success: false,
@@ -418,38 +439,20 @@ router.put('/byId/:id', uploadVideo, [
       });
     }
 
-    // Business logic: Handle video file replacement - delete old file if new one provided
+    // Business logic: Handle video file replacement - delete old file if new one is uploaded
     if (req.file && player.video_url) {
-      try {
-        // Extract filename from path (e.g., '/uploads/videos/file.mp4' -> 'file.mp4')
-        const oldFileName = path.basename(player.video_url);
-        const oldFilePath = path.join(__dirname, '../uploads/videos', oldFileName);
-        // Delete old file if it exists
-        if (fs.existsSync(oldFilePath)) {
-          fs.unlinkSync(oldFilePath);
+      const oldFilePath = path.join(__dirname, '../..', player.video_url);
+      fs.unlink(oldFilePath, (err) => {
+        if (err) {
+          console.warn('Failed to delete old video file:', err);
         }
-      } catch (err) {
-        // Log error but don't fail the update - file deletion is non-critical
-        console.error('Error deleting old video file:', err);
-      }
+      });
     }
 
-    // Business logic: Prepare update data - only update provided fields
-    const updateData = {};
-    const allowedFields = [
-      'first_name', 'last_name', 'school_type', 'position', 'height', 'weight',
-      'birth_date', 'graduation_year', 'school', 'city', 'state', 'phone',
-      'email', 'has_medical_issues', 'injury_details', 'has_comparison',
-      'comparison_player', 'status'
-    ];
+    // Business logic: Update player data with new values
+    const updateData = { ...req.body };
 
-    allowedFields.forEach(field => {
-      if (field in req.body) {
-        updateData[field] = req.body[field];
-      }
-    });
-
-    // Business logic: Store new video path if new file was uploaded
+    // Business logic: Update video URL if a new file was uploaded
     if (req.file) {
       updateData.video_url = `/uploads/videos/${req.file.filename}`;
     }
@@ -457,7 +460,7 @@ router.put('/byId/:id', uploadVideo, [
     // Database: Update the player record
     await player.update(updateData);
 
-    // Database: Fetch updated player with associations for complete response
+    // Database: Fetch the updated player with associations for complete response
     const updatedPlayer = await Player.findByPk(player.id, {
       include: [
         {
@@ -487,7 +490,7 @@ router.put('/byId/:id', uploadVideo, [
 
 /**
  * @route DELETE /api/players/byId/:id
- * @description Deletes a player record and associated video file from storage.
+ * @description Deletes a player record and associated video file if it exists.
  *              Only allows deletion of players belonging to the authenticated user's team.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
@@ -496,7 +499,7 @@ router.put('/byId/:id', uploadVideo, [
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {string} response.message - Confirmation message
+ * @returns {string} response.message - Success message
  *
  * @throws {404} Not found - Player doesn't exist or doesn't belong to user's team
  * @throws {500} Server error - Database or file operation failure
@@ -511,7 +514,7 @@ router.delete('/byId/:id', async (req, res) => {
       }
     });
 
-    // Error: Return 404 if player not found or doesn't belong to user's team
+    // Error: Return 404 if player not found (also handles unauthorized team access)
     if (!player) {
       return res.status(404).json({
         success: false,
@@ -519,20 +522,14 @@ router.delete('/byId/:id', async (req, res) => {
       });
     }
 
-    // Business logic: Delete associated video file from storage if it exists
+    // Business logic: Delete associated video file if it exists
     if (player.video_url) {
-      try {
-        // Extract filename from path (e.g., '/uploads/videos/file.mp4' -> 'file.mp4')
-        const fileName = path.basename(player.video_url);
-        const filePath = path.join(__dirname, '../uploads/videos', fileName);
-        // Delete file if it exists
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+      const filePath = path.join(__dirname, '../..', player.video_url);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.warn('Failed to delete video file:', err);
         }
-      } catch (err) {
-        // Log error but don't fail the delete - file deletion is non-critical
-        console.error('Error deleting video file:', err);
-      }
+      });
     }
 
     // Database: Delete the player record
