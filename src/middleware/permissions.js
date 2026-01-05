@@ -1,4 +1,5 @@
 const { UserPermission } = require('../models');
+const logger = require('../utils/logger');
 
 /**
  * Check if user is a super admin (bypasses all permission checks)
@@ -52,7 +53,7 @@ const checkPermission = (permissionType) => {
 
       next();
     } catch (error) {
-      console.error('Permission check error:', error);
+      logger.error('Permission check error:', error);
       return res.status(500).json({
         success: false,
         message: 'Error checking permissions'
@@ -104,7 +105,7 @@ const checkAnyPermission = (permissionTypes) => {
 
       next();
     } catch (error) {
-      console.error('Permission check error:', error);
+      logger.error('Permission check error:', error);
       return res.status(500).json({
         success: false,
         message: 'Error checking permissions'
@@ -160,7 +161,7 @@ const checkAllPermissions = (permissionTypes) => {
 
       next();
     } catch (error) {
-      console.error('Permission check error:', error);
+      logger.error('Permission check error:', error);
       return res.status(500).json({
         success: false,
         message: 'Error checking permissions'
