@@ -19,10 +19,9 @@ const { Player, Team, User, ScoutingReport } = require('../models');
 const { protect } = require('../middleware/auth');
 const { sequelize } = require('../config/database');
 const { uploadVideo, handleUploadError } = require('../middleware/upload');
-const notificationService = require('../services/notificationService');
+const { createSortValidators, buildOrderClause } = require('../utils/sorting');
 const path = require('path');
 const fs = require('fs');
-const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -35,13 +34,17 @@ router.use(protect);
  * @description Retrieves a paginated list of players belonging to the authenticated user's team.
  *              Supports filtering by school type, position, status, and free-text search.
  *              Search performs case-insensitive matching across first_name, last_name, school, city, and state.
+ *              Supports configurable sorting via orderBy and sortDirection query parameters.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
+ * @middleware express-validator - Query parameter validation for sorting
  *
  * @param {string} [req.query.school_type] - Filter by school type ('HS' for high school, 'COLL' for college)
  * @param {string} [req.query.position] - Filter by position ('P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'OF', 'DH')
  * @param {string} [req.query.status] - Filter by player status ('active', 'inactive', 'graduated', 'transferred')
  * @param {string} [req.query.search] - Free-text search across name, school, city, and state fields
+ * @param {string} [req.query.orderBy=created_at] - Column to sort by (first_name, last_name, position, school_type, graduation_year, created_at, status)
+ * @param {string} [req.query.sortDirection=DESC] - Sort direction ('ASC' or 'DESC', case-insensitive)
  * @param {number} [req.query.page=1] - Page number for pagination (1-indexed)
  * @param {number} [req.query.limit=20] - Number of records per page
  *
@@ -54,15 +57,28 @@ router.use(protect);
  * @returns {number} response.pagination.total - Total number of matching records
  * @returns {number} response.pagination.pages - Total number of pages
  *
+ * @throws {400} Validation error - Invalid orderBy column or sortDirection value
  * @throws {500} Server error - Database query failure
  */
-router.get('/', async (req, res) => {
+router.get('/', createSortValidators('players'), async (req, res) => {
   try {
+    // Validation: Check for validation errors from express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
     const {
       school_type,
       position,
       status,
       search,
+      orderBy,
+      sortDirection,
       page = 1,
       limit = 20
     } = req.query;
@@ -99,7 +115,10 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    // Database: Fetch players with count for pagination, ordered by newest first
+    // Business logic: Build dynamic order clause from query parameters (defaults to created_at DESC)
+    const orderClause = buildOrderClause('players', orderBy, sortDirection);
+
+    // Database: Fetch players with count for pagination, ordered by user-specified criteria
     const { count, rows: players } = await Player.findAndCountAll({
       where: whereClause,
       include: [
@@ -113,7 +132,7 @@ router.get('/', async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: [['created_at', 'DESC']],
+      order: orderClause,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
@@ -130,65 +149,10 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    logger.error('Get players error:', error);
+    console.error('Get players error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching players'
-    });
-  }
-});
-
-/**
- * @route GET /api/players/stats/summary
- * @description Retrieves aggregated player statistics for the authenticated user's team.
- *              Returns total players, active high school recruits, recent scouting reports (last 30 days),
- *              and team batting average in a single optimized database query.
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Aggregated statistics object
- * @returns {number} response.data.total_players - Total number of players in the team
- * @returns {number} response.data.active_recruits - Number of active high school recruits
- * @returns {number} response.data.recent_reports - Number of scouting reports created in last 30 days
- * @returns {number} response.data.team_avg - Team batting average (0 if no data)
- *
- * @throws {500} Server error - Database query failure
- */
-router.get('/stats/summary', async (req, res) => {
-  try {
-    // Database: Execute optimized single query to fetch all 4 stats in one round-trip
-    // Uses PostgreSQL subqueries for parallel execution and minimal latency
-    const [results] = await sequelize.query(
-      `SELECT
-        (SELECT COUNT(*) FROM players WHERE team_id = :team_id) AS total_players,
-        (SELECT COUNT(*) FROM players WHERE team_id = :team_id AND school_type = 'HS' AND status = 'active') AS active_recruits,
-        (SELECT COUNT(*) FROM scouting_reports sr INNER JOIN players p ON sr.player_id = p.id WHERE p.team_id = :team_id AND sr.created_at >= NOW() - INTERVAL '30 days') AS recent_reports,
-        (SELECT COALESCE(AVG(batting_avg), 0) FROM players WHERE team_id = :team_id AND batting_avg IS NOT NULL) AS team_avg`,
-      {
-        // Permission: Team isolation via parameterized query
-        replacements: { team_id: req.user.team_id },
-        type: sequelize.QueryTypes.SELECT
-      }
-    );
-
-    // Business logic: Parse database results to ensure correct data types
-    res.json({
-      success: true,
-      data: {
-        total_players: parseInt(results[0].total_players),
-        active_recruits: parseInt(results[0].active_recruits),
-        recent_reports: parseInt(results[0].recent_reports),
-        team_avg: parseFloat(results[0].team_avg)
-      }
-    });
-  } catch (error) {
-    // Error: Log and return generic server error to avoid exposing internal details
-    console.error('Get player stats summary error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error while fetching player statistics'
     });
   }
 });
@@ -257,7 +221,7 @@ router.get('/byId/:id', async (req, res) => {
       data: player
     });
   } catch (error) {
-    logger.error('Get player error:', error);
+    console.error('Get player error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching player'
@@ -365,20 +329,12 @@ router.post('/', uploadVideo, [
       ]
     });
 
-    // Notification: Fire-and-forget notification to team members
-    // This does not block the response - errors are handled gracefully in the service
-    notificationService.sendPlayerAddedNotification(
-      createdPlayer,
-      req.user.team_id,
-      req.user.id
-    );
-
     res.status(201).json({
       success: true,
       data: createdPlayer
     });
   } catch (error) {
-    logger.error('Create player error:', error);
+    console.error('Create player error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while creating player'
@@ -515,7 +471,7 @@ router.put('/byId/:id', uploadVideo, [
       data: updatedPlayer
     });
   } catch (error) {
-    logger.error('Update player error:', error);
+    console.error('Update player error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while updating player'
@@ -569,7 +525,7 @@ router.delete('/byId/:id', async (req, res) => {
       message: 'Player deleted successfully'
     });
   } catch (error) {
-    logger.error('Delete player error:', error);
+    console.error('Delete player error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while deleting player'
@@ -664,7 +620,7 @@ router.get('/stats/summary', async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Get stats summary error:', error);
+    console.error('Get stats summary error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching statistics'
@@ -772,7 +728,7 @@ router.get('/byId/:id/stats', async (req, res) => {
       data: stats
     });
   } catch (error) {
-    logger.error('Get player stats error:', error);
+    console.error('Get player stats error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching player statistics'
@@ -970,7 +926,7 @@ router.get('/performance', [
     });
 
   } catch (error) {
-    logger.error('Get player performance error:', error);
+    console.error('Get player performance error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching player performance data'

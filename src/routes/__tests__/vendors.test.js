@@ -2,7 +2,12 @@
 // We use supertest for integration testing with the full app stack
 const request = require('supertest');
 const app = require('../../server');
+<<<<<<< HEAD
 const { Vendor, User, Team, sequelize } = require('../../models');
+=======
+const { Vendor, User, Team } = require('../../models');
+const { sequelize } = require('../../config/database');
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
 const jwt = require('jsonwebtoken');
 
 describe('vendors routes basic structure', () => {
@@ -16,6 +21,7 @@ describe('vendors routes basic structure', () => {
   })
 })
 
+<<<<<<< HEAD
 describe('Vendors API - Complete CRUD and Sorting Tests', () => {
   let authToken;
   let testUser;
@@ -27,16 +33,33 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
 
   beforeAll(async () => {
     // Ensure database connection
+=======
+describe('Vendors List Sorting API', () => {
+  let authToken;
+  let testUser;
+  let testTeam;
+  let testVendors = [];
+
+  beforeAll(async () => {
+    // Ensure we're using the test database
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     if (process.env.NODE_ENV !== 'test') {
       process.env.NODE_ENV = 'test';
     }
 
+<<<<<<< HEAD
     await sequelize.authenticate();
 
     // Sync database
     await sequelize.sync({ force: true });
 
     // Create test teams
+=======
+    // Sync database
+    await sequelize.sync({ force: true });
+
+    // Create test team
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     testTeam = await Team.create({
       name: 'Test Team',
       program_name: 'Test Program',
@@ -47,6 +70,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       state: 'TS'
     });
 
+<<<<<<< HEAD
     otherTeam = await Team.create({
       name: 'Other Team',
       program_name: 'Other Program',
@@ -58,6 +82,9 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
     });
 
     // Create test users
+=======
+    // Create test user
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     testUser = await User.create({
       first_name: 'Test',
       last_name: 'Coach',
@@ -67,6 +94,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       team_id: testTeam.id
     });
 
+<<<<<<< HEAD
     otherUser = await User.create({
       first_name: 'Other',
       last_name: 'Coach',
@@ -77,6 +105,9 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
     });
 
     // Generate auth tokens
+=======
+    // Generate auth token
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     authToken = jwt.sign(
       {
         id: testUser.id,
@@ -88,6 +119,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       { expiresIn: '1h' }
     );
 
+<<<<<<< HEAD
     otherAuthToken = jwt.sign(
       {
         id: otherUser.id,
@@ -98,12 +130,101 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       process.env.JWT_SECRET || 'test-secret',
       { expiresIn: '1h' }
     );
+=======
+    // Create test vendors with varying data for sorting
+    const vendorsData = [
+      {
+        company_name: 'Alpha Sports Equipment',
+        contact_person: 'Alice Anderson',
+        email: 'alice@alphasports.com',
+        phone: '555-0001',
+        vendor_type: 'Equipment',
+        contract_value: 50000.00,
+        contract_start_date: '2024-01-15',
+        contract_end_date: '2025-01-15',
+        last_contact_date: '2024-03-10',
+        next_contact_date: '2024-06-10',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      },
+      {
+        company_name: 'Zulu Apparel Co',
+        contact_person: 'Bob Brown',
+        email: 'bob@zuluapparel.com',
+        phone: '555-0002',
+        vendor_type: 'Apparel',
+        contract_value: 75000.00,
+        contract_start_date: '2024-02-01',
+        contract_end_date: '2025-02-01',
+        last_contact_date: '2024-04-15',
+        next_contact_date: '2024-07-15',
+        status: 'inactive',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      },
+      {
+        company_name: 'Beta Tech Solutions',
+        contact_person: 'Charlie Chen',
+        email: 'charlie@betatech.com',
+        phone: '555-0003',
+        vendor_type: 'Technology',
+        contract_value: 30000.00,
+        contract_start_date: '2024-03-01',
+        contract_end_date: '2025-03-01',
+        last_contact_date: '2024-02-20',
+        next_contact_date: '2024-05-20',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      },
+      {
+        company_name: 'Midwest Transport',
+        contact_person: 'Diana Davis',
+        email: 'diana@midwesttransport.com',
+        phone: '555-0004',
+        vendor_type: 'Transportation',
+        contract_value: 100000.00,
+        contract_start_date: '2023-12-01',
+        contract_end_date: '2024-12-01',
+        last_contact_date: '2024-05-01',
+        next_contact_date: '2024-08-01',
+        status: 'pending',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      },
+      {
+        company_name: 'Elite Medical Supplies',
+        contact_person: 'Eve Edwards',
+        email: 'eve@elitemedical.com',
+        phone: '555-0005',
+        vendor_type: 'Medical',
+        contract_value: 25000.00,
+        contract_start_date: '2024-01-01',
+        contract_end_date: '2024-06-30',
+        last_contact_date: '2024-01-15',
+        next_contact_date: '2024-04-15',
+        status: 'expired',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      }
+    ];
+
+    // Create vendors sequentially to ensure different created_at timestamps
+    for (const vendorData of vendorsData) {
+      const vendor = await Vendor.create(vendorData);
+      testVendors.push(vendor);
+      // Small delay to ensure different timestamps
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
   });
 
   afterAll(async () => {
     await sequelize.close();
   });
 
+<<<<<<< HEAD
   beforeEach(async () => {
     // Clean up vendors before each test
     await Vendor.destroy({ where: {}, force: true });
@@ -428,18 +549,33 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
         created_by: testUser.id
       });
 
+=======
+  describe('GET /api/vendors - Default Sorting', () => {
+    it('should sort by created_at DESC by default', async () => {
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
       const response = await request(app)
         .get('/api/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
+<<<<<<< HEAD
       expect(response.body.data[0].company_name).toBe('Second Vendor');
       expect(response.body.data[1].company_name).toBe('First Vendor');
+=======
+      expect(response.body.data.length).toBeGreaterThan(0);
+
+      // Verify descending order by created_at (most recent first)
+      const timestamps = response.body.data.map(v => new Date(v.created_at).getTime());
+      for (let i = 1; i < timestamps.length; i++) {
+        expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
+      }
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     });
   });
 
   describe('GET /api/vendors - Sorting by company_name', () => {
+<<<<<<< HEAD
     beforeEach(async () => {
       // Create test vendors with varying data for sorting
       const vendorsData = [
@@ -529,6 +665,8 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       }
     });
 
+=======
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by company_name ASC', async () => {
       const response = await request(app)
         .get('/api/vendors?orderBy=company_name&sortDirection=ASC')
@@ -564,6 +702,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
   });
 
   describe('GET /api/vendors - Sorting by contact_person', () => {
+<<<<<<< HEAD
     beforeEach(async () => {
       const vendorsData = [
         {
@@ -614,6 +753,8 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       }
     });
 
+=======
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by contact_person ASC', async () => {
       const response = await request(app)
         .get('/api/vendors?orderBy=contact_person&sortDirection=ASC')
@@ -638,6 +779,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
   });
 
   describe('GET /api/vendors - Sorting by vendor_type', () => {
+<<<<<<< HEAD
     beforeEach(async () => {
       const vendorsData = [
         {
@@ -683,6 +825,8 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       }
     });
 
+=======
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by vendor_type ASC', async () => {
       const response = await request(app)
         .get('/api/vendors?orderBy=vendor_type&sortDirection=ASC')
@@ -691,6 +835,10 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
 
       expect(response.body.success).toBe(true);
       const types = response.body.data.map(v => v.vendor_type);
+<<<<<<< HEAD
+=======
+      // Alphabetically: Apparel, Equipment, Medical, Technology, Transportation
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
       expect(types).toEqual(['Apparel', 'Equipment', 'Medical', 'Technology', 'Transportation']);
     });
 
@@ -707,6 +855,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
   });
 
   describe('GET /api/vendors - Sorting by contract_value', () => {
+<<<<<<< HEAD
     beforeEach(async () => {
       const vendorsData = [
         {
@@ -757,6 +906,8 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       }
     });
 
+=======
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by contract_value ASC', async () => {
       const response = await request(app)
         .get('/api/vendors?orderBy=contract_value&sortDirection=ASC')
@@ -785,6 +936,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
   });
 
   describe('GET /api/vendors - Sorting by contract_start_date', () => {
+<<<<<<< HEAD
     beforeEach(async () => {
       const vendorsData = [
         {
@@ -835,6 +987,8 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       }
     });
 
+=======
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by contract_start_date ASC', async () => {
       const response = await request(app)
         .get('/api/vendors?orderBy=contract_start_date&sortDirection=ASC')
@@ -863,6 +1017,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
   });
 
   describe('GET /api/vendors - Sorting by contract_end_date', () => {
+<<<<<<< HEAD
     beforeEach(async () => {
       const vendorsData = [
         {
@@ -913,6 +1068,8 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       }
     });
 
+=======
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by contract_end_date ASC', async () => {
       const response = await request(app)
         .get('/api/vendors?orderBy=contract_end_date&sortDirection=ASC')
@@ -941,6 +1098,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
   });
 
   describe('GET /api/vendors - Sorting by last_contact_date', () => {
+<<<<<<< HEAD
     beforeEach(async () => {
       const vendorsData = [
         {
@@ -991,6 +1149,8 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       }
     });
 
+=======
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by last_contact_date ASC', async () => {
       const response = await request(app)
         .get('/api/vendors?orderBy=last_contact_date&sortDirection=ASC')
@@ -1019,6 +1179,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
   });
 
   describe('GET /api/vendors - Sorting by next_contact_date', () => {
+<<<<<<< HEAD
     beforeEach(async () => {
       const vendorsData = [
         {
@@ -1069,6 +1230,8 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       }
     });
 
+=======
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by next_contact_date ASC', async () => {
       const response = await request(app)
         .get('/api/vendors?orderBy=next_contact_date&sortDirection=ASC')
@@ -1097,6 +1260,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
   });
 
   describe('GET /api/vendors - Sorting by status', () => {
+<<<<<<< HEAD
     beforeEach(async () => {
       const vendorsData = [
         {
@@ -1135,6 +1299,8 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       }
     });
 
+=======
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by status ASC', async () => {
       const response = await request(app)
         .get('/api/vendors?orderBy=status&sortDirection=ASC')
@@ -1143,7 +1309,25 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
 
       expect(response.body.success).toBe(true);
       const statuses = response.body.data.map(v => v.status);
+<<<<<<< HEAD
       expect(statuses).toEqual(['active', 'expired', 'inactive', 'pending']);
+=======
+      // Alphabetically: active (2), expired (1), inactive (1), pending (1)
+      const activeCount = statuses.filter(s => s === 'active').length;
+      const expiredCount = statuses.filter(s => s === 'expired').length;
+      const inactiveCount = statuses.filter(s => s === 'inactive').length;
+      const pendingCount = statuses.filter(s => s === 'pending').length;
+      expect(activeCount).toBe(2);
+      expect(expiredCount).toBe(1);
+      expect(inactiveCount).toBe(1);
+      expect(pendingCount).toBe(1);
+      // Verify 'active' entries come first
+      expect(statuses[0]).toBe('active');
+      expect(statuses[1]).toBe('active');
+      expect(statuses[2]).toBe('expired');
+      expect(statuses[3]).toBe('inactive');
+      expect(statuses[4]).toBe('pending');
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     });
 
     it('should sort by status DESC', async () => {
@@ -1154,6 +1338,7 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
 
       expect(response.body.success).toBe(true);
       const statuses = response.body.data.map(v => v.status);
+<<<<<<< HEAD
       expect(statuses).toEqual(['pending', 'inactive', 'expired', 'active']);
     });
   });
@@ -1162,11 +1347,198 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
     it('should require authentication', async () => {
       const response = await request(app)
         .get('/api/vendors/1')
+=======
+      // Reverse alphabetically
+      expect(statuses[0]).toBe('pending');
+      expect(statuses[1]).toBe('inactive');
+      expect(statuses[2]).toBe('expired');
+      expect(statuses[3]).toBe('active');
+      expect(statuses[4]).toBe('active');
+    });
+  });
+
+  describe('GET /api/vendors - Sorting by created_at', () => {
+    it('should sort by created_at ASC', async () => {
+      const response = await request(app)
+        .get('/api/vendors?orderBy=created_at&sortDirection=ASC')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      const timestamps = response.body.data.map(v => new Date(v.created_at).getTime());
+      for (let i = 1; i < timestamps.length; i++) {
+        expect(timestamps[i]).toBeGreaterThanOrEqual(timestamps[i - 1]);
+      }
+    });
+
+    it('should sort by created_at DESC', async () => {
+      const response = await request(app)
+        .get('/api/vendors?orderBy=created_at&sortDirection=DESC')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      const timestamps = response.body.data.map(v => new Date(v.created_at).getTime());
+      for (let i = 1; i < timestamps.length; i++) {
+        expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
+      }
+    });
+  });
+
+  describe('GET /api/vendors - Validation', () => {
+    it('should return 400 for invalid orderBy column', async () => {
+      const response = await request(app)
+        .get('/api/vendors?orderBy=invalid_column&sortDirection=ASC')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details).toBeDefined();
+      expect(response.body.details.length).toBeGreaterThan(0);
+    });
+
+    it('should return 400 for invalid sortDirection', async () => {
+      const response = await request(app)
+        .get('/api/vendors?orderBy=company_name&sortDirection=INVALID')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details).toBeDefined();
+    });
+
+    it('should return 400 for both invalid orderBy and sortDirection', async () => {
+      const response = await request(app)
+        .get('/api/vendors?orderBy=bad_column&sortDirection=BAD_DIR')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details).toBeDefined();
+      expect(response.body.details.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('GET /api/vendors - Sorting with Filters', () => {
+    it('should sort filtered results by company_name (filter by vendor_type)', async () => {
+      const response = await request(app)
+        .get('/api/vendors?vendor_type=Equipment&orderBy=company_name&sortDirection=ASC')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBe(1); // 1 Equipment vendor
+      expect(response.body.data[0].company_name).toBe('Alpha Sports Equipment');
+    });
+
+    it('should sort filtered results by contract_value (filter by status)', async () => {
+      const response = await request(app)
+        .get('/api/vendors?status=active&orderBy=contract_value&sortDirection=DESC')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBe(2); // 2 active vendors
+      const values = response.body.data.map(v => parseFloat(v.contract_value));
+      expect(values[0]).toBeGreaterThanOrEqual(values[1]);
+    });
+
+    it('should sort filtered results with search query', async () => {
+      const response = await request(app)
+        .get('/api/vendors?search=Tech&orderBy=company_name&sortDirection=ASC')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      // Should match "Beta Tech Solutions" and "Midwest Transport"
+      expect(response.body.data.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('GET /api/vendors - Sorting with Pagination', () => {
+    it('should sort and paginate correctly', async () => {
+      const response = await request(app)
+        .get('/api/vendors?orderBy=company_name&sortDirection=ASC&page=1&limit=2')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(2);
+      expect(response.body.pagination.page).toBe(1);
+      expect(response.body.pagination.limit).toBe(2);
+      expect(response.body.pagination.total).toBe(5);
+
+      // First page should have Alpha Sports Equipment and Beta Tech Solutions
+      const names = response.body.data.map(v => v.company_name);
+      expect(names).toEqual(['Alpha Sports Equipment', 'Beta Tech Solutions']);
+    });
+
+    it('should maintain sort order across pages', async () => {
+      const page1Response = await request(app)
+        .get('/api/vendors?orderBy=company_name&sortDirection=ASC&page=1&limit=3')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      const page2Response = await request(app)
+        .get('/api/vendors?orderBy=company_name&sortDirection=ASC&page=2&limit=3')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(page1Response.body.success).toBe(true);
+      expect(page2Response.body.success).toBe(true);
+
+      const page1Names = page1Response.body.data.map(v => v.company_name);
+      const page2Names = page2Response.body.data.map(v => v.company_name);
+
+      // Last name on page 1 should be <= first name on page 2
+      if (page2Names.length > 0) {
+        expect(page1Names[page1Names.length - 1].localeCompare(page2Names[0])).toBeLessThanOrEqual(0);
+      }
+    });
+  });
+
+  describe('GET /api/vendors - Edge Cases', () => {
+    it('should use default sorting when only orderBy is provided', async () => {
+      const response = await request(app)
+        .get('/api/vendors?orderBy=company_name')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      const names = response.body.data.map(v => v.company_name);
+      // Should use DESC by default
+      expect(names).toEqual(['Zulu Apparel Co', 'Midwest Transport', 'Elite Medical Supplies', 'Beta Tech Solutions', 'Alpha Sports Equipment']);
+    });
+
+    it('should ignore sortDirection when orderBy is not provided', async () => {
+      const response = await request(app)
+        .get('/api/vendors?sortDirection=ASC')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      // Should fall back to default created_at DESC
+      const timestamps = response.body.data.map(v => new Date(v.created_at).getTime());
+      for (let i = 1; i < timestamps.length; i++) {
+        expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
+      }
+    });
+  });
+
+  describe('GET /api/vendors - Authentication and Authorization', () => {
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get('/api/vendors')
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
         .expect(401);
 
       expect(response.body.success).toBe(false);
     });
 
+<<<<<<< HEAD
     it('should return vendor by id', async () => {
       const vendor = await Vendor.create({
         company_name: 'Test Vendor',
@@ -1229,12 +1601,43 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
       const vendor = await Vendor.create({
         company_name: 'Other Team Vendor',
         vendor_type: 'Equipment',
+=======
+    it('should only return vendors for user\'s team', async () => {
+      // Create another team and vendor
+      const otherTeam = await Team.create({
+        name: 'Other Team',
+        program_name: 'Other Program',
+        school: 'Other University',
+        division: 'D1',
+        conference: 'Other Conference',
+        city: 'Other City',
+        state: 'OT'
+      });
+
+      const otherUser = await User.create({
+        first_name: 'Other',
+        last_name: 'Coach',
+        email: 'other@example.com',
+        password: 'password123',
+        role: 'coach',
+        team_id: otherTeam.id
+      });
+
+      await Vendor.create({
+        company_name: 'Other Vendor Inc',
+        contact_person: 'Other Person',
+        email: 'other@vendor.com',
+        phone: '555-9999',
+        vendor_type: 'Other',
+        contract_value: 10000.00,
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
         status: 'active',
         team_id: otherTeam.id,
         created_by: otherUser.id
       });
 
       const response = await request(app)
+<<<<<<< HEAD
         .get(`/api/vendors/${vendor.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
@@ -1561,10 +1964,14 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
 
       const response = await request(app)
         .delete(`/api/vendors/${vendor.id}`)
+=======
+        .get('/api/vendors')
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
+<<<<<<< HEAD
 
       // Verify deletion
       const getResponse = await request(app)
@@ -1604,3 +2011,13 @@ describe('Vendors API - Complete CRUD and Sorting Tests', () => {
     });
   });
 });
+=======
+      // Should only see the 5 vendors from testTeam, not the 6th from otherTeam
+      expect(response.body.data.length).toBe(5);
+      response.body.data.forEach(vendor => {
+        expect(vendor.team_id).toBe(testTeam.id);
+      });
+    });
+  });
+});
+>>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints

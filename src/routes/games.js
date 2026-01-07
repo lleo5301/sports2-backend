@@ -38,7 +38,7 @@ const { body, param, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { protect } = require('../middleware/auth');
 const { Game, Team, Player } = require('../models');
-const logger = require('../utils/logger');
+const { createSortValidators, buildOrderClause } = require('../utils/sorting');
 
 const router = express.Router();
 
@@ -100,17 +100,18 @@ const validateGame = [
 /**
  * @route GET /api/games
  * @description Retrieves all games for the authenticated user's team with pagination.
- *              Supports filtering by season and result, and free-text search.
- *              Search performs case-insensitive matching across opponent, location, season, and notes.
- *              Games are sorted by date descending (most recent first).
+ *              Supports filtering by season and result. Supports configurable sorting
+ *              via orderBy and sortDirection query parameters.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
+ * @middleware express-validator - Query parameter validation for sorting
  *
  * @param {number} [req.query.page=1] - Page number for pagination (1-indexed)
  * @param {number} [req.query.limit=20] - Number of games per page (default 20)
  * @param {string} [req.query.season] - Optional filter by season (e.g., "2024")
  * @param {string} [req.query.result] - Optional filter by result ('W', 'L', or 'T')
- * @param {string} [req.query.search] - Free-text search across opponent, location, season, and notes fields
+ * @param {string} [req.query.orderBy=game_date] - Column to sort by (game_date, opponent, home_away, result, team_score, opponent_score, season, created_at)
+ * @param {string} [req.query.sortDirection=DESC] - Sort direction ('ASC' or 'DESC', case-insensitive)
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
@@ -132,18 +133,32 @@ const validateGame = [
  * @returns {number} response.pagination.total - Total number of games
  * @returns {number} response.pagination.pages - Total number of pages
  *
+ * @throws {400} Validation error - Invalid orderBy column or sortDirection value
  * @throws {500} Server error - Database query failure
  */
-router.get('/', [
-  // Validation: Search must be a string if provided
-  query('search').optional().isString().withMessage('Search must be a string'),
-  handleValidationErrors
-], async (req, res) => {
+router.get('/', createSortValidators('games'), async (req, res) => {
   try {
+    // Validation: Check for validation errors from express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
     // Pagination: Parse page and limit from query params with defaults
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
+
+    const {
+      season,
+      result,
+      orderBy,
+      sortDirection
+    } = req.query;
 
     // Permission: Filter games to user's team only (multi-tenant isolation)
     const whereClause = {
@@ -151,30 +166,22 @@ router.get('/', [
     };
 
     // Business logic: Apply optional season filter
-    if (req.query.season) {
-      whereClause.season = req.query.season;
+    if (season) {
+      whereClause.season = season;
     }
 
     // Business logic: Apply optional result filter (W/L/T)
-    if (req.query.result) {
-      whereClause.result = req.query.result;
+    if (result) {
+      whereClause.result = result;
     }
 
-    // Business logic: Free-text search using case-insensitive ILIKE across multiple fields
-    if (req.query.search) {
-      whereClause[Op.or] = [
-        { opponent: { [Op.iLike]: `%${req.query.search}%` } },
-        { location: { [Op.iLike]: `%${req.query.search}%` } },
-        { season: { [Op.iLike]: `%${req.query.search}%` } },
-        { notes: { [Op.iLike]: `%${req.query.search}%` } }
-      ];
-    }
+    // Business logic: Build dynamic order clause from query parameters (defaults to game_date DESC)
+    const orderClause = buildOrderClause('games', orderBy, sortDirection);
 
     // Database: Fetch games with team association and pagination
     const games = await Game.findAndCountAll({
       where: whereClause,
-      // Business logic: Sort by game date descending (most recent first)
-      order: [['game_date', 'DESC']],
+      order: orderClause,
       limit,
       offset,
       include: [
@@ -198,7 +205,7 @@ router.get('/', [
       }
     });
   } catch (error) {
-    logger.error('Error fetching games:', error);
+    console.error('Error fetching games:', error);
     res.status(500).json({ error: 'Failed to fetch games' });
   }
 });
@@ -257,7 +264,7 @@ router.get('/byId/:id', async (req, res) => {
 
     res.json({ success: true, data: game });
   } catch (error) {
-    logger.error('Error fetching game:', error);
+    console.error('Error fetching game:', error);
     res.status(500).json({ error: 'Failed to fetch game' });
   }
 });
@@ -323,7 +330,7 @@ router.post('/', validateGame, handleValidationErrors, async (req, res) => {
       data: createdGame
     });
   } catch (error) {
-    logger.error('Error creating game:', error);
+    console.error('Error creating game:', error);
     res.status(500).json({ error: 'Failed to create game' });
   }
 });
@@ -404,7 +411,7 @@ router.put('/byId/:id', [
       data: updatedGame
     });
   } catch (error) {
-    logger.error('Error updating game:', error);
+    console.error('Error updating game:', error);
     res.status(500).json({ error: 'Failed to update game' });
   }
 });
@@ -454,7 +461,7 @@ router.delete('/byId/:id', [
 
     res.json({ success: true, message: 'Game deleted successfully' });
   } catch (error) {
-    logger.error('Error deleting game:', error);
+    console.error('Error deleting game:', error);
     res.status(500).json({ error: 'Failed to delete game' });
   }
 });
@@ -514,7 +521,7 @@ router.get('/log', [
 
     res.json({ success: true, data: games });
   } catch (error) {
-    logger.error('Error fetching game log:', error);
+    console.error('Error fetching game log:', error);
     res.status(500).json({ error: 'Failed to fetch game log' });
   }
 });
@@ -586,7 +593,7 @@ router.get('/team-stats', async (req, res) => {
 
     res.json({ success: true, data: stats });
   } catch (error) {
-    logger.error('Error fetching team game stats:', error);
+    console.error('Error fetching team game stats:', error);
     res.status(500).json({ error: 'Failed to fetch team game stats' });
   }
 });
@@ -651,7 +658,7 @@ router.get('/upcoming', [
 
     res.json({ success: true, data: games });
   } catch (error) {
-    logger.error('Error fetching upcoming games:', error);
+    console.error('Error fetching upcoming games:', error);
     res.status(500).json({ error: 'Failed to fetch upcoming games' });
   }
 });
@@ -761,7 +768,7 @@ router.get('/season-stats', [
     // Return as array of season stats objects
     res.json({ success: true, data: Object.values(seasonStats) });
   } catch (error) {
-    logger.error('Error fetching season stats:', error);
+    console.error('Error fetching season stats:', error);
     res.status(500).json({ error: 'Failed to fetch season stats' });
   }
 });
@@ -872,7 +879,7 @@ router.get('/player-stats/:playerId', async (req, res) => {
       data: playerGameStats
     });
   } catch (error) {
-    logger.error('Error fetching player game statistics:', error);
+    console.error('Error fetching player game statistics:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch player game statistics'
