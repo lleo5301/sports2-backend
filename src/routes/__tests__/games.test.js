@@ -3,6 +3,7 @@ const app = require('../../server');
 const { sequelize, User, Team, Game } = require('../../models');
 const jwt = require('jsonwebtoken');
 
+<<<<<<< HEAD
 describe('games routes basic structure', () => {
   it('router has standard HTTP methods', () => {
     const router = require('../games');
@@ -14,6 +15,8 @@ describe('games routes basic structure', () => {
   })
 })
 
+=======
+>>>>>>> auto-claude/030-add-search-functionality-to-games-route
 describe('Games API', () => {
   let authToken;
   let testUser;
@@ -118,6 +121,7 @@ describe('Games API', () => {
       expect(response.body.error).toBe('Not authorized, no token');
     });
 
+<<<<<<< HEAD
     describe('Default Sorting', () => {
       beforeEach(async () => {
         // Create test games for sorting tests
@@ -652,6 +656,8 @@ describe('Games API', () => {
       });
     });
 
+=======
+>>>>>>> auto-claude/030-add-search-functionality-to-games-route
     describe('Search functionality', () => {
       beforeEach(async () => {
         // Create test games with different data
@@ -945,7 +951,11 @@ describe('Games API', () => {
         opponent: 'To Delete',
         game_date: new Date('2024-05-15'),
         home_away: 'home',
+<<<<<<< HEAD
         team_id:testTeam.id,
+=======
+        team_id: testTeam.id,
+>>>>>>> auto-claude/030-add-search-functionality-to-games-route
         created_by: testUser.id
       });
 
@@ -962,4 +972,8 @@ describe('Games API', () => {
       expect(deletedGame).toBeNull();
     });
   });
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> auto-claude/030-add-search-functionality-to-games-route
