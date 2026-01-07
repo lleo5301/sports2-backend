@@ -200,8 +200,11 @@ module.exports = {
 <<<<<<< HEAD
   UserTeam
 };
+<<<<<<< HEAD
 =======
   UserTeam,
   TokenBlacklist
 }; 
 >>>>>>> auto-claude/020-add-jwt-token-revocation-blacklist-capability
+=======
+>>>>>>> auto-claude/037-add-eslint-configuration-to-backend-service

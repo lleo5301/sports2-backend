@@ -1,15 +1,9 @@
-<<<<<<< HEAD
 const errorHandler = (err, req, res, _next) => {
-=======
-const logger = require('../utils/logger');
-
-const errorHandler = (err, req, res, next) => {
->>>>>>> auto-claude/021-remove-sensitive-data-from-production-logs
   let error = { ...err };
   error.message = err.message;
 
-  // Log error for debugging (sanitized to prevent sensitive data exposure)
-  logger.error('Error:', err);
+  // Log error for debugging
+  console.error('Error:', err);
 
   // Sequelize validation error
   if (err.name === 'SequelizeValidationError') {
@@ -42,7 +36,8 @@ const errorHandler = (err, req, res, next) => {
 
   res.status(error.statusCode || 500).json({
     success: false,
-    error: error.message || 'Server Error'
+    error: error.message || 'Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };
 

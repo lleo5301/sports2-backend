@@ -19,13 +19,17 @@ describe('players routes basic structure', () => {
   it('router has standard HTTP methods', () => {
     const router = require('../players');
     // sanity check to ensure router is created; Express router attaches methods
+<<<<<<< HEAD
     const router = require('../players');
+=======
+>>>>>>> auto-claude/037-add-eslint-configuration-to-backend-service
     expect(typeof router.get).toBe('function');
     expect(typeof router.post).toBe('function');
     expect(typeof router.put).toBe('function');
     expect(typeof router.delete).toBe('function');
   });
 });
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -1250,3 +1254,5 @@ describe('GET /api/players/stats/summary', () => {
 =======
 });
 >>>>>>> auto-claude/027-consolidate-player-stats-summary-endpoint-into-sin
+=======
+>>>>>>> auto-claude/037-add-eslint-configuration-to-backend-service

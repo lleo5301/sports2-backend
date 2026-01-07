@@ -151,10 +151,13 @@ const startServer = async () => {
 <<<<<<< HEAD
         console.error(`\n🛑 Server startup aborted. Fix JWT_SECRET before deploying to ${nodeEnv}.\n`);
         process.exit(1); // eslint-disable-line no-process-exit
+<<<<<<< HEAD
 =======
         logger.error(`\n🛑 Server startup aborted. Fix JWT_SECRET before deploying to ${nodeEnv}.\n`);
         process.exit(1);
 >>>>>>> auto-claude/021-remove-sensitive-data-from-production-logs
+=======
+>>>>>>> auto-claude/037-add-eslint-configuration-to-backend-service
       } else {
         logger.warn('\n⚠️  WARNING: Starting server with weak JWT_SECRET (development mode only)');
         logger.warn('   DO NOT deploy to production with this configuration!\n');
@@ -170,9 +173,12 @@ const startServer = async () => {
     await sequelize.authenticate();
 <<<<<<< HEAD
     console.log('✅ Database connection established successfully.');
+<<<<<<< HEAD
 =======
     logger.info('✅ Database connection established successfully.');
 >>>>>>> auto-claude/021-remove-sensitive-data-from-production-logs
+=======
+>>>>>>> auto-claude/037-add-eslint-configuration-to-backend-service
 
     // Sync database (in development and staging)
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'staging') {
@@ -189,10 +195,13 @@ const startServer = async () => {
 <<<<<<< HEAD
     console.error('❌ Unable to start server:', error);
     process.exit(1); // eslint-disable-line no-process-exit
+<<<<<<< HEAD
 =======
     logger.error('❌ Unable to start server:', error);
     process.exit(1);
 >>>>>>> auto-claude/021-remove-sensitive-data-from-production-logs
+=======
+>>>>>>> auto-claude/037-add-eslint-configuration-to-backend-service
   }
 };
 
@@ -215,4 +224,8 @@ process.on('SIGINT', async () => {
   logger.info('🛑 SIGINT received, shutting down gracefully');
   await sequelize.close();
   process.exit(0); // eslint-disable-line no-process-exit
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> auto-claude/037-add-eslint-configuration-to-backend-service

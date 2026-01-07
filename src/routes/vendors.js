@@ -66,11 +66,10 @@
  */
 
 const express = require('express');
-const { body, query } = require('express-validator');
+const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Vendor, User } = require('../models');
 const { protect } = require('../middleware/auth');
-const { handleValidationErrors } = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -168,6 +167,29 @@ const validateVendorUpdate = [
 ];
 
 /**
+ * Helper function to handle validation errors.
+ * Extracts validation errors and returns a formatted 400 response.
+ *
+ * @description Checks for validation errors from express-validator and
+ * sends a standardized error response if any are found.
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object|null} Returns error response if validation failed, null otherwise
+ */
+const handleValidationErrors = (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      details: errors.array()
+    });
+  }
+  return null;
+};
+
+/**
  * @route   GET /api/vendors
  * @description Retrieves a paginated list of vendors for the authenticated user's team.
  * Supports filtering by vendor type, status, and search text. Search performs
@@ -222,8 +244,14 @@ const validateVendorUpdate = [
  *   "pagination": { "page": 1, "limit": 10, "total": 1, "pages": 1 }
  * }
  */
-router.get('/', validateVendorList, handleValidationErrors, async (req, res) => {
+router.get('/', validateVendorList, async (req, res) => {
   try {
+    // Validation: Check for any validation errors from middleware
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) {
+      return;
+    }
+
     // Extract query parameters with defaults
     const {
       search,
@@ -439,8 +467,14 @@ router.get('/:id', async (req, res) => {
  *   }
  * }
  */
-router.post('/', validateVendorCreate, handleValidationErrors, async (req, res) => {
+router.post('/', validateVendorCreate, async (req, res) => {
   try {
+    // Validation: Check for any validation errors from middleware
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) {
+      return;
+    }
+
     // Database: Create vendor with automatic team and creator assignment
     // Business logic: team_id and created_by are set from authenticated user
     const vendor = await Vendor.create({
@@ -526,8 +560,14 @@ router.post('/', validateVendorCreate, handleValidationErrors, async (req, res) 
  *   }
  * }
  */
-router.put('/:id', validateVendorUpdate, handleValidationErrors, async (req, res) => {
+router.put('/:id', validateVendorUpdate, async (req, res) => {
   try {
+    // Validation: Check for any validation errors from middleware
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) {
+      return;
+    }
+
     // Database: Find vendor with team scoping for multi-tenant isolation
     const vendor = await Vendor.findOne({
       where: {

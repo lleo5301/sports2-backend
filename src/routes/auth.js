@@ -21,42 +21,33 @@
 
 const express = require('express');
 const emailService = require('../services/emailService');
-const tokenBlacklistService = require('../services/tokenBlacklistService');
 const { body, validationResult } = require('express-validator');
 const { passwordValidator, newPasswordValidator } = require('../utils/passwordValidator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
-const crypto = require('crypto');
-const { User, Team, UserTeam } = require('../models');
+const { User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
 const UserPermission = require('../models/UserPermission'); // Added import for UserPermission
-const logger = require('../utils/logger');
 
 const router = express.Router();
 
 /**
- * @description Generates a signed JWT token for user authentication with revocation support.
- *              The token contains the user's ID and a unique JWT ID (jti) in its payload.
- *              The jti enables token blacklisting for logout, password changes, and security revocation.
- *              Token is signed with the secret from environment variables.
- *              Token expiration defaults to 7 days if not configured.
+ * @description Generates a signed JWT token for user authentication.
+ *              The token contains the user's ID in its payload and is signed
+ *              with the secret from environment variables. Token expiration
+ *              defaults to 7 days if not configured.
  *
  * @param {string|number} id - The user's unique identifier to encode in the token
- * @returns {string} Signed JWT token string containing user ID and unique jti claim
+ * @returns {string} Signed JWT token string
  *
  * @example
  * const token = generateToken(user.id);
  * // Returns: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
- * // Decoded payload includes: { id: 123, jti: "a1b2c3d4-e5f6-4789-a012-3456789abcde", iat: ..., exp: ... }
  */
 const generateToken = (id) => {
-  // Security: Generate unique JWT ID (jti) for token blacklist tracking
-  // This allows individual tokens to be revoked for logout, password changes, or security events
-  const jti = crypto.randomUUID();
-
   // Security: Sign token with secret key and set expiration
-  // Token payload contains user ID and jti for authentication and revocation support
-  return jwt.sign({ id, jti }, process.env.JWT_SECRET, {
+  // Token payload contains only user ID to minimize exposure if token is compromised
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
 };
@@ -191,11 +182,11 @@ router.post('/register', [
       );
     } catch (emailError) {
       // Error: Log email failure but don't fail the registration
-      logger.error('Failed to send welcome email:', emailError);
+      console.error('Failed to send welcome email:', emailError);
     }
   } catch (error) {
     // Error: Log and return generic server error to avoid exposing internal details
-    logger.error('Registration error:', error);
+    console.error('Registration error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error during registration'
@@ -314,7 +305,7 @@ router.post('/login', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    logger.error('Login error:', error);
+    console.error('Login error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error during login'
@@ -380,7 +371,7 @@ router.get('/me', protect, async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    logger.error('Get profile error:', error);
+    console.error('Get profile error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching profile'
@@ -459,7 +450,7 @@ router.put('/me', protect, [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    logger.error('Update profile error:', error);
+    console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while updating profile'
@@ -469,20 +460,12 @@ router.put('/me', protect, [
 
 /**
  * @route PUT /api/auth/change-password
- * @description Changes the authenticated user's password and revokes all existing tokens.
+ * @description Changes the authenticated user's password.
  *              Requires verification of current password before allowing change.
  *              New password is automatically hashed by User model hooks before storage.
  *
- *              Security flow:
- *              1. Verify current password
- *              2. Revoke all existing tokens for the user
- *              3. Update password in database
- *              4. Generate and return new token for continued session
- *
  *              Security measures:
  *              - Current password verification prevents unauthorized changes
- *              - All existing tokens are invalidated to prevent compromise
- *              - New token issued to keep user logged in
  *              - Minimum password length enforced
  *              - Password hashing handled by model layer
  * @access Private - Requires authentication
@@ -495,8 +478,6 @@ router.put('/me', protect, [
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
  * @returns {string} response.message - Success confirmation message
- * @returns {Object} response.data - Token data
- * @returns {string} response.data.token - New JWT authentication token
  *
  * @throws {400} Validation failed - New password too short or missing required fields
  * @throws {400} Current password is incorrect - Password verification failed
@@ -532,187 +513,20 @@ router.put('/change-password', protect, [
       });
     }
 
-    // Security: Revoke all existing tokens for this user
-    // This prevents any compromised tokens from continuing to work after password change
-    await tokenBlacklistService.revokeAllUserTokens(
-      req.user.id,
-      'password_change'
-    );
-
     // Security: Update password (automatically hashed by model beforeUpdate hook)
     user.password = new_password;
     await user.save();
 
-    // Security: Generate new token so user remains logged in after password change
-    const newToken = generateToken(user.id);
-
     res.json({
       success: true,
-      message: 'Password updated successfully. All other sessions have been logged out.',
-      data: {
-        token: newToken
-      }
+      message: 'Password updated successfully'
     });
   } catch (error) {
     // Error: Log and return generic server error
-    logger.error('Change password error:', error);
+    console.error('Change password error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while changing password'
-    });
-  }
-});
-
-/**
- * @route POST /api/auth/logout
- * @description Logs out the current user by blacklisting their JWT token.
- *              Extracts the JWT ID (jti) from the current token and adds it
- *              to the blacklist with 'logout' reason. The token remains technically
- *              valid but will be rejected by the auth middleware on subsequent requests.
- *
- *              Security flow:
- *              1. Extract token from Authorization header
- *              2. Decode to get jti and expiration
- *              3. Add to blacklist with token expiration date
- *              4. Auth middleware will reject this token on future requests
- *
- *              Frontend should call this endpoint before clearing localStorage.
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {string} response.message - Logout confirmation message
- *
- * @throws {401} Not authorized, no token - Missing Authorization header
- * @throws {401} Invalid token - Token decode failure or missing jti
- * @throws {500} Server error during logout - Blacklist operation failure
- */
-router.post('/logout', protect, async (req, res) => {
-  try {
-    // Security: Extract token from Authorization header
-    // The protect middleware already validated this token
-    const token = req.headers.authorization.split(' ')[1];
-
-    // Security: Decode token to extract jti and expiration
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Validation: Ensure token has jti (all tokens generated after enhancement should have it)
-    if (!decoded.jti) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token format'
-      });
-    }
-
-    // Security: Convert expiration timestamp to Date object for blacklist storage
-    // exp is in seconds since epoch, need to convert to milliseconds
-    const expiresAt = new Date(decoded.exp * 1000);
-
-    // Business logic: Add token to blacklist with 'logout' reason
-    await tokenBlacklistService.addToBlacklist(
-      decoded.jti,
-      req.user.id,
-      expiresAt,
-      'logout'
-    );
-
-    res.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
-  } catch (error) {
-    // Error: Log and return generic server error
-    console.error('Logout error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error during logout'
-    });
-  }
-});
-
-/**
- * @route POST /api/auth/revoke-all-sessions
- * @description Revokes all active sessions (JWT tokens) for the current user.
- *              Useful for "log out everywhere" functionality when a user suspects
- *              their account may be compromised or wants to terminate all sessions
- *              across all devices.
- *
- *              Behavior:
- *              - Creates a user-level revocation marker in the blacklist
- *              - All tokens issued before the revocation timestamp are invalidated
- *              - Optionally keeps the current session active by issuing a new token
- *
- *              Security flow:
- *              1. Call revokeAllUserTokens to create revocation marker
- *              2. If keepCurrent=true, generate and return new token
- *              3. If keepCurrent=false, all sessions including current are terminated
- *
- *              Use cases:
- *              - User suspects account compromise
- *              - User wants to log out from all devices except current one
- *              - Security team initiates forced logout
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- *
- * @param {boolean} [req.body.keepCurrent=false] - If true, keeps current session active by issuing new token
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {string} response.message - Revocation confirmation message
- * @returns {string} [response.data.token] - New JWT token (only if keepCurrent=true)
- *
- * @example
- * // Log out everywhere except current session
- * POST /api/auth/revoke-all-sessions
- * { "keepCurrent": true }
- * // Returns: { success: true, message: "...", data: { token: "new_jwt..." } }
- *
- * @example
- * // Log out everywhere including current session
- * POST /api/auth/revoke-all-sessions
- * { "keepCurrent": false }
- * // Returns: { success: true, message: "..." }
- *
- * @throws {500} Server error during revocation - Blacklist operation failure
- */
-router.post('/revoke-all-sessions', protect, async (req, res) => {
-  try {
-    // Business logic: Check if user wants to keep current session active
-    const keepCurrent = req.body.keepCurrent === true;
-
-    // Security: Revoke all tokens for this user
-    // Creates a marker that invalidates all tokens issued before now
-    await tokenBlacklistService.revokeAllUserTokens(
-      req.user.id,
-      'security_revoke'
-    );
-
-    // Business logic: If keeping current session, generate new token
-    if (keepCurrent) {
-      // Security: Generate fresh token (issued after revocation marker)
-      const newToken = generateToken(req.user.id);
-
-      res.json({
-        success: true,
-        message: 'All other sessions have been revoked. You remain logged in on this device.',
-        data: {
-          token: newToken
-        }
-      });
-    } else {
-      // Business logic: All sessions including current are terminated
-      res.json({
-        success: true,
-        message: 'All sessions have been revoked. Please log in again.'
-      });
-    }
-  } catch (error) {
-    // Error: Log and return generic server error
-    console.error('Revoke all sessions error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error during session revocation'
     });
   }
 });
@@ -795,7 +609,7 @@ router.get('/google/callback', (req, res, next) => {
     res.redirect(redirectUrl);
   } catch (error) {
     // Error: Redirect to landing page with error indicator on failure
-    logger.error('Google OAuth callback error:', error);
+    console.error('Google OAuth callback error:', error);
     const landingUrl = process.env.LANDING_URL || 'http://localhost';
     const errorUrl = `${landingUrl}/login?error=oauth_failed`;
     res.redirect(errorUrl);
@@ -872,7 +686,7 @@ router.post('/apple/callback', (req, res, next) => {
     res.redirect(redirectUrl);
   } catch (error) {
     // Error: Redirect to landing page with error indicator on failure
-    logger.error('Apple OAuth callback error:', error);
+    console.error('Apple OAuth callback error:', error);
     const landingUrl = process.env.LANDING_URL || 'http://localhost';
     const errorUrl = `${landingUrl}/login?error=oauth_failed`;
     res.redirect(errorUrl);
@@ -907,7 +721,7 @@ router.post('/apple/callback', (req, res, next) => {
  * @throws {400} Provider and access token are required - Missing required parameters
  * @throws {500} Server error during OAuth token processing - Token verification or database failure
  */
-router.post('/oauth/token', async (req, res) => {
+router.post('/oauth/token', (req, res) => {
   try {
     const { provider, access_token } = req.body;
 
@@ -932,7 +746,7 @@ router.post('/oauth/token', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    logger.error('OAuth token error:', error);
+    console.error('OAuth token error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error during OAuth token processing'
@@ -1000,7 +814,7 @@ router.get('/permissions', protect, async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return error message
-    logger.error('Error fetching user permissions:', error);
+    console.error('Error fetching user permissions:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching user permissions'

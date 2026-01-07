@@ -120,6 +120,7 @@ User.prototype.getFullName = function () {
   return `${this.first_name} ${this.last_name}`;
 };
 
+<<<<<<< HEAD
 // Instance method to check if account is currently locked
 User.prototype.isLocked = function () {
   if (!this.locked_until) {
@@ -151,4 +152,6 @@ User.prototype.lockAccount = async function (durationMinutes) {
   await this.save();
 };
 
+=======
+>>>>>>> auto-claude/037-add-eslint-configuration-to-backend-service
 module.exports = User;
