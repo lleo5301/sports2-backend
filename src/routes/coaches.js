@@ -541,4 +541,93 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+/**
+ * @route POST /api/coaches/bulk-delete
+ * @description Permanently deletes multiple coach records from the database in a single operation.
+ *              Only allows deletion of coaches belonging to the authenticated user's team.
+ *              Validates all IDs before deletion to ensure team isolation.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ * @middleware express-validator - Request body validation
+ *
+ * @param {string[]} req.body.ids - Array of coach UUIDs to delete
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {number} response.deleted - Count of successfully deleted coaches
+ * @returns {Array<Object>} [response.failures] - Array of failed deletions with ID and reason
+ *
+ * @throws {400} Validation failed - Empty array or invalid UUIDs provided
+ * @throws {500} Server error - Database operation failure
+ */
+router.post('/bulk-delete', [
+  // Validation: IDs must be an array
+  body('ids').isArray({ min: 1 }).withMessage('IDs must be a non-empty array'),
+  // Validation: Each ID must be a valid UUID
+  body('ids.*').isUUID().withMessage('Each ID must be a valid UUID')
+], async (req, res) => {
+  try {
+    // Validation: Check for validation errors from express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { ids } = req.body;
+
+    // Database: Find all coaches matching the IDs with team isolation
+    // Permission: Only fetch coaches belonging to user's team
+    const coachesToDelete = await Coach.findAll({
+      where: {
+        id: {
+          [Op.in]: ids
+        },
+        team_id: req.user.team_id
+      },
+      attributes: ['id']
+    });
+
+    // Business logic: Track which IDs were found and can be deleted
+    const foundIds = coachesToDelete.map(c => c.id);
+    const notFoundIds = ids.filter(id => !foundIds.includes(id));
+
+    // Database: Delete all found coaches that belong to user's team
+    const deletedCount = await Coach.destroy({
+      where: {
+        id: {
+          [Op.in]: foundIds
+        },
+        // Permission: Double-check team isolation on delete
+        team_id: req.user.team_id
+      }
+    });
+
+    // Business logic: Build response with deletion results
+    const response = {
+      success: true,
+      deleted: deletedCount
+    };
+
+    // Business logic: Include failure details if some IDs weren't found or didn't belong to team
+    if (notFoundIds.length > 0) {
+      response.failures = notFoundIds.map(id => ({
+        id,
+        reason: 'Coach not found or does not belong to your team'
+      }));
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error('Bulk delete coaches error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while deleting coaches'
+    });
+  }
+});
+
 module.exports = router;

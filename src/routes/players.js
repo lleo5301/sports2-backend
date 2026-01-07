@@ -737,6 +737,95 @@ router.get('/byId/:id/stats', async (req, res) => {
 });
 
 /**
+ * @route POST /api/players/bulk-delete
+ * @description Permanently deletes multiple player records from the database in a single operation.
+ *              Only allows deletion of players belonging to the authenticated user's team.
+ *              Validates all IDs before deletion to ensure team isolation.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ * @middleware express-validator - Request body validation
+ *
+ * @param {string[]} req.body.ids - Array of player UUIDs to delete
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {number} response.deleted - Count of successfully deleted players
+ * @returns {Array<Object>} [response.failures] - Array of failed deletions with ID and reason
+ *
+ * @throws {400} Validation failed - Empty array or invalid UUIDs provided
+ * @throws {500} Server error - Database operation failure
+ */
+router.post('/bulk-delete', [
+  // Validation: IDs must be an array
+  body('ids').isArray({ min: 1 }).withMessage('IDs must be a non-empty array'),
+  // Validation: Each ID must be a valid UUID
+  body('ids.*').isUUID().withMessage('Each ID must be a valid UUID')
+], async (req, res) => {
+  try {
+    // Validation: Check for validation errors from express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { ids } = req.body;
+
+    // Database: Find all players matching the IDs with team isolation
+    // Permission: Only fetch players belonging to user's team
+    const playersToDelete = await Player.findAll({
+      where: {
+        id: {
+          [Op.in]: ids
+        },
+        team_id: req.user.team_id
+      },
+      attributes: ['id']
+    });
+
+    // Business logic: Track which IDs were found and can be deleted
+    const foundIds = playersToDelete.map(p => p.id);
+    const notFoundIds = ids.filter(id => !foundIds.includes(id));
+
+    // Database: Delete all found players that belong to user's team
+    const deletedCount = await Player.destroy({
+      where: {
+        id: {
+          [Op.in]: foundIds
+        },
+        // Permission: Double-check team isolation on delete
+        team_id: req.user.team_id
+      }
+    });
+
+    // Business logic: Build response with deletion results
+    const response = {
+      success: true,
+      deleted: deletedCount
+    };
+
+    // Business logic: Include failure details if some IDs weren't found or didn't belong to team
+    if (notFoundIds.length > 0) {
+      response.failures = notFoundIds.map(id => ({
+        id,
+        reason: 'Player not found or does not belong to your team'
+      }));
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error('Bulk delete players error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while deleting players'
+    });
+  }
+});
+
+/**
  * @route GET /api/players/performance
  * @description Retrieves player performance rankings with calculated statistics and team averages.
  *              Calculates derived stats like win percentage, K/9, and a composite performance score.
