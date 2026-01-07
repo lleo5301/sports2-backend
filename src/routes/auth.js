@@ -8,19 +8,14 @@
  * - JWT tokens for stateless authentication with configurable expiration
  * - OAuth support for Google and Apple sign-in
  * - Input validation and sanitization via express-validator
- * - CSRF protection via double-submit cookie pattern
- * - Rate limiting on sensitive endpoints
- * - httpOnly cookies for token storage (XSS protection)
  *
  * @module routes/auth
  * @requires express
  * @requires express-validator
  * @requires jsonwebtoken
  * @requires passport
- * @requires express-rate-limit
  * @requires ../models
  * @requires ../middleware/auth
- * @requires ../middleware/csrf
  * @requires ../services/emailService
  */
 
@@ -426,7 +421,7 @@ router.post('/login', [
       path: '/' // Cookie available for all routes
     });
 
-    // Response: Return user data with team info and token in cookie
+    // Response: Return user data with team info (token now in httpOnly cookie)
     res.json({
       success: true,
       data: {
@@ -520,31 +515,27 @@ router.get('/me', protect, async (req, res) => {
  * @route PUT /api/auth/me
  * @description Updates the authenticated user's profile information.
  *              Only allows modification of safe fields (name, phone).
- *              Email and role changes require separate administrative processes.
+ *              Email and role changes require separate endpoints or admin intervention.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
- * @middleware express-validator - Request body validation
  *
- * @param {string} [req.body.first_name] - Updated first name (1-50 chars)
- * @param {string} [req.body.last_name] - Updated last name (1-50 chars)
- * @param {string} [req.body.phone] - Updated phone number (10-15 chars, optional)
+ * @param {string} [req.body.first_name] - User's first name (1-50 chars, trimmed)
+ * @param {string} [req.body.last_name] - User's last name (1-50 chars, trimmed)
+ * @param {string} [req.body.phone] - User's phone number (10-15 chars)
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Updated user profile data
+ * @returns {Object} response.data - Updated user data
  *
  * @throws {400} Validation failed - Invalid field values
  * @throws {500} Server error during update - Database operation failure
  */
 router.put('/me', protect, [
-  // Validation: Names are optional but must meet requirements if provided
   body('first_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('last_name').optional().trim().isLength({ min: 1, max: 50 }),
-  // Validation: Phone is optional but must be valid length if provided
   body('phone').optional().isLength({ min: 10, max: 15 })
 ], async (req, res) => {
   try {
-    // Validation: Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -554,41 +545,20 @@ router.put('/me', protect, [
       });
     }
 
-    // Extract only allowed fields for update
     const { first_name, last_name, phone } = req.body;
-    const updateData = {};
-
-    // Business logic: Only include fields that were provided
-    if (first_name !== undefined) updateData.first_name = first_name;
-    if (last_name !== undefined) updateData.last_name = last_name;
-    if (phone !== undefined) updateData.phone = phone;
-
-    // Database: Update user record with allowed fields only
     const user = await User.findByPk(req.user.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
 
-    await user.update(updateData);
+    if (first_name) user.first_name = first_name;
+    if (last_name) user.last_name = last_name;
+    if (phone) user.phone = phone;
 
-    // Response: Return updated user data (password excluded)
+    await user.save();
+
     res.json({
       success: true,
-      data: {
-        id: user.id,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        role: user.role,
-        team_id: user.team_id,
-        phone: user.phone
-      }
+      data: user
     });
   } catch (error) {
-    // Error: Log and return generic server error
     console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
@@ -600,30 +570,26 @@ router.put('/me', protect, [
 /**
  * @route POST /api/auth/change-password
  * @description Changes the authenticated user's password.
- *              Requires both current password verification and new password validation.
+ *              Requires the current password for verification before accepting the new password.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
- * @middleware express-validator - Request body validation
  *
- * @param {string} req.body.currentPassword - User's current password for verification
- * @param {string} req.body.newPassword - New password (minimum 6 characters, validated)
+ * @param {string} req.body.current_password - User's current password
+ * @param {string} req.body.new_password - User's new password (minimum 6 characters)
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
  * @returns {string} response.message - Success message
  *
- * @throws {400} Validation failed - New password doesn't meet requirements
+ * @throws {400} Validation failed - Invalid passwords
  * @throws {401} Current password is incorrect - Password verification failed
  * @throws {500} Server error during password change - Database operation failure
  */
 router.post('/change-password', protect, [
-  // Validation: Current password must be provided
-  body('currentPassword').exists().withMessage('Current password is required'),
-  // Validation: New password must meet security requirements
+  body('current_password').exists(),
   newPasswordValidator
 ], async (req, res) => {
   try {
-    // Validation: Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -633,19 +599,10 @@ router.post('/change-password', protect, [
       });
     }
 
-    const { currentPassword, newPassword } = req.body;
-
-    // Database: Fetch user by ID
+    const { current_password, new_password } = req.body;
     const user = await User.findByPk(req.user.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
 
-    // Security: Verify current password using bcrypt comparison
-    const isMatch = await user.matchPassword(currentPassword);
+    const isMatch = await user.matchPassword(current_password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -653,25 +610,14 @@ router.post('/change-password', protect, [
       });
     }
 
-    // Business logic: Prevent using the same password as current
-    const isSamePassword = await user.matchPassword(newPassword);
-    if (isSamePassword) {
-      return res.status(400).json({
-        success: false,
-        error: 'New password must be different from current password'
-      });
-    }
+    user.password = new_password;
+    await user.save();
 
-    // Database: Update password (will be hashed by User model beforeUpdate hook)
-    await user.update({ password: newPassword });
-
-    // Response: Return success message
     res.json({
       success: true,
       message: 'Password changed successfully'
     });
   } catch (error) {
-    // Error: Log and return generic server error
     console.error('Change password error:', error);
     res.status(500).json({
       success: false,
@@ -682,37 +628,90 @@ router.post('/change-password', protect, [
 
 /**
  * @route POST /api/auth/logout
- * @description Logs out the authenticated user by clearing the JWT token cookie.
+ * @description Logs out the authenticated user by clearing the JWT cookie.
+ *              This is a convenience endpoint; clients can also simply delete
+ *              the cookie on their side.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {string} response.message - Logout confirmation message
+ * @returns {string} response.message - Logout message
  */
 router.post('/logout', protect, (req, res) => {
-  try {
-    // Security: Clear JWT token cookie
-    res.clearCookie('token', {
+  // Clear the JWT token cookie
+  res.clearCookie('token');
+
+  res.json({
+    success: true,
+    message: 'Logged out successfully'
+  });
+});
+
+/**
+ * @route POST /api/auth/google
+ * @description Initiates Google OAuth authentication.
+ *              Redirects to Google's authorization endpoint.
+ * @access Public
+ */
+router.get('/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+/**
+ * @route GET /api/auth/google/callback
+ * @description Google OAuth callback endpoint.
+ *              Handles the redirect from Google after user authorization.
+ * @access Public
+ */
+router.get('/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login', session: false }),
+  (req, res) => {
+    const token = generateToken(req.user.id);
+
+    res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: getJwtCookieMaxAge(),
       path: '/'
     });
 
-    // Response: Return success message
-    res.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
-  } catch (error) {
-    // Error: Log and return generic server error
-    console.error('Logout error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error during logout'
-    });
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`);
   }
-});
+);
+
+/**
+ * @route GET /api/auth/apple
+ * @description Initiates Apple OAuth authentication.
+ *              Redirects to Apple's authorization endpoint.
+ * @access Public
+ */
+router.get('/apple',
+  passport.authenticate('apple')
+);
+
+/**
+ * @route GET /api/auth/apple/callback
+ * @description Apple OAuth callback endpoint.
+ *              Handles the redirect from Apple after user authorization.
+ * @access Public
+ */
+router.get('/apple/callback',
+  passport.authenticate('apple', { failureRedirect: '/login', session: false }),
+  (req, res) => {
+    const token = generateToken(req.user.id);
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: getJwtCookieMaxAge(),
+      path: '/'
+    });
+
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`);
+  }
+);
 
 module.exports = router;
