@@ -139,6 +139,61 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * @route GET /api/players/stats/summary
+ * @description Retrieves aggregated player statistics for the authenticated user's team.
+ *              Returns total players, active high school recruits, recent scouting reports (last 30 days),
+ *              and team batting average in a single optimized database query.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Aggregated statistics object
+ * @returns {number} response.data.total_players - Total number of players in the team
+ * @returns {number} response.data.active_recruits - Number of active high school recruits
+ * @returns {number} response.data.recent_reports - Number of scouting reports created in last 30 days
+ * @returns {number} response.data.team_avg - Team batting average (0 if no data)
+ *
+ * @throws {500} Server error - Database query failure
+ */
+router.get('/stats/summary', async (req, res) => {
+  try {
+    // Database: Execute optimized single query to fetch all 4 stats in one round-trip
+    // Uses PostgreSQL subqueries for parallel execution and minimal latency
+    const [results] = await sequelize.query(
+      `SELECT
+        (SELECT COUNT(*) FROM players WHERE team_id = :team_id) AS total_players,
+        (SELECT COUNT(*) FROM players WHERE team_id = :team_id AND school_type = 'HS' AND status = 'active') AS active_recruits,
+        (SELECT COUNT(*) FROM scouting_reports sr INNER JOIN players p ON sr.player_id = p.id WHERE p.team_id = :team_id AND sr.created_at >= NOW() - INTERVAL '30 days') AS recent_reports,
+        (SELECT COALESCE(AVG(batting_avg), 0) FROM players WHERE team_id = :team_id AND batting_avg IS NOT NULL) AS team_avg`,
+      {
+        // Permission: Team isolation via parameterized query
+        replacements: { team_id: req.user.team_id },
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+
+    // Business logic: Parse database results to ensure correct data types
+    res.json({
+      success: true,
+      data: {
+        total_players: parseInt(results[0].total_players),
+        active_recruits: parseInt(results[0].active_recruits),
+        recent_reports: parseInt(results[0].recent_reports),
+        team_avg: parseFloat(results[0].team_avg)
+      }
+    });
+  } catch (error) {
+    // Error: Log and return generic server error to avoid exposing internal details
+    console.error('Get player stats summary error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching player statistics'
+    });
+  }
+});
+
+/**
  * @route GET /api/players/byId/:id
  * @description Retrieves a single player by ID with associated team, creator, and recent scouting reports.
  *              Only returns the player if they belong to the authenticated user's team.

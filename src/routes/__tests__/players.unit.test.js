@@ -2,14 +2,19 @@
 // We mock Express req/res and Sequelize models to verify behavior
 const request = require('supertest');
 const app = require('../../server');
+<<<<<<< HEAD
 const { Player, User, Team, ScoutingReport } = require('../../models');
 const { sequelize } = require('../../config/database');
+=======
+const { sequelize, User, Team, Player, ScoutingReport } = require('../../models');
+>>>>>>> auto-claude/027-consolidate-player-stats-summary-endpoint-into-sin
 const jwt = require('jsonwebtoken');
 
 describe('players routes basic structure', () => {
   it('router has standard HTTP methods', () => {
     const router = require('../players');
     // sanity check to ensure router is created; Express router attaches methods
+    const router = require('../players');
     expect(typeof router.get).toBe('function');
     expect(typeof router.post).toBe('function');
     expect(typeof router.put).toBe('function');
@@ -17,6 +22,7 @@ describe('players routes basic structure', () => {
   });
 });
 
+<<<<<<< HEAD
 describe('Players List Sorting API', () => {
   let authToken;
   let testUser;
@@ -426,6 +432,8 @@ describe('Players List Sorting API', () => {
   });
 });
 
+=======
+>>>>>>> auto-claude/027-consolidate-player-stats-summary-endpoint-into-sin
 describe('GET /api/players/stats/summary', () => {
   let authToken;
   let testUser;
@@ -711,4 +719,8 @@ describe('GET /api/players/stats/summary', () => {
     // Average should only include non-null values: (0.300 + 0.280) / 2 = 0.29
     expect(response.body.data.team_avg).toBeCloseTo(0.29, 2);
   });
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> auto-claude/027-consolidate-player-stats-summary-endpoint-into-sin
