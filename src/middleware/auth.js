@@ -18,6 +18,7 @@
 
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const tokenBlacklistService = require('../services/tokenBlacklistService');
 
 /**
  * @description Authentication middleware that protects routes by verifying JWT tokens.
@@ -104,8 +105,44 @@ const protect = async (req, res, next) => {
     token = req.headers.authorization.split(' ')[1];
   }
 
+<<<<<<< HEAD
   // Security: Reject request if no token found in either location
   if (!token) {
+=======
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Check if token is blacklisted
+      if (decoded.jti) {
+        // Convert iat (issued at) timestamp to Date object for blacklist check
+        const tokenIssuedAt = decoded.iat ? new Date(decoded.iat * 1000) : null;
+        const isBlacklisted = await tokenBlacklistService.isBlacklisted(
+          decoded.jti,
+          decoded.id,
+          tokenIssuedAt
+        );
+
+        if (isBlacklisted) {
+          return res.status(401).json({ success: false, error: 'Token has been revoked' });
+        }
+      }
+
+      // Get user from token
+      req.user = await User.findByPk(decoded.id, {
+        attributes: { exclude: ['password'] }
+      });
+
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'User not found' });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Token verification error:', error);
+      return res.status(401).json({ success: false, error: 'Not authorized' });
+    }
+  } else {
+>>>>>>> auto-claude/020-add-jwt-token-revocation-blacklist-capability
     return res.status(401).json({ success: false, error: 'Not authorized, no token' });
   }
 

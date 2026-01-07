@@ -681,3 +681,412 @@ describe('Auth Routes - Password Validation', () => {
     });
   });
 });
+
+describe('Auth Routes - Token Revocation', () => {
+  let testTeam;
+  let testUser;
+  let authToken;
+
+  const strongPassword = 'StrongP@ss1';
+
+  beforeAll(async () => {
+    // Ensure database connection
+    await sequelize.authenticate();
+
+    // Create test team
+    testTeam = await Team.create({
+      name: 'Revocation Test Team',
+      sport: 'baseball',
+      season: 'spring',
+      year: 2024
+    });
+
+    // Create test user
+    testUser = await User.create({
+      first_name: 'Revocation',
+      last_name: 'TestUser',
+      email: 'revocation-test@example.com',
+      password: strongPassword,
+      role: 'head_coach',
+      team_id: testTeam.id
+    });
+
+    // Generate auth token
+    authToken = jwt.sign(
+      {
+        id: testUser.id,
+        iat: Math.floor(Date.now() / 1000)
+      },
+      process.env.JWT_SECRET || 'test_secret',
+      { jwtid: 'test-jti-' + Date.now() }
+    );
+  });
+
+  afterAll(async () => {
+    // Clean up test data
+    await User.destroy({
+      where: {
+        email: {
+          [sequelize.Sequelize.Op.like]: '%revocation-test%@example.com'
+        }
+      }
+    });
+    await testTeam.destroy();
+  });
+
+  describe('POST /api/auth/logout', () => {
+    it('should successfully logout and blacklist the current token', async () => {
+      // First, verify the token works
+      const preLogoutResponse = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(preLogoutResponse.body.success).toBe(true);
+
+      // Logout
+      const logoutResponse = await request(app)
+        .post('/api/auth/logout')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(logoutResponse.body.success).toBe(true);
+      expect(logoutResponse.body.message).toBe('Logged out successfully');
+
+      // Verify the token no longer works
+      const postLogoutResponse = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(401);
+
+      expect(postLogoutResponse.body.success).toBe(false);
+      expect(postLogoutResponse.body.error).toBe('Token has been revoked');
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .post('/api/auth/logout')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Not authorized, no token');
+    });
+
+    it('should handle logout with invalid token', async () => {
+      const response = await request(app)
+        .post('/api/auth/logout')
+        .set('Authorization', 'Bearer invalid_token')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/auth/revoke-all-sessions', () => {
+    let userForRevocation;
+    let token1;
+    let token2;
+
+    beforeEach(async () => {
+      // Create a fresh user for each test
+      userForRevocation = await User.create({
+        first_name: 'Revoke',
+        last_name: 'AllUser',
+        email: `revocation-test-all-${Date.now()}@example.com`,
+        password: strongPassword,
+        role: 'head_coach',
+        team_id: testTeam.id
+      });
+
+      // Generate two tokens at different times
+      token1 = jwt.sign(
+        {
+          id: userForRevocation.id,
+          iat: Math.floor(Date.now() / 1000) - 10 // 10 seconds ago
+        },
+        process.env.JWT_SECRET || 'test_secret',
+        { jwtid: 'token1-' + Date.now() }
+      );
+
+      // Small delay to ensure different timestamps
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      token2 = jwt.sign(
+        {
+          id: userForRevocation.id,
+          iat: Math.floor(Date.now() / 1000)
+        },
+        process.env.JWT_SECRET || 'test_secret',
+        { jwtid: 'token2-' + Date.now() }
+      );
+    });
+
+    afterEach(async () => {
+      if (userForRevocation) {
+        await User.destroy({ where: { id: userForRevocation.id } });
+      }
+    });
+
+    it('should revoke all sessions without keeping current session', async () => {
+      // Verify both tokens work before revocation
+      const preRevoke1 = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token1}`)
+        .expect(200);
+      expect(preRevoke1.body.success).toBe(true);
+
+      const preRevoke2 = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token2}`)
+        .expect(200);
+      expect(preRevoke2.body.success).toBe(true);
+
+      // Revoke all sessions without keeping current
+      const revokeResponse = await request(app)
+        .post('/api/auth/revoke-all-sessions')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ keepCurrent: false })
+        .expect(200);
+
+      expect(revokeResponse.body.success).toBe(true);
+      expect(revokeResponse.body.message).toContain('revoked');
+      expect(revokeResponse.body.data).toBeUndefined();
+
+      // Verify both tokens are now invalid
+      const postRevoke1 = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token1}`)
+        .expect(401);
+      expect(postRevoke1.body.error).toBe('Token has been revoked');
+
+      const postRevoke2 = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token2}`)
+        .expect(401);
+      expect(postRevoke2.body.error).toBe('Token has been revoked');
+    });
+
+    it('should revoke all sessions while keeping current session active', async () => {
+      // Verify both tokens work before revocation
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token1}`)
+        .expect(200);
+
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token2}`)
+        .expect(200);
+
+      // Revoke all sessions while keeping current
+      const revokeResponse = await request(app)
+        .post('/api/auth/revoke-all-sessions')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ keepCurrent: true })
+        .expect(200);
+
+      expect(revokeResponse.body.success).toBe(true);
+      expect(revokeResponse.body.message).toContain('revoked');
+      expect(revokeResponse.body.data).toBeDefined();
+      expect(revokeResponse.body.data.token).toBeDefined();
+
+      const newToken = revokeResponse.body.data.token;
+
+      // Verify old tokens are now invalid
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token1}`)
+        .expect(401);
+
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token2}`)
+        .expect(401);
+
+      // Verify new token works
+      const newTokenResponse = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${newToken}`)
+        .expect(200);
+
+      expect(newTokenResponse.body.success).toBe(true);
+      expect(newTokenResponse.body.data.id).toBe(userForRevocation.id);
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .post('/api/auth/revoke-all-sessions')
+        .send({ keepCurrent: false })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Not authorized, no token');
+    });
+
+    it('should default to keepCurrent=false when not specified', async () => {
+      // Revoke without specifying keepCurrent
+      const revokeResponse = await request(app)
+        .post('/api/auth/revoke-all-sessions')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({})
+        .expect(200);
+
+      expect(revokeResponse.body.success).toBe(true);
+      expect(revokeResponse.body.data).toBeUndefined();
+
+      // Verify token is revoked
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token1}`)
+        .expect(401);
+    });
+  });
+
+  describe('PUT /api/auth/change-password - Token Revocation', () => {
+    let userForPasswordChange;
+    let oldToken;
+
+    beforeEach(async () => {
+      // Create a fresh user for password change tests
+      userForPasswordChange = await User.create({
+        first_name: 'Password',
+        last_name: 'ChangeUser',
+        email: `revocation-test-password-${Date.now()}@example.com`,
+        password: strongPassword,
+        role: 'head_coach',
+        team_id: testTeam.id
+      });
+
+      // Generate token
+      oldToken = jwt.sign(
+        {
+          id: userForPasswordChange.id,
+          iat: Math.floor(Date.now() / 1000)
+        },
+        process.env.JWT_SECRET || 'test_secret',
+        { jwtid: 'old-token-' + Date.now() }
+      );
+    });
+
+    afterEach(async () => {
+      if (userForPasswordChange) {
+        await User.destroy({ where: { id: userForPasswordChange.id } });
+      }
+    });
+
+    it('should return a new token after password change', async () => {
+      const newPassword = 'NewStr0ng!Pass';
+
+      const response = await request(app)
+        .put('/api/auth/change-password')
+        .set('Authorization', `Bearer ${oldToken}`)
+        .send({
+          current_password: strongPassword,
+          new_password: newPassword
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('Password updated successfully');
+      expect(response.body.message).toContain('All other sessions have been logged out');
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.token).toBeDefined();
+      expect(response.body.data.token).not.toBe(oldToken);
+    });
+
+    it('should invalidate old token after password change', async () => {
+      const newPassword = 'NewStr0ng!Pass2';
+
+      // Verify old token works before password change
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${oldToken}`)
+        .expect(200);
+
+      // Change password
+      const changeResponse = await request(app)
+        .put('/api/auth/change-password')
+        .set('Authorization', `Bearer ${oldToken}`)
+        .send({
+          current_password: strongPassword,
+          new_password: newPassword
+        })
+        .expect(200);
+
+      const newToken = changeResponse.body.data.token;
+
+      // Verify old token is now invalid
+      const oldTokenResponse = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${oldToken}`)
+        .expect(401);
+
+      expect(oldTokenResponse.body.error).toBe('Token has been revoked');
+
+      // Verify new token works
+      const newTokenResponse = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${newToken}`)
+        .expect(200);
+
+      expect(newTokenResponse.body.success).toBe(true);
+      expect(newTokenResponse.body.data.id).toBe(userForPasswordChange.id);
+    });
+
+    it('should invalidate all existing tokens on password change', async () => {
+      const newPassword = 'NewStr0ng!Pass3';
+
+      // Generate a second token
+      const oldToken2 = jwt.sign(
+        {
+          id: userForPasswordChange.id,
+          iat: Math.floor(Date.now() / 1000)
+        },
+        process.env.JWT_SECRET || 'test_secret',
+        { jwtid: 'old-token-2-' + Date.now() }
+      );
+
+      // Verify both old tokens work
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${oldToken}`)
+        .expect(200);
+
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${oldToken2}`)
+        .expect(200);
+
+      // Change password using first token
+      const changeResponse = await request(app)
+        .put('/api/auth/change-password')
+        .set('Authorization', `Bearer ${oldToken}`)
+        .send({
+          current_password: strongPassword,
+          new_password: newPassword
+        })
+        .expect(200);
+
+      const newToken = changeResponse.body.data.token;
+
+      // Verify both old tokens are now invalid
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${oldToken}`)
+        .expect(401);
+
+      await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${oldToken2}`)
+        .expect(401);
+
+      // Verify new token works
+      const newTokenResponse = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${newToken}`)
+        .expect(200);
+
+      expect(newTokenResponse.body.success).toBe(true);
+    });
+  });
+});
