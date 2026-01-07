@@ -12,6 +12,7 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 
 const { sequelize } = require('./config/database');
+const { getHelmetConfig } = require('./config/helmet');
 const errorHandler = require('./middleware/errorHandler');
 const notFound = require('./middleware/notFound');
 const {
@@ -51,7 +52,7 @@ const PORT = process.env.PORT || 5000;
 app.set('trust proxy', 1);
 
 // Security middleware
-app.use(helmet());
+app.use(helmet(getHelmetConfig()));
 
 // Parse CORS origins - support comma-separated list
 const corsOrigins = process.env.CORS_ORIGIN
