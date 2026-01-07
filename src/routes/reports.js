@@ -47,10 +47,9 @@ const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
-const { Report, Player, Team, ScoutingReport, User } = require('../models');
+const { Report, Player, Team, ScoutingReport, User, Coach, HighSchoolCoach } = require('../models');
 const { Op } = require('sequelize');
-const notificationService = require('../services/notificationService');
-const logger = require('../utils/logger');
+const { arrayToCSV, generateFilename } = require('../utils/csvExport');
 
 const router = express.Router();
 
@@ -182,7 +181,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    logger.error('Get reports error:', error);
+    console.error('Get reports error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching reports'
@@ -226,8 +225,8 @@ router.get('/', async (req, res) => {
  */
 router.get('/scouting', async (req, res) => {
   try {
-    logger.debug('Scouting reports request - user team_id:', req.user.team_id);
-    logger.debug('Scouting reports request - query params:', req.query);
+    console.log('Scouting reports request - user team_id:', req.user.team_id);
+    console.log('Scouting reports request - query params:', req.query);
 
     // Pagination: Parse page and limit with defaults
     const page = parseInt(req.query.page) || 1;
@@ -278,7 +277,7 @@ router.get('/scouting', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    logger.error('Get scouting reports error:', error);
+    console.error('Get scouting reports error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching scouting reports'
@@ -344,7 +343,7 @@ router.get('/custom/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    logger.error('Get report error:', error);
+    console.error('Get report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching report'
@@ -403,7 +402,7 @@ router.get('/byId/:id', checkPermission('reports_view'), async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    logger.error('Get report error:', error);
+    console.error('Get report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching report'
@@ -457,7 +456,7 @@ router.post('/', checkPermission('reports_create'), async (req, res) => {
     });
   } catch (error) {
     // Error: Database creation failure (validation, constraints)
-    logger.error('Create report error:', error);
+    console.error('Create report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating report'
@@ -520,7 +519,7 @@ router.put('/byId/:id', checkPermission('reports_edit'), async (req, res) => {
     });
   } catch (error) {
     // Error: Database update failure (validation, constraints)
-    logger.error('Update report error:', error);
+    console.error('Update report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating report'
@@ -575,7 +574,7 @@ router.delete('/byId/:id', checkPermission('reports_delete'), async (req, res) =
     });
   } catch (error) {
     // Error: Database deletion failure
-    logger.error('Delete report error:', error);
+    console.error('Delete report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error deleting report'
@@ -618,12 +617,12 @@ router.delete('/byId/:id', checkPermission('reports_delete'), async (req, res) =
  */
 router.get('/player-performance', async (req, res) => {
   try {
-    logger.debug('Player performance request - user:', req.user);
-    logger.debug('Player performance request - user team_id:', req.user.team_id);
+    console.log('Player performance request - user:', req.user);
+    console.log('Player performance request - user team_id:', req.user.team_id);
 
     // Validation: User must be associated with a team
     if (!req.user.team_id) {
-      logger.error('User has no team_id:', req.user.id);
+      console.error('User has no team_id:', req.user.id);
       return res.status(400).json({
         success: false,
         message: 'User is not associated with a team'
@@ -648,13 +647,13 @@ router.get('/player-performance', async (req, res) => {
       whereClause.position = req.query.position;
     }
 
-    logger.debug('Player performance query whereClause:', whereClause);
+    console.log('Player performance query whereClause:', whereClause);
 
     // Business logic: Check if team has any players (for debugging)
     const playerCount = await Player.count({
       where: { team_id: req.user.team_id }
     });
-    logger.debug('Total players for team:', playerCount);
+    console.log('Total players for team:', playerCount);
 
     // Database: Fetch players with performance statistics
     const players = await Player.findAll({
@@ -668,7 +667,7 @@ router.get('/player-performance', async (req, res) => {
       order: [['last_name', 'ASC'], ['first_name', 'ASC']]
     });
 
-    logger.debug('Player performance query result count:', players.length);
+    console.log('Player performance query result count:', players.length);
 
     res.json({
       success: true,
@@ -680,7 +679,9 @@ router.get('/player-performance', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    logger.error('Get player performance error:', error);
+    console.error('Get player performance error:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error fetching player performance data'
@@ -782,7 +783,7 @@ router.get('/team-statistics', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    logger.error('Get team statistics error:', error);
+    console.error('Get team statistics error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team statistics'
@@ -859,7 +860,7 @@ router.get('/recruitment-pipeline', async (req, res) => {
     });
   } catch (error) {
     // Error: Unexpected error in mock data generation
-    logger.error('Get recruitment pipeline error:', error);
+    console.error('Get recruitment pipeline error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching recruitment pipeline data'
@@ -902,7 +903,7 @@ router.post('/generate-pdf', async (req, res) => {
     });
   } catch (error) {
     // Error: Unexpected error
-    logger.error('Generate PDF error:', error);
+    console.error('Generate PDF error:', error);
     res.status(500).json({
       success: false,
       message: 'Error generating PDF'
@@ -945,7 +946,7 @@ router.post('/export-excel', async (req, res) => {
     });
   } catch (error) {
     // Error: Unexpected error
-    logger.error('Export Excel error:', error);
+    console.error('Export Excel error:', error);
     res.status(500).json({
       success: false,
       message: 'Error exporting to Excel'
@@ -1027,7 +1028,7 @@ router.get('/player-performance', checkPermission('reports_view'), async (req, r
     });
   } catch (error) {
     // Error: Database query failure
-    logger.error('Error fetching player performance report:', error);
+    console.error('Error fetching player performance report:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching player performance report'
@@ -1111,7 +1112,7 @@ router.get('/team-statistics', checkPermission('reports_view'), async (req, res)
     });
   } catch (error) {
     // Error: Database query failure
-    logger.error('Error fetching team statistics report:', error);
+    console.error('Error fetching team statistics report:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team statistics report'
@@ -1149,8 +1150,8 @@ router.get('/scouting-analysis', checkPermission('reports_view'), async (req, re
   try {
     const { start_date, end_date, position } = req.query;
 
-    logger.debug('Scouting analysis request - user team_id:', req.user.team_id);
-    logger.debug('Scouting analysis request - query params:', req.query);
+    console.log('Scouting analysis request - user team_id:', req.user.team_id);
+    console.log('Scouting analysis request - query params:', req.query);
 
     // Business logic: Build where clause for date filtering
     const whereClause = {};
@@ -1170,7 +1171,7 @@ router.get('/scouting-analysis', checkPermission('reports_view'), async (req, re
       order: [['report_date', 'DESC']]
     });
 
-    logger.debug('Scouting analysis query result count:', reports.count);
+    console.log('Scouting analysis query result count:', reports.count);
 
     /**
      * @description Converts letter grades to numeric values for statistical calculations.
@@ -1222,7 +1223,9 @@ router.get('/scouting-analysis', checkPermission('reports_view'), async (req, re
     });
   } catch (error) {
     // Error: Database query failure
-    logger.error('Error fetching scouting analysis report:', error);
+    console.error('Error fetching scouting analysis report:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error fetching scouting analysis report'
@@ -1311,7 +1314,7 @@ router.get('/recruitment-pipeline', checkPermission('reports_view'), async (req,
     });
   } catch (error) {
     // Error: Database query failure
-    logger.error('Error fetching recruitment pipeline report:', error);
+    console.error('Error fetching recruitment pipeline report:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching recruitment pipeline report'
@@ -1355,7 +1358,7 @@ router.post('/generate-pdf', checkPermission('reports_create'), async (req, res)
     });
   } catch (error) {
     // Error: Unexpected error
-    logger.error('Error generating PDF report:', error);
+    console.error('Error generating PDF report:', error);
     res.status(500).json({
       success: false,
       message: 'Error generating PDF report'
@@ -1399,10 +1402,311 @@ router.post('/export-excel', checkPermission('reports_create'), async (req, res)
     });
   } catch (error) {
     // Error: Unexpected error
-    logger.error('Error exporting Excel report:', error);
+    console.error('Error exporting Excel report:', error);
     res.status(500).json({
       success: false,
       message: 'Error exporting Excel report'
+    });
+  }
+});
+
+/**
+ * @route GET /api/reports/export/players
+ * @description Exports player data to CSV format with optional filtering.
+ *              Uses the same filtering options as the /api/players endpoint.
+ *              Fetches ALL matching players (no pagination) and returns as a downloadable CSV file.
+ *              CSV includes: first_name, last_name, position, school_type, school, city, state,
+ *              email, phone, status, graduation_year.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} [req.query.school_type] - Filter by school type ('HS' for high school, 'COLL' for college)
+ * @param {string} [req.query.position] - Filter by position ('P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'OF', 'DH')
+ * @param {string} [req.query.status] - Filter by player status ('active', 'inactive', 'graduated', 'transferred')
+ * @param {string} [req.query.search] - Free-text search across name, school, city, and state fields
+ *
+ * @returns {string} CSV file - Content-Type: text/csv with Content-Disposition header
+ *
+ * @throws {500} Server error - Database query failure or CSV generation failure
+ */
+router.get('/export/players', async (req, res) => {
+  try {
+    const { school_type, position, status, search } = req.query;
+
+    // Permission: Team isolation - only export players belonging to user's team
+    const whereClause = {
+      team_id: req.user.team_id
+    };
+
+    // Business logic: Apply optional filters when provided
+    if (school_type) {
+      whereClause.school_type = school_type;
+    }
+
+    if (position) {
+      whereClause.position = position;
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    // Business logic: Free-text search using case-insensitive ILIKE across multiple fields
+    if (search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { school: { [Op.iLike]: `%${search}%` } },
+        { city: { [Op.iLike]: `%${search}%` } },
+        { state: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    // Database: Fetch ALL players matching the criteria (no pagination for export)
+    const players = await Player.findAll({
+      where: whereClause,
+      // Business logic: Select only fields needed for CSV export
+      attributes: [
+        'first_name', 'last_name', 'position', 'school_type', 'school',
+        'city', 'state', 'email', 'phone', 'status', 'graduation_year'
+      ],
+      // Business logic: Sort alphabetically by name for consistent export
+      order: [['last_name', 'ASC'], ['first_name', 'ASC']]
+    });
+
+    // Business logic: Define CSV column configuration
+    const columns = [
+      { label: 'First Name', key: 'first_name' },
+      { label: 'Last Name', key: 'last_name' },
+      { label: 'Position', key: 'position' },
+      { label: 'School Type', key: 'school_type' },
+      { label: 'School', key: 'school' },
+      { label: 'City', key: 'city' },
+      { label: 'State', key: 'state' },
+      { label: 'Email', key: 'email' },
+      { label: 'Phone', key: 'phone' },
+      { label: 'Status', key: 'status' },
+      { label: 'Graduation Year', key: 'graduation_year' }
+    ];
+
+    // Business logic: Convert player data to CSV format
+    const csv = arrayToCSV(players, columns);
+
+    // Business logic: Generate filename with current date
+    const filename = generateFilename('players');
+
+    // Response: Set headers for CSV file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    // Error: Database query failure or CSV generation failure
+    console.error('Export players CSV error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting players to CSV'
+    });
+  }
+});
+
+/**
+ * @route GET /api/reports/export/coaches
+ * @description Exports coach data to CSV format with optional filtering.
+ *              Uses the same filtering options as the /api/coaches endpoint.
+ *              Fetches ALL matching coaches (no pagination) and returns as a downloadable CSV file.
+ *              CSV includes: first_name, last_name, school_name, position, email, phone,
+ *              last_contact_date, next_contact_date, status.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} [req.query.status] - Filter by coach status ('active' | 'inactive')
+ * @param {string} [req.query.position] - Filter by position ('Head Coach' | 'Recruiting Coordinator' | 'Pitching Coach' | 'Volunteer')
+ * @param {string} [req.query.search] - Free-text search across first_name, last_name, school_name, and email fields
+ *
+ * @returns {string} CSV file - Content-Type: text/csv with Content-Disposition header
+ *
+ * @throws {500} Server error - Database query failure or CSV generation failure
+ */
+router.get('/export/coaches', async (req, res) => {
+  try {
+    const { status, position, search } = req.query;
+
+    // Permission: Team isolation - only export coaches belonging to user's team
+    const whereClause = {
+      team_id: req.user.team_id
+    };
+
+    // Business logic: Apply optional filters when provided
+    if (status) {
+      whereClause.status = status;
+    }
+
+    if (position) {
+      whereClause.position = position;
+    }
+
+    // Business logic: Free-text search using case-insensitive ILIKE across multiple fields
+    if (search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { school_name: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    // Database: Fetch ALL coaches matching the criteria (no pagination for export)
+    const coaches = await Coach.findAll({
+      where: whereClause,
+      // Business logic: Select only fields needed for CSV export
+      attributes: [
+        'first_name', 'last_name', 'school_name', 'position', 'email',
+        'phone', 'last_contact_date', 'next_contact_date', 'status'
+      ],
+      // Business logic: Sort alphabetically by name for consistent export
+      order: [['last_name', 'ASC'], ['first_name', 'ASC']]
+    });
+
+    // Business logic: Define CSV column configuration
+    const columns = [
+      { label: 'First Name', key: 'first_name' },
+      { label: 'Last Name', key: 'last_name' },
+      { label: 'School Name', key: 'school_name' },
+      { label: 'Position', key: 'position' },
+      { label: 'Email', key: 'email' },
+      { label: 'Phone', key: 'phone' },
+      { label: 'Last Contact Date', key: 'last_contact_date' },
+      { label: 'Next Contact Date', key: 'next_contact_date' },
+      { label: 'Status', key: 'status' }
+    ];
+
+    // Business logic: Convert coach data to CSV format
+    const csv = arrayToCSV(coaches, columns);
+
+    // Business logic: Generate filename with current date
+    const filename = generateFilename('coaches');
+
+    // Response: Set headers for CSV file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    // Error: Database query failure or CSV generation failure
+    console.error('Export coaches CSV error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting coaches to CSV'
+    });
+  }
+});
+
+/**
+ * @route GET /api/reports/export/high-school-coaches
+ * @description Exports high school coach data to CSV format with optional filtering.
+ *              Uses the same filtering options as the /api/high-school-coaches endpoint.
+ *              Fetches ALL matching high school coaches (no pagination) and returns as a downloadable CSV file.
+ *              CSV includes: first_name, last_name, school_name, school_district, position, city, state,
+ *              email, phone, years_coaching, school_classification, relationship_type, players_sent_count,
+ *              last_contact_date, status.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} [req.query.state] - Filter by state where school is located
+ * @param {string} [req.query.position] - Filter by position ('Head Coach' | 'Assistant Coach' | 'JV Coach' | 'Freshman Coach' | 'Pitching Coach' | 'Hitting Coach')
+ * @param {string} [req.query.relationship_type] - Filter by relationship type ('Recruiting Contact' | 'Former Player' | 'Coaching Connection' | 'Tournament Contact' | 'Camp Contact' | 'Other')
+ * @param {string} [req.query.status] - Filter by coach status ('active' | 'inactive')
+ * @param {string} [req.query.search] - Free-text search across first_name, last_name, school_name, school_district, email, and city fields
+ *
+ * @returns {string} CSV file - Content-Type: text/csv with Content-Disposition header
+ *
+ * @throws {500} Server error - Database query failure or CSV generation failure
+ */
+router.get('/export/high-school-coaches', async (req, res) => {
+  try {
+    const { state, position, relationship_type, status, search } = req.query;
+
+    // Permission: Team isolation - only export high school coaches belonging to user's team
+    const whereClause = {
+      team_id: req.user.team_id
+    };
+
+    // Business logic: Apply optional filters when provided
+    if (state) {
+      whereClause.state = state;
+    }
+
+    if (position) {
+      whereClause.position = position;
+    }
+
+    if (relationship_type) {
+      whereClause.relationship_type = relationship_type;
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    // Business logic: Free-text search using case-insensitive ILIKE across multiple fields
+    if (search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { school_name: { [Op.iLike]: `%${search}%` } },
+        { school_district: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } },
+        { city: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    // Database: Fetch ALL high school coaches matching the criteria (no pagination for export)
+    const coaches = await HighSchoolCoach.findAll({
+      where: whereClause,
+      // Business logic: Select only fields needed for CSV export
+      attributes: [
+        'first_name', 'last_name', 'school_name', 'school_district', 'position',
+        'city', 'state', 'email', 'phone', 'years_coaching', 'school_classification',
+        'relationship_type', 'players_sent_count', 'last_contact_date', 'status'
+      ],
+      // Business logic: Sort alphabetically by name for consistent export
+      order: [['last_name', 'ASC'], ['first_name', 'ASC']]
+    });
+
+    // Business logic: Define CSV column configuration
+    const columns = [
+      { label: 'First Name', key: 'first_name' },
+      { label: 'Last Name', key: 'last_name' },
+      { label: 'School Name', key: 'school_name' },
+      { label: 'School District', key: 'school_district' },
+      { label: 'Position', key: 'position' },
+      { label: 'City', key: 'city' },
+      { label: 'State', key: 'state' },
+      { label: 'Email', key: 'email' },
+      { label: 'Phone', key: 'phone' },
+      { label: 'Years Coaching', key: 'years_coaching' },
+      { label: 'Classification', key: 'school_classification' },
+      { label: 'Relationship Type', key: 'relationship_type' },
+      { label: 'Players Sent', key: 'players_sent_count' },
+      { label: 'Last Contact Date', key: 'last_contact_date' },
+      { label: 'Status', key: 'status' }
+    ];
+
+    // Business logic: Convert high school coach data to CSV format
+    const csv = arrayToCSV(coaches, columns);
+
+    // Business logic: Generate filename with current date
+    const filename = generateFilename('high-school-coaches');
+
+    // Response: Set headers for CSV file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    // Error: Database query failure or CSV generation failure
+    console.error('Export high school coaches CSV error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting high school coaches to CSV'
     });
   }
 });
@@ -1437,8 +1741,8 @@ router.post('/export-excel', checkPermission('reports_create'), async (req, res)
  */
 router.post('/scouting', async (req, res) => {
   try {
-    logger.debug('Create scouting report request:', req.body);
-    logger.debug('User team_id:', req.user.team_id);
+    console.log('Create scouting report request:', req.body);
+    console.log('User team_id:', req.user.team_id);
 
     // Validation: Ensure player exists and belongs to user's team
     // This enforces multi-tenant isolation for scouting reports
@@ -1477,15 +1781,6 @@ router.post('/scouting', async (req, res) => {
       ]
     });
 
-    // Notification: Fire-and-forget notification to team members
-    // This does not block the response - errors are handled gracefully in the service
-    notificationService.sendScoutingReportNotification(
-      createdReport,
-      createdReport.Player,
-      req.user.team_id,
-      req.user.id
-    );
-
     res.status(201).json({
       success: true,
       message: 'Scouting report created successfully',
@@ -1493,7 +1788,7 @@ router.post('/scouting', async (req, res) => {
     });
   } catch (error) {
     // Error: Database creation failure or validation error
-    logger.error('Create scouting report error:', error);
+    console.error('Create scouting report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating scouting report'
@@ -1564,7 +1859,7 @@ router.get('/scouting/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure
-    logger.error('Get scouting report error:', error);
+    console.error('Get scouting report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching scouting report'
@@ -1602,7 +1897,7 @@ router.get('/scouting/:id', async (req, res) => {
  */
 router.put('/scouting/:id', async (req, res) => {
   try {
-    logger.debug('Update scouting report request:', req.params.id, req.body);
+    console.log('Update scouting report request:', req.params.id, req.body);
 
     // Database: Find existing report with team validation via Player
     const existingReport = await ScoutingReport.findOne({
@@ -1665,7 +1960,7 @@ router.put('/scouting/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Database update failure
-    logger.error('Update scouting report error:', error);
+    console.error('Update scouting report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating scouting report'
