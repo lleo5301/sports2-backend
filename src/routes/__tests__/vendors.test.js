@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Integration tests for vendors route handlers
 // We use supertest for integration testing with the full app stack
 const request = require('supertest');
@@ -23,12 +24,21 @@ describe('vendors routes basic structure', () => {
 
 <<<<<<< HEAD
 describe('Vendors API - Complete CRUD and Sorting Tests', () => {
+=======
+const request = require('supertest');
+const app = require('../../server');
+const { sequelize, User, Team, Vendor } = require('../../models');
+const jwt = require('jsonwebtoken');
+
+describe('Vendors API - Complete CRUD Tests', () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
   let authToken;
   let testUser;
   let testTeam;
   let otherTeam;
   let otherUser;
   let otherAuthToken;
+<<<<<<< HEAD
   let testVendors = [];
 
   beforeAll(async () => {
@@ -101,10 +111,49 @@ describe('Vendors List Sorting API', () => {
       email: 'other@example.com',
       password: 'password123',
       role: 'coach',
+=======
+
+  beforeAll(async () => {
+    // Ensure database connection
+    await sequelize.authenticate();
+
+    // Create test teams
+    testTeam = await Team.create({
+      name: 'Vendors Test Team',
+      sport: 'baseball',
+      season: 'spring',
+      year: 2024
+    });
+
+    otherTeam = await Team.create({
+      name: 'Other Vendors Test Team',
+      sport: 'baseball',
+      season: 'spring',
+      year: 2024
+    });
+
+    // Create test users
+    testUser = await User.create({
+      first_name: 'Vendors',
+      last_name: 'TestUser',
+      email: 'vendors-test@example.com',
+      password: 'TestP@ss1',
+      role: 'head_coach',
+      team_id: testTeam.id
+    });
+
+    otherUser = await User.create({
+      first_name: 'Other',
+      last_name: 'User',
+      email: 'other-vendors-test@example.com',
+      password: 'TestP@ss1',
+      role: 'head_coach',
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       team_id: otherTeam.id
     });
 
     // Generate auth tokens
+<<<<<<< HEAD
 =======
     // Generate auth token
 >>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
@@ -225,12 +274,31 @@ describe('Vendors List Sorting API', () => {
   });
 
 <<<<<<< HEAD
+=======
+    authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
+    otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
+  });
+
+  afterAll(async () => {
+    // Clean up test data
+    await Vendor.destroy({ where: {}, force: true });
+    await testUser.destroy();
+    await otherUser.destroy();
+    await testTeam.destroy();
+    await otherTeam.destroy();
+  });
+
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
   beforeEach(async () => {
     // Clean up vendors before each test
     await Vendor.destroy({ where: {}, force: true });
   });
 
+<<<<<<< HEAD
   describe('GET /api/vendors - Authentication', () => {
+=======
+  describe('GET /api/vendors', () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should require authentication', async () => {
       const response = await request(app)
         .get('/api/vendors')
@@ -238,9 +306,13 @@ describe('Vendors List Sorting API', () => {
 
       expect(response.body.success).toBe(false);
     });
+<<<<<<< HEAD
   });
 
   describe('GET /api/vendors - Basic Queries', () => {
+=======
+
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should return empty array when no vendors exist', async () => {
       const response = await request(app)
         .get('/api/vendors')
@@ -308,9 +380,13 @@ describe('Vendors List Sorting API', () => {
       expect(response.body.data.length).toBe(1);
       expect(response.body.data[0].company_name).toBe('My Team Vendor');
     });
+<<<<<<< HEAD
   });
 
   describe('GET /api/vendors - Filtering by vendor_type', () => {
+=======
+
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should filter vendors by vendor_type', async () => {
       // Create vendors with different types
       await Vendor.create({
@@ -339,6 +415,7 @@ describe('Vendors List Sorting API', () => {
       expect(response.body.data[0].vendor_type).toBe('Equipment');
     });
 
+<<<<<<< HEAD
     it('should reject invalid vendor_type filter', async () => {
       const response = await request(app)
         .get('/api/vendors?vendor_type=InvalidType')
@@ -351,6 +428,8 @@ describe('Vendors List Sorting API', () => {
   });
 
   describe('GET /api/vendors - Filtering by status', () => {
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should filter vendors by status', async () => {
       // Create vendors with different statuses
       await Vendor.create({
@@ -407,6 +486,7 @@ describe('Vendors List Sorting API', () => {
       expect(response.body.data[0].status).toBe('active');
     });
 
+<<<<<<< HEAD
     it('should reject invalid status filter', async () => {
       const response = await request(app)
         .get('/api/vendors?status=invalid-status')
@@ -419,6 +499,8 @@ describe('Vendors List Sorting API', () => {
   });
 
   describe('GET /api/vendors - Search Functionality', () => {
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should search vendors by company name', async () => {
       // Create vendors
       await Vendor.create({
@@ -476,9 +558,13 @@ describe('Vendors List Sorting API', () => {
       expect(response.body.data.length).toBe(1);
       expect(response.body.data[0].contact_person).toBe('John Smith');
     });
+<<<<<<< HEAD
   });
 
   describe('GET /api/vendors - Pagination', () => {
+=======
+
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should support pagination', async () => {
       // Create multiple vendors
       for (let i = 1; i <= 5; i++) {
@@ -503,9 +589,13 @@ describe('Vendors List Sorting API', () => {
       expect(response.body.pagination.total).toBe(5);
       expect(response.body.pagination.pages).toBe(2);
     });
+<<<<<<< HEAD
   });
 
   describe('GET /api/vendors - Creator Information', () => {
+=======
+
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should include creator information', async () => {
       await Vendor.create({
         company_name: 'Test Vendor',
@@ -522,6 +612,7 @@ describe('Vendors List Sorting API', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data[0].Creator).toBeDefined();
+<<<<<<< HEAD
       expect(response.body.data[0].Creator.first_name).toBe('Test');
       expect(response.body.data[0].Creator.last_name).toBe('Coach');
     });
@@ -529,6 +620,13 @@ describe('Vendors List Sorting API', () => {
 
   describe('GET /api/vendors - Default Sorting', () => {
     it('should sort by created_at DESC by default', async () => {
+=======
+      expect(response.body.data[0].Creator.first_name).toBe('Vendors');
+      expect(response.body.data[0].Creator.last_name).toBe('TestUser');
+    });
+
+    it('should sort vendors by created_at descending', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       // Create vendors at different times
       const vendor1 = await Vendor.create({
         company_name: 'First Vendor',
@@ -549,16 +647,20 @@ describe('Vendors List Sorting API', () => {
         created_by: testUser.id
       });
 
+<<<<<<< HEAD
 =======
   describe('GET /api/vendors - Default Sorting', () => {
     it('should sort by created_at DESC by default', async () => {
 >>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const response = await request(app)
         .get('/api/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
+<<<<<<< HEAD
 <<<<<<< HEAD
       expect(response.body.data[0].company_name).toBe('Second Vendor');
       expect(response.body.data[1].company_name).toBe('First Vendor');
@@ -1340,6 +1442,30 @@ describe('Vendors List Sorting API', () => {
       const statuses = response.body.data.map(v => v.status);
 <<<<<<< HEAD
       expect(statuses).toEqual(['pending', 'inactive', 'expired', 'active']);
+=======
+      expect(response.body.data[0].company_name).toBe('Second Vendor');
+      expect(response.body.data[1].company_name).toBe('First Vendor');
+    });
+
+    it('should reject invalid vendor_type filter', async () => {
+      const response = await request(app)
+        .get('/api/vendors?vendor_type=InvalidType')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should reject invalid status filter', async () => {
+      const response = await request(app)
+        .get('/api/vendors?status=invalid-status')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     });
   });
 
@@ -1347,6 +1473,7 @@ describe('Vendors List Sorting API', () => {
     it('should require authentication', async () => {
       const response = await request(app)
         .get('/api/vendors/1')
+<<<<<<< HEAD
 =======
       // Reverse alphabetically
       expect(statuses[0]).toBe('pending');
@@ -1533,12 +1660,17 @@ describe('Vendors List Sorting API', () => {
       const response = await request(app)
         .get('/api/vendors')
 >>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         .expect(401);
 
       expect(response.body.success).toBe(false);
     });
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should return vendor by id', async () => {
       const vendor = await Vendor.create({
         company_name: 'Test Vendor',
@@ -1583,8 +1715,13 @@ describe('Vendors List Sorting API', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.Creator).toBeDefined();
+<<<<<<< HEAD
       expect(response.body.data.Creator.first_name).toBe('Test');
       expect(response.body.data.Creator.last_name).toBe('Coach');
+=======
+      expect(response.body.data.Creator.first_name).toBe('Vendors');
+      expect(response.body.data.Creator.last_name).toBe('TestUser');
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     });
 
     it('should return 404 for non-existent vendor', async () => {
@@ -1601,6 +1738,7 @@ describe('Vendors List Sorting API', () => {
       const vendor = await Vendor.create({
         company_name: 'Other Team Vendor',
         vendor_type: 'Equipment',
+<<<<<<< HEAD
 =======
     it('should only return vendors for user\'s team', async () => {
       // Create another team and vendor
@@ -1631,6 +1769,8 @@ describe('Vendors List Sorting API', () => {
         vendor_type: 'Other',
         contract_value: 10000.00,
 >>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         status: 'active',
         team_id: otherTeam.id,
         created_by: otherUser.id
@@ -1638,6 +1778,9 @@ describe('Vendors List Sorting API', () => {
 
       const response = await request(app)
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         .get(`/api/vendors/${vendor.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
@@ -1673,9 +1816,14 @@ describe('Vendors List Sorting API', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.company_name).toBe('New Vendor');
       expect(response.body.data.vendor_type).toBe('Equipment');
+<<<<<<< HEAD
       expect(response.body.data.status).toBe('active');
       expect(response.body.data.created_by).toBe(testUser.id);
       expect(response.body.data.team_id).toBe(testTeam.id);
+=======
+      expect(response.body.data.team_id).toBe(testTeam.id);
+      expect(response.body.data.created_by).toBe(testUser.id);
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     });
 
     it('should create vendor with all fields', async () => {
@@ -1683,6 +1831,7 @@ describe('Vendors List Sorting API', () => {
         .post('/api/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
+<<<<<<< HEAD
           company_name: 'Full Vendor',
           contact_person: 'John Doe',
           email: 'john@example.com',
@@ -1696,10 +1845,25 @@ describe('Vendors List Sorting API', () => {
           last_contact_date: '2024-03-15',
           next_contact_date: '2024-06-15',
           notes: 'Test vendor'
+=======
+          company_name: 'Complete Vendor',
+          contact_person: 'Jane Doe',
+          email: 'jane@vendor.com',
+          phone: '555-9876',
+          website: 'https://vendor.com',
+          vendor_type: 'Apparel',
+          contract_value: 25000,
+          contract_start_date: '2024-01-01',
+          contract_end_date: '2024-12-31',
+          services_provided: 'Uniforms and team apparel',
+          last_contact_date: '2024-01-15',
+          next_contact_date: '2024-02-15'
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         })
         .expect(201);
 
       expect(response.body.success).toBe(true);
+<<<<<<< HEAD
       expect(response.body.data.company_name).toBe('Full Vendor');
       expect(response.body.data.contact_person).toBe('John Doe');
       expect(response.body.data.email).toBe('john@example.com');
@@ -1711,6 +1875,15 @@ describe('Vendors List Sorting API', () => {
     });
 
     it('should reject missing company_name', async () => {
+=======
+      expect(response.body.data.company_name).toBe('Complete Vendor');
+      expect(response.body.data.contact_person).toBe('Jane Doe');
+      expect(response.body.data.email).toBe('jane@vendor.com');
+      expect(response.body.data.vendor_type).toBe('Apparel');
+    });
+
+    it('should validate required company_name', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const response = await request(app)
         .post('/api/vendors')
         .set('Authorization', `Bearer ${authToken}`)
@@ -1720,9 +1893,16 @@ describe('Vendors List Sorting API', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
+<<<<<<< HEAD
     });
 
     it('should reject missing vendor_type', async () => {
+=======
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate required vendor_type', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const response = await request(app)
         .post('/api/vendors')
         .set('Authorization', `Bearer ${authToken}`)
@@ -1732,9 +1912,16 @@ describe('Vendors List Sorting API', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
+<<<<<<< HEAD
     });
 
     it('should reject invalid vendor_type', async () => {
+=======
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate vendor_type enum values', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const response = await request(app)
         .post('/api/vendors')
         .set('Authorization', `Bearer ${authToken}`)
@@ -1745,6 +1932,7 @@ describe('Vendors List Sorting API', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
+<<<<<<< HEAD
     });
 
     it('should reject invalid status', async () => {
@@ -1762,6 +1950,30 @@ describe('Vendors List Sorting API', () => {
     });
 
     it('should reject invalid email format', async () => {
+=======
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should accept all valid vendor_type values', async () => {
+      const vendorTypes = ['Equipment', 'Apparel', 'Technology', 'Food Service', 'Transportation', 'Medical', 'Facilities', 'Other'];
+
+      for (const type of vendorTypes) {
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: `${type} Vendor`,
+            vendor_type: type
+          })
+          .expect(201);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.vendor_type).toBe(type);
+      }
+    });
+
+    it('should validate email format', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const response = await request(app)
         .post('/api/vendors')
         .set('Authorization', `Bearer ${authToken}`)
@@ -1773,36 +1985,165 @@ describe('Vendors List Sorting API', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
+<<<<<<< HEAD
     });
 
     it('should reject invalid website URL format', async () => {
+=======
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate website URL format', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const response = await request(app)
         .post('/api/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           company_name: 'Test Vendor',
           vendor_type: 'Equipment',
+<<<<<<< HEAD
           website: 'invalid-url'
+=======
+          website: 'not-a-url'
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         })
         .expect(400);
 
       expect(response.body.success).toBe(false);
+<<<<<<< HEAD
     });
 
     it('should return vendor with creator information', async () => {
+=======
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate company_name max length (200 chars)', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const response = await request(app)
         .post('/api/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
+<<<<<<< HEAD
           company_name: 'Creator Test Vendor',
+=======
+          company_name: 'a'.repeat(201),
+          vendor_type: 'Equipment'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate contact_person max length (100 chars)', async () => {
+      const response = await request(app)
+        .post('/api/vendors')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          company_name: 'Test Vendor',
+          vendor_type: 'Equipment',
+          contact_person: 'a'.repeat(101)
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate phone max length (20 chars)', async () => {
+      const response = await request(app)
+        .post('/api/vendors')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          company_name: 'Test Vendor',
+          vendor_type: 'Equipment',
+          phone: '1'.repeat(21)
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate contract_start_date ISO8601 format', async () => {
+      const response = await request(app)
+        .post('/api/vendors')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          company_name: 'Test Vendor',
+          vendor_type: 'Equipment',
+          contract_start_date: 'invalid-date'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate contract_end_date ISO8601 format', async () => {
+      const response = await request(app)
+        .post('/api/vendors')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          company_name: 'Test Vendor',
+          vendor_type: 'Equipment',
+          contract_end_date: 'not-a-date'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should auto-assign team_id from authenticated user', async () => {
+      const response = await request(app)
+        .post('/api/vendors')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          company_name: 'Test Vendor',
+          vendor_type: 'Equipment'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.team_id).toBe(testTeam.id);
+    });
+
+    it('should auto-assign created_by from authenticated user', async () => {
+      const response = await request(app)
+        .post('/api/vendors')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          company_name: 'Test Vendor',
+          vendor_type: 'Equipment'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.created_by).toBe(testUser.id);
+    });
+
+    it('should include creator information in response', async () => {
+      const response = await request(app)
+        .post('/api/vendors')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          company_name: 'Test Vendor',
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
           vendor_type: 'Equipment'
         })
         .expect(201);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.Creator).toBeDefined();
+<<<<<<< HEAD
       expect(response.body.data.Creator.first_name).toBe('Test');
       expect(response.body.data.Creator.last_name).toBe('Coach');
+=======
+      expect(response.body.data.Creator.first_name).toBe('Vendors');
+      expect(response.body.data.Creator.last_name).toBe('TestUser');
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     });
   });
 
@@ -1810,15 +2151,23 @@ describe('Vendors List Sorting API', () => {
     it('should require authentication', async () => {
       const response = await request(app)
         .put('/api/vendors/1')
+<<<<<<< HEAD
         .send({
           company_name: 'Updated Vendor'
         })
+=======
+        .send({ company_name: 'Updated' })
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         .expect(401);
 
       expect(response.body.success).toBe(false);
     });
 
+<<<<<<< HEAD
     it('should update vendor with partial data', async () => {
+=======
+    it('should update vendor with partial fields', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const vendor = await Vendor.create({
         company_name: 'Original Vendor',
         vendor_type: 'Equipment',
@@ -1838,15 +2187,24 @@ describe('Vendors List Sorting API', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.company_name).toBe('Updated Vendor');
       expect(response.body.data.vendor_type).toBe('Equipment');
+<<<<<<< HEAD
       expect(response.body.data.status).toBe('active');
     });
 
     it('should update multiple fields', async () => {
+=======
+    });
+
+    it('should update vendor with all fields', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const vendor = await Vendor.create({
         company_name: 'Original Vendor',
         vendor_type: 'Equipment',
         status: 'active',
+<<<<<<< HEAD
         contact_person: 'John Doe',
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         team_id: testTeam.id,
         created_by: testUser.id
       });
@@ -1856,17 +2214,140 @@ describe('Vendors List Sorting API', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           company_name: 'Updated Vendor',
+<<<<<<< HEAD
           vendor_type: 'Apparel',
           status: 'inactive',
           contact_person: 'Jane Smith'
+=======
+          contact_person: 'New Contact',
+          email: 'new@vendor.com',
+          phone: '555-4321',
+          website: 'https://newvendor.com',
+          vendor_type: 'Apparel',
+          status: 'inactive',
+          contract_value: 15000,
+          contract_start_date: '2024-02-01',
+          contract_end_date: '2025-01-31'
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         })
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.company_name).toBe('Updated Vendor');
+<<<<<<< HEAD
       expect(response.body.data.vendor_type).toBe('Apparel');
       expect(response.body.data.status).toBe('inactive');
       expect(response.body.data.contact_person).toBe('Jane Smith');
+=======
+      expect(response.body.data.contact_person).toBe('New Contact');
+      expect(response.body.data.vendor_type).toBe('Apparel');
+      expect(response.body.data.status).toBe('inactive');
+    });
+
+    it('should update vendor status', async () => {
+      const vendor = await Vendor.create({
+        company_name: 'Test Vendor',
+        vendor_type: 'Equipment',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/vendors/${vendor.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          status: 'expired'
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.status).toBe('expired');
+    });
+
+    it('should validate status enum values', async () => {
+      const vendor = await Vendor.create({
+        company_name: 'Test Vendor',
+        vendor_type: 'Equipment',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/vendors/${vendor.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          status: 'invalid-status'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate vendor_type enum on update', async () => {
+      const vendor = await Vendor.create({
+        company_name: 'Test Vendor',
+        vendor_type: 'Equipment',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/vendors/${vendor.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          vendor_type: 'InvalidType'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate email format on update', async () => {
+      const vendor = await Vendor.create({
+        company_name: 'Test Vendor',
+        vendor_type: 'Equipment',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/vendors/${vendor.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          email: 'invalid-email'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate website URL format on update', async () => {
+      const vendor = await Vendor.create({
+        company_name: 'Test Vendor',
+        vendor_type: 'Equipment',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/vendors/${vendor.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          website: 'not-a-url'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     });
 
     it('should return 404 for non-existent vendor', async () => {
@@ -1874,7 +2355,11 @@ describe('Vendors List Sorting API', () => {
         .put('/api/vendors/99999')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
+<<<<<<< HEAD
           company_name: 'Updated Vendor'
+=======
+          company_name: 'Updated'
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         })
         .expect(404);
 
@@ -1882,7 +2367,11 @@ describe('Vendors List Sorting API', () => {
       expect(response.body.error).toBe('Vendor not found');
     });
 
+<<<<<<< HEAD
     it('should enforce team isolation on update', async () => {
+=======
+    it('should enforce team isolation (cannot update other team vendor)', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const vendor = await Vendor.create({
         company_name: 'Other Team Vendor',
         vendor_type: 'Equipment',
@@ -1901,9 +2390,41 @@ describe('Vendors List Sorting API', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe('Vendor not found');
+<<<<<<< HEAD
     });
 
     it('should reject invalid vendor_type on update', async () => {
+=======
+
+      // Verify vendor was not updated
+      const unchangedVendor = await Vendor.findByPk(vendor.id);
+      expect(unchangedVendor.company_name).toBe('Other Team Vendor');
+    });
+
+    it('should verify database update', async () => {
+      const vendor = await Vendor.create({
+        company_name: 'Original Vendor',
+        vendor_type: 'Equipment',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      await request(app)
+        .put(`/api/vendors/${vendor.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          company_name: 'Database Updated Vendor'
+        })
+        .expect(200);
+
+      // Verify in database
+      const updatedVendor = await Vendor.findByPk(vendor.id);
+      expect(updatedVendor.company_name).toBe('Database Updated Vendor');
+    });
+
+    it('should include creator information in response', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const vendor = await Vendor.create({
         company_name: 'Test Vendor',
         vendor_type: 'Equipment',
@@ -1916,6 +2437,7 @@ describe('Vendors List Sorting API', () => {
         .put(`/api/vendors/${vendor.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
+<<<<<<< HEAD
           vendor_type: 'InvalidType'
         })
         .expect(400);
@@ -1941,6 +2463,15 @@ describe('Vendors List Sorting API', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
+=======
+          company_name: 'Updated Vendor'
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.Creator).toBeDefined();
+      expect(response.body.data.Creator.first_name).toBe('Vendors');
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     });
   });
 
@@ -1955,7 +2486,11 @@ describe('Vendors List Sorting API', () => {
 
     it('should delete vendor', async () => {
       const vendor = await Vendor.create({
+<<<<<<< HEAD
         company_name: 'Vendor to Delete',
+=======
+        company_name: 'To Delete Vendor',
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         vendor_type: 'Equipment',
         status: 'active',
         team_id: testTeam.id,
@@ -1964,13 +2499,17 @@ describe('Vendors List Sorting API', () => {
 
       const response = await request(app)
         .delete(`/api/vendors/${vendor.id}`)
+<<<<<<< HEAD
 =======
         .get('/api/vendors')
 >>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
+<<<<<<< HEAD
 <<<<<<< HEAD
 
       // Verify deletion
@@ -1980,6 +2519,28 @@ describe('Vendors List Sorting API', () => {
         .expect(404);
 
       expect(getResponse.body.success).toBe(false);
+=======
+      expect(response.body.message).toBe('Vendor deleted successfully');
+    });
+
+    it('should verify vendor is deleted from database (hard delete)', async () => {
+      const vendor = await Vendor.create({
+        company_name: 'To Delete Vendor',
+        vendor_type: 'Equipment',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      await request(app)
+        .delete(`/api/vendors/${vendor.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      // Verify vendor is gone from database
+      const deletedVendor = await Vendor.findByPk(vendor.id);
+      expect(deletedVendor).toBeNull();
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     });
 
     it('should return 404 for non-existent vendor', async () => {
@@ -1992,7 +2553,11 @@ describe('Vendors List Sorting API', () => {
       expect(response.body.error).toBe('Vendor not found');
     });
 
+<<<<<<< HEAD
     it('should enforce team isolation on delete', async () => {
+=======
+    it('should enforce team isolation (cannot delete other team vendor)', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const vendor = await Vendor.create({
         company_name: 'Other Team Vendor',
         vendor_type: 'Equipment',
@@ -2008,6 +2573,7 @@ describe('Vendors List Sorting API', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe('Vendor not found');
+<<<<<<< HEAD
     });
   });
 });
@@ -2021,3 +2587,13 @@ describe('Vendors List Sorting API', () => {
   });
 });
 >>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
+=======
+
+      // Verify vendor still exists
+      const unchangedVendor = await Vendor.findByPk(vendor.id);
+      expect(unchangedVendor).not.toBeNull();
+      expect(unchangedVendor.company_name).toBe('Other Team Vendor');
+    });
+  });
+});
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage

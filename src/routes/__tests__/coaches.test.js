@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Integration tests for coaches route handlers
 // We use supertest for integration testing with the full app stack
 const request = require('supertest');
@@ -22,6 +23,13 @@ describe('coaches routes basic structure', () => {
 })
 
 <<<<<<< HEAD
+=======
+const request = require('supertest');
+const app = require('../../server');
+const { sequelize, User, Team, Coach } = require('../../models');
+const jwt = require('jsonwebtoken');
+
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
 describe('Coaches API - Complete CRUD Tests', () => {
   let authToken;
   let testUser;
@@ -32,10 +40,13 @@ describe('Coaches API - Complete CRUD Tests', () => {
 
   beforeAll(async () => {
     // Ensure database connection
+<<<<<<< HEAD
     if (process.env.NODE_ENV !== 'test') {
       process.env.NODE_ENV = 'test';
     }
     
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     await sequelize.authenticate();
 
     // Create test teams
@@ -73,6 +84,7 @@ describe('Coaches API - Complete CRUD Tests', () => {
     });
 
     // Generate auth tokens
+<<<<<<< HEAD
 =======
 describe('Coaches List Sorting API', () => {
   let authToken;
@@ -134,6 +146,10 @@ describe('Coaches List Sorting API', () => {
       process.env.JWT_SECRET || 'test-secret',
       { expiresIn: '1h' }
     );
+=======
+    authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
+    otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
   });
 
   afterAll(async () => {
@@ -143,7 +159,10 @@ describe('Coaches List Sorting API', () => {
     await otherUser.destroy();
     await testTeam.destroy();
     await otherTeam.destroy();
+<<<<<<< HEAD
     await sequelize.close();
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
   });
 
   beforeEach(async () => {
@@ -151,7 +170,11 @@ describe('Coaches List Sorting API', () => {
     await Coach.destroy({ where: {}, force: true });
   });
 
+<<<<<<< HEAD
   describe('GET /api/coaches - Authentication', () => {
+=======
+  describe('GET /api/coaches', () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should require authentication', async () => {
       const response = await request(app)
         .get('/api/coaches')
@@ -159,6 +182,7 @@ describe('Coaches List Sorting API', () => {
 
       expect(response.body.success).toBe(false);
     });
+<<<<<<< HEAD
   });
 
   describe('GET /api/coaches - Basic Retrieval', () => {
@@ -250,6 +274,10 @@ describe('Coaches List Sorting API', () => {
   describe('GET /api/coaches - Default Sorting', () => {
     it('should sort by created_at DESC by default', async () => {
 >>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
+=======
+
+    it('should return empty array when no coaches exist', async () => {
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const response = await request(app)
         .get('/api/coaches')
         .set('Authorization', `Bearer ${authToken}`)
@@ -257,6 +285,9 @@ describe('Coaches List Sorting API', () => {
 
       expect(response.body.success).toBe(true);
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
       expect(Array.isArray(response.body.data)).toBe(true);
       expect(response.body.data.length).toBe(0);
     });
@@ -297,9 +328,13 @@ describe('Coaches List Sorting API', () => {
       expect(response.body.pagination).toBeDefined();
       expect(response.body.pagination.total).toBe(2);
     });
+<<<<<<< HEAD
   });
 
   describe('GET /api/coaches - Team Isolation', () => {
+=======
+
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should only return coaches for user team (team isolation)', async () => {
       // Create coaches for different teams
       await Coach.create({
@@ -331,9 +366,13 @@ describe('Coaches List Sorting API', () => {
       expect(response.body.data.length).toBe(1);
       expect(response.body.data[0].first_name).toBe('My');
     });
+<<<<<<< HEAD
   });
 
   describe('GET /api/coaches - Status Filtering', () => {
+=======
+
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should filter coaches by status (active)', async () => {
       // Create coaches with different statuses
       await Coach.create({
@@ -430,6 +469,7 @@ describe('Coaches List Sorting API', () => {
       expect(response.body.data[0].status).toBe('active');
     });
 
+<<<<<<< HEAD
     it('should sort by status ASC', async () => {
       // Create test coaches
       await Coach.create({
@@ -524,6 +564,8 @@ describe('Coaches List Sorting API', () => {
   });
 
   describe('GET /api/coaches - Position Filtering', () => {
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should filter coaches by position (Head Coach)', async () => {
       // Create coaches with different positions
       await Coach.create({
@@ -652,6 +694,7 @@ describe('Coaches List Sorting API', () => {
       expect(response.body.data[0].position).toBe('Volunteer');
     });
 
+<<<<<<< HEAD
     it('should sort by position ASC', async () => {
       // Create test coaches
       await Coach.create({
@@ -762,6 +805,8 @@ describe('Coaches List Sorting API', () => {
   });
 
   describe('GET /api/coaches - Search Functionality', () => {
+=======
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should search coaches by first name', async () => {
       // Create test coaches
       await Coach.create({
@@ -889,12 +934,17 @@ describe('Coaches List Sorting API', () => {
       });
 
       const response = await request(app)
+<<<<<<< HEAD
         .get('/api/coaches?search=jsmith')
+=======
+        .get('/api/coaches?search=mjohnson')
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.length).toBe(1);
+<<<<<<< HEAD
       expect(response.body.data[0].email).toBe('jsmith@lincoln.edu');
 =======
       expect(response.body.data.length).toBeGreaterThan(0);
@@ -993,10 +1043,32 @@ describe('Coaches List Sorting API', () => {
     it('should sort by first_name ASC', async () => {
       const response = await request(app)
         .get('/api/coaches?orderBy=first_name&sortDirection=ASC&status=')
+=======
+      expect(response.body.data[0].email).toBe('mjohnson@central.edu');
+    });
+
+    it('should support pagination with page and limit', async () => {
+      // Create multiple coaches
+      for (let i = 1; i <= 25; i++) {
+        await Coach.create({
+          first_name: `Coach`,
+          last_name: `Number${i}`,
+          school_name: `School ${i}`,
+          position: 'Head Coach',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
+      }
+
+      const response = await request(app)
+        .get('/api/coaches?page=2&limit=10')
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
+<<<<<<< HEAD
       const names = response.body.data.map(c => c.first_name);
       expect(names).toEqual(['Alice', 'Bob', 'Charlie', 'Diana', 'Edward']);
     });
@@ -1815,15 +1887,37 @@ describe('Coaches List Sorting API', () => {
         next_contact_date: new Date('2024-02-01'),
         status: 'active',
         team_id: otherTeam.id,
+=======
+      expect(response.body.data.length).toBe(10);
+      expect(response.body.pagination.page).toBe(2);
+      expect(response.body.pagination.limit).toBe(10);
+      expect(response.body.pagination.total).toBe(25);
+      expect(response.body.pagination.pages).toBe(3);
+    });
+
+    it('should include Creator information in response', async () => {
+      await Coach.create({
+        first_name: 'Test',
+        last_name: 'Coach',
+        school_name: 'Test School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         created_by: testUser.id
       });
 
       const response = await request(app)
+<<<<<<< HEAD
         .get('/api/coaches?orderBy=first_name&sortDirection=ASC&status=')
+=======
+        .get('/api/coaches')
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
+<<<<<<< HEAD
       expect(response.body.data).toHaveLength(5); // Only original 5 coaches
       const names = response.body.data.map(c => c.first_name);
       expect(names).toEqual(['Alice', 'Bob', 'Charlie', 'Diana', 'Edward']);
@@ -1832,3 +1926,883 @@ describe('Coaches List Sorting API', () => {
   });
 });
 >>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
+=======
+      expect(response.body.data[0].Creator).toBeDefined();
+      expect(response.body.data[0].Creator.id).toBe(testUser.id);
+      expect(response.body.data[0].Creator.first_name).toBe('Coaches');
+    });
+
+    it('should sort coaches by created_at DESC (newest first)', async () => {
+      // Create coaches with slight delays to ensure different timestamps
+      const coach1 = await Coach.create({
+        first_name: 'First',
+        last_name: 'Coach',
+        school_name: 'School 1',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const coach2 = await Coach.create({
+        first_name: 'Second',
+        last_name: 'Coach',
+        school_name: 'School 2',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .get('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.length).toBe(2);
+      expect(response.body.data[0].first_name).toBe('Second');
+      expect(response.body.data[1].first_name).toBe('First');
+    });
+
+    it('should reject invalid status values', async () => {
+      const response = await request(app)
+        .get('/api/coaches?status=invalid')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should reject invalid position values', async () => {
+      const response = await request(app)
+        .get('/api/coaches?position=Invalid Position')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+  });
+
+  describe('GET /api/coaches/:id', () => {
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should get a single coach by ID', async () => {
+      const coach = await Coach.create({
+        first_name: 'John',
+        last_name: 'Smith',
+        school_name: 'Lincoln High School',
+        position: 'Head Coach',
+        email: 'jsmith@lincoln.edu',
+        phone: '555-1234',
+        notes: 'Great contact for recruiting',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .get(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.id).toBe(coach.id);
+      expect(response.body.data.first_name).toBe('John');
+      expect(response.body.data.last_name).toBe('Smith');
+      expect(response.body.data.school_name).toBe('Lincoln High School');
+      expect(response.body.data.position).toBe('Head Coach');
+      expect(response.body.data.email).toBe('jsmith@lincoln.edu');
+      expect(response.body.data.phone).toBe('555-1234');
+      expect(response.body.data.notes).toBe('Great contact for recruiting');
+      expect(response.body.data.status).toBe('active');
+    });
+
+    it('should include Creator information in response', async () => {
+      const coach = await Coach.create({
+        first_name: 'Test',
+        last_name: 'Coach',
+        school_name: 'Test School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .get(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.Creator).toBeDefined();
+      expect(response.body.data.Creator.id).toBe(testUser.id);
+      expect(response.body.data.Creator.first_name).toBe('Coaches');
+    });
+
+    it('should return 404 for non-existent coach', async () => {
+      const response = await request(app)
+        .get('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Coach not found');
+    });
+
+    it('should enforce team isolation (cannot access other team coach)', async () => {
+      // Create coach for other team
+      const otherCoach = await Coach.create({
+        first_name: 'Other',
+        last_name: 'Coach',
+        school_name: 'Other School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: otherTeam.id,
+        created_by: otherUser.id
+      });
+
+      const response = await request(app)
+        .get(`/api/coaches/${otherCoach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Coach not found');
+    });
+  });
+
+  describe('POST /api/coaches', () => {
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach'
+        })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should create a coach with required fields only', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'John',
+          last_name: 'Smith',
+          school_name: 'Lincoln High School',
+          position: 'Head Coach'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.first_name).toBe('John');
+      expect(response.body.data.last_name).toBe('Smith');
+      expect(response.body.data.school_name).toBe('Lincoln High School');
+      expect(response.body.data.position).toBe('Head Coach');
+      expect(response.body.data.status).toBe('active'); // Default value
+
+      // Verify in database
+      const coach = await Coach.findByPk(response.body.data.id);
+      expect(coach).toBeDefined();
+      expect(coach.first_name).toBe('John');
+    });
+
+    it('should create a coach with all fields', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Mike',
+          last_name: 'Johnson',
+          school_name: 'Central High School',
+          position: 'Recruiting Coordinator',
+          email: 'mjohnson@central.edu',
+          phone: '555-5678',
+          notes: 'Strong recruiting relationship',
+          last_contact_date: '2024-01-15',
+          next_contact_date: '2024-02-01',
+          contact_notes: 'Follow up on spring recruiting'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.first_name).toBe('Mike');
+      expect(response.body.data.last_name).toBe('Johnson');
+      expect(response.body.data.school_name).toBe('Central High School');
+      expect(response.body.data.position).toBe('Recruiting Coordinator');
+      expect(response.body.data.email).toBe('mjohnson@central.edu');
+      expect(response.body.data.phone).toBe('555-5678');
+      expect(response.body.data.notes).toBe('Strong recruiting relationship');
+      expect(response.body.data.contact_notes).toBe('Follow up on spring recruiting');
+    });
+
+    it('should auto-assign team_id from authenticated user', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+
+      // Verify in database
+      const coach = await Coach.findByPk(response.body.data.id);
+      expect(coach.team_id).toBe(testTeam.id);
+    });
+
+    it('should auto-assign created_by from authenticated user', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+
+      // Verify in database
+      const coach = await Coach.findByPk(response.body.data.id);
+      expect(coach.created_by).toBe(testUser.id);
+    });
+
+    it('should include Creator information in response', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.Creator).toBeDefined();
+      expect(response.body.data.Creator.id).toBe(testUser.id);
+      expect(response.body.data.Creator.first_name).toBe('Coaches');
+    });
+
+    it('should require first_name', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          last_name: 'Smith',
+          school_name: 'Lincoln High School',
+          position: 'Head Coach'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should require last_name', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'John',
+          school_name: 'Lincoln High School',
+          position: 'Head Coach'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should require school_name', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'John',
+          last_name: 'Smith',
+          position: 'Head Coach'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should require position', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'John',
+          last_name: 'Smith',
+          school_name: 'Lincoln High School'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate position enum (Head Coach)', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.position).toBe('Head Coach');
+    });
+
+    it('should validate position enum (Recruiting Coordinator)', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Recruiting Coordinator'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.position).toBe('Recruiting Coordinator');
+    });
+
+    it('should validate position enum (Pitching Coach)', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Pitching Coach'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.position).toBe('Pitching Coach');
+    });
+
+    it('should validate position enum (Volunteer)', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Volunteer'
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.position).toBe('Volunteer');
+    });
+
+    it('should reject invalid position values', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Invalid Position'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate email format', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach',
+          email: 'invalid-email'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate first_name max length (100 chars)', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'a'.repeat(101),
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate last_name max length (100 chars)', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'a'.repeat(101),
+          school_name: 'Test School',
+          position: 'Head Coach'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate school_name max length (200 chars)', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'a'.repeat(201),
+          position: 'Head Coach'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate phone max length (20 chars)', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach',
+          phone: '1'.repeat(21)
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate email max length (255 chars)', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach',
+          email: 'a'.repeat(250) + '@test.com'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate last_contact_date ISO8601 format', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach',
+          last_contact_date: 'invalid-date'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate next_contact_date ISO8601 format', async () => {
+      const response = await request(app)
+        .post('/api/coaches')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Test',
+          last_name: 'Coach',
+          school_name: 'Test School',
+          position: 'Head Coach',
+          next_contact_date: 'invalid-date'
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+  });
+
+  describe('PUT /api/coaches/:id', () => {
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .put('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+        .send({ first_name: 'Updated' })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should update a coach with partial fields', async () => {
+      const coach = await Coach.create({
+        first_name: 'John',
+        last_name: 'Smith',
+        school_name: 'Lincoln High School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          last_contact_date: '2024-01-15',
+          next_contact_date: '2024-02-01',
+          contact_notes: 'Follow up scheduled'
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.first_name).toBe('John'); // Unchanged
+      expect(response.body.data.last_name).toBe('Smith'); // Unchanged
+      expect(response.body.data.contact_notes).toBe('Follow up scheduled');
+
+      // Verify in database
+      const updatedCoach = await Coach.findByPk(coach.id);
+      expect(updatedCoach.contact_notes).toBe('Follow up scheduled');
+    });
+
+    it('should update a coach with all fields', async () => {
+      const coach = await Coach.create({
+        first_name: 'John',
+        last_name: 'Smith',
+        school_name: 'Lincoln High School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          first_name: 'Mike',
+          last_name: 'Johnson',
+          school_name: 'Central High School',
+          position: 'Recruiting Coordinator',
+          email: 'mjohnson@central.edu',
+          phone: '555-9999',
+          notes: 'Updated notes',
+          last_contact_date: '2024-01-20',
+          next_contact_date: '2024-02-15',
+          contact_notes: 'New contact plan',
+          status: 'inactive'
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.first_name).toBe('Mike');
+      expect(response.body.data.last_name).toBe('Johnson');
+      expect(response.body.data.school_name).toBe('Central High School');
+      expect(response.body.data.position).toBe('Recruiting Coordinator');
+      expect(response.body.data.email).toBe('mjohnson@central.edu');
+      expect(response.body.data.phone).toBe('555-9999');
+      expect(response.body.data.notes).toBe('Updated notes');
+      expect(response.body.data.contact_notes).toBe('New contact plan');
+      expect(response.body.data.status).toBe('inactive');
+
+      // Verify in database
+      const updatedCoach = await Coach.findByPk(coach.id);
+      expect(updatedCoach.first_name).toBe('Mike');
+      expect(updatedCoach.status).toBe('inactive');
+    });
+
+    it('should update status to inactive', async () => {
+      const coach = await Coach.create({
+        first_name: 'Test',
+        last_name: 'Coach',
+        school_name: 'Test School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ status: 'inactive' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.status).toBe('inactive');
+
+      // Verify in database
+      const updatedCoach = await Coach.findByPk(coach.id);
+      expect(updatedCoach.status).toBe('inactive');
+    });
+
+    it('should validate position enum when updating', async () => {
+      const coach = await Coach.create({
+        first_name: 'Test',
+        last_name: 'Coach',
+        school_name: 'Test School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ position: 'Invalid Position' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate status enum when updating', async () => {
+      const coach = await Coach.create({
+        first_name: 'Test',
+        last_name: 'Coach',
+        school_name: 'Test School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ status: 'invalid' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should validate email format when updating', async () => {
+      const coach = await Coach.create({
+        first_name: 'Test',
+        last_name: 'Coach',
+        school_name: 'Test School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ email: 'invalid-email' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('should return 404 for non-existent coach', async () => {
+      const response = await request(app)
+        .put('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ first_name: 'Updated' })
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Coach not found');
+    });
+
+    it('should enforce team isolation (cannot update other team coach)', async () => {
+      const otherCoach = await Coach.create({
+        first_name: 'Other',
+        last_name: 'Coach',
+        school_name: 'Other School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: otherTeam.id,
+        created_by: otherUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/coaches/${otherCoach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ first_name: 'Hacked' })
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Coach not found');
+
+      // Verify coach was not updated
+      const coach = await Coach.findByPk(otherCoach.id);
+      expect(coach.first_name).toBe('Other');
+    });
+
+    it('should include Creator information in response', async () => {
+      const coach = await Coach.create({
+        first_name: 'Test',
+        last_name: 'Coach',
+        school_name: 'Test School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .put(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ notes: 'Updated notes' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.Creator).toBeDefined();
+      expect(response.body.data.Creator.id).toBe(testUser.id);
+    });
+  });
+
+  describe('DELETE /api/coaches/:id', () => {
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .delete('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should delete a coach successfully', async () => {
+      const coach = await Coach.create({
+        first_name: 'Test',
+        last_name: 'Coach',
+        school_name: 'Test School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const response = await request(app)
+        .delete(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Coach deleted successfully');
+
+      // Verify coach was deleted from database (hard delete)
+      const deletedCoach = await Coach.findByPk(coach.id);
+      expect(deletedCoach).toBeNull();
+    });
+
+    it('should perform hard delete (remove from database)', async () => {
+      const coach = await Coach.create({
+        first_name: 'Test',
+        last_name: 'Coach',
+        school_name: 'Test School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      await request(app)
+        .delete(`/api/coaches/${coach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      // Verify coach is completely removed from database
+      const deletedCoach = await Coach.findByPk(coach.id);
+      expect(deletedCoach).toBeNull();
+    });
+
+    it('should return 404 for non-existent coach', async () => {
+      const response = await request(app)
+        .delete('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Coach not found');
+    });
+
+    it('should enforce team isolation (cannot delete other team coach)', async () => {
+      const otherCoach = await Coach.create({
+        first_name: 'Other',
+        last_name: 'Coach',
+        school_name: 'Other School',
+        position: 'Head Coach',
+        status: 'active',
+        team_id: otherTeam.id,
+        created_by: otherUser.id
+      });
+
+      const response = await request(app)
+        .delete(`/api/coaches/${otherCoach.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Coach not found');
+
+      // Verify coach was not deleted
+      const coach = await Coach.findByPk(otherCoach.id);
+      expect(coach).toBeDefined();
+      expect(coach.first_name).toBe('Other');
+    });
+  });
+});
+>>>>>>> auto-claude/039-improve-backend-route-test-coverage
