@@ -50,6 +50,7 @@ const { checkPermission } = require('../middleware/permissions');
 const { Report, Player, Team, ScoutingReport, User } = require('../models');
 const { Op } = require('sequelize');
 const notificationService = require('../services/notificationService');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -181,7 +182,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    console.error('Get reports error:', error);
+    logger.error('Get reports error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching reports'
@@ -225,8 +226,8 @@ router.get('/', async (req, res) => {
  */
 router.get('/scouting', async (req, res) => {
   try {
-    console.log('Scouting reports request - user team_id:', req.user.team_id);
-    console.log('Scouting reports request - query params:', req.query);
+    logger.debug('Scouting reports request - user team_id:', req.user.team_id);
+    logger.debug('Scouting reports request - query params:', req.query);
 
     // Pagination: Parse page and limit with defaults
     const page = parseInt(req.query.page) || 1;
@@ -277,7 +278,7 @@ router.get('/scouting', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    console.error('Get scouting reports error:', error);
+    logger.error('Get scouting reports error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching scouting reports'
@@ -343,7 +344,7 @@ router.get('/custom/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Database query failure or connection issues
-    console.error('Get report error:', error);
+    logger.error('Get report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching report'
@@ -364,7 +365,7 @@ router.get('/custom/:id', async (req, res) => {
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Report object with full details
+ * @returns {Object} response.data - Report object with creator information
  *
  * @throws {403} Forbidden - User lacks reports_view permission
  * @throws {404} Not found - Report not found or belongs to different team
@@ -372,9 +373,11 @@ router.get('/custom/:id', async (req, res) => {
  */
 router.get('/byId/:id', checkPermission('reports_view'), async (req, res) => {
   try {
+    // Database: Find report with team scoping for security
     const report = await Report.findOne({
       where: {
         id: req.params.id,
+        // Permission: Multi-tenant isolation - must belong to user's team
         team_id: req.user.team_id
       },
       include: [
@@ -386,6 +389,7 @@ router.get('/byId/:id', checkPermission('reports_view'), async (req, res) => {
       ]
     });
 
+    // Validation: Report must exist and belong to user's team
     if (!report) {
       return res.status(404).json({
         success: false,
@@ -398,7 +402,8 @@ router.get('/byId/:id', checkPermission('reports_view'), async (req, res) => {
       data: report
     });
   } catch (error) {
-    console.error('Get report by ID error:', error);
+    // Error: Database query failure or connection issues
+    logger.error('Get report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching report'
@@ -409,49 +414,41 @@ router.get('/byId/:id', checkPermission('reports_view'), async (req, res) => {
 /**
  * @route POST /api/reports
  * @description Creates a new custom report for the authenticated user's team.
- *              Reports are created in draft status by default.
- *              Creator is automatically set to the authenticated user.
+ *              Sets the team_id and created_by fields automatically.
+ *              Default status is 'draft' if not specified.
  * @access Private - Requires authentication + reports_create permission
  * @middleware protect - JWT authentication required
  * @middleware checkPermission('reports_create') - Report creation permission required
- * @middleware validateReportCreate - Request body validation
- * @middleware handleValidationErrors - Validation error handling
  *
- * @param {string} req.body.title - Report title (required, 1-200 characters)
- * @param {string} req.body.description - Report description (optional, max 1000 characters)
+ * @param {string} req.body.title - Report title (1-200 characters, required)
  * @param {string} req.body.type - Report type (required)
- * @param {Array} req.body.data_sources - Data source configurations (optional)
- * @param {Array} req.body.sections - Section configurations (optional)
- * @param {Object} req.body.filters - Filter criteria (optional)
- * @param {Object} req.body.schedule - Scheduling configuration (optional)
+ * @param {string} [req.body.description] - Report description (max 1000 characters)
+ * @param {string} [req.body.status='draft'] - Initial status (draft/published/archived)
+ * @param {Array} [req.body.data_sources] - Array of data source configurations
+ * @param {Array} [req.body.sections] - Array of section configurations
+ * @param {Object} [req.body.filters] - Filter criteria object
+ * @param {Object} [req.body.schedule] - Scheduling configuration for automated reports
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Success message
  * @returns {Object} response.data - Created report object
- * @returns {number} response.data.id - Report ID
- * @returns {string} response.data.status - Report status (always 'draft' on creation)
  *
- * @throws {400} Bad request - Validation failed
  * @throws {403} Forbidden - User lacks reports_create permission
- * @throws {500} Server error - Database operation failure
+ * @throws {500} Server error - Database creation failure
  */
-router.post('/', checkPermission('reports_create'), validateReportCreate, handleValidationErrors, async (req, res) => {
+router.post('/', checkPermission('reports_create'), async (req, res) => {
   try {
+    // Database: Create new report with team and creator context
     const report = await Report.create({
-      title: req.body.title,
-      description: req.body.description || '',
-      type: req.body.type,
-      status: 'draft',
-      data_sources: req.body.data_sources || [],
-      sections: req.body.sections || [],
-      filters: req.body.filters || {},
-      schedule: req.body.schedule,
+      ...req.body,
+      // Permission: Automatically associate with user's team
       team_id: req.user.team_id,
-      created_by: req.user.id
+      // Business logic: Track creator for attribution
+      created_by: req.user.id,
+      // Business logic: Default to draft status for new reports
+      status: req.body.status || 'draft'
     });
-
-    // Notification: Notify team members of new report creation
-    await notificationService.notifyReportCreated(report);
 
     res.status(201).json({
       success: true,
@@ -459,7 +456,8 @@ router.post('/', checkPermission('reports_create'), validateReportCreate, handle
       data: report
     });
   } catch (error) {
-    console.error('Create report error:', error);
+    // Error: Database creation failure (validation, constraints)
+    logger.error('Create report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating report'
@@ -470,40 +468,41 @@ router.post('/', checkPermission('reports_create'), validateReportCreate, handle
 /**
  * @route PUT /api/reports/byId/:id
  * @description Updates an existing custom report.
- *              Only reports belonging to the user's team can be updated.
- *              Supports partial updates - only provided fields are updated.
+ *              Multi-tenant isolation ensures users can only update their team's reports.
+ *              Supports partial updates - only provided fields are modified.
  * @access Private - Requires authentication + reports_edit permission
  * @middleware protect - JWT authentication required
  * @middleware checkPermission('reports_edit') - Report editing permission required
- * @middleware validateReportUpdate - Request body validation
- * @middleware handleValidationErrors - Validation error handling
  *
  * @param {string} req.params.id - Report ID (UUID)
- * @param {string} req.body.title - Report title (optional, 1-200 characters)
- * @param {string} req.body.description - Report description (optional, max 1000 characters)
- * @param {string} req.body.status - Report status (optional, draft/published/archived)
- * @param {Array} req.body.data_sources - Data source configurations (optional)
- * @param {Array} req.body.sections - Section configurations (optional)
- * @param {Object} req.body.filters - Filter criteria (optional)
+ * @param {string} [req.body.title] - Updated title (1-200 characters)
+ * @param {string} [req.body.description] - Updated description (max 1000 characters)
+ * @param {string} [req.body.status] - Updated status (draft/published/archived)
+ * @param {Array} [req.body.data_sources] - Updated data sources
+ * @param {Array} [req.body.sections] - Updated sections
+ * @param {Object} [req.body.filters] - Updated filters
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Success message
  * @returns {Object} response.data - Updated report object
  *
- * @throws {400} Bad request - Validation failed
  * @throws {403} Forbidden - User lacks reports_edit permission
  * @throws {404} Not found - Report not found or belongs to different team
- * @throws {500} Server error - Database operation failure
+ * @throws {500} Server error - Database update failure
  */
-router.put('/byId/:id', checkPermission('reports_edit'), validateReportUpdate, handleValidationErrors, async (req, res) => {
+router.put('/byId/:id', checkPermission('reports_edit'), async (req, res) => {
   try {
+    // Database: Find report with team scoping for security
     const report = await Report.findOne({
       where: {
         id: req.params.id,
+        // Permission: Multi-tenant isolation - must belong to user's team
         team_id: req.user.team_id
       }
     });
 
+    // Validation: Report must exist and belong to user's team
     if (!report) {
       return res.status(404).json({
         success: false,
@@ -511,18 +510,8 @@ router.put('/byId/:id', checkPermission('reports_edit'), validateReportUpdate, h
       });
     }
 
-    // Update only provided fields
-    if (req.body.title !== undefined) report.title = req.body.title;
-    if (req.body.description !== undefined) report.description = req.body.description;
-    if (req.body.status !== undefined) report.status = req.body.status;
-    if (req.body.data_sources !== undefined) report.data_sources = req.body.data_sources;
-    if (req.body.sections !== undefined) report.sections = req.body.sections;
-    if (req.body.filters !== undefined) report.filters = req.body.filters;
-
-    await report.save();
-
-    // Notification: Notify team members of report update
-    await notificationService.notifyReportUpdated(report);
+    // Database: Apply partial update with provided fields
+    await report.update(req.body);
 
     res.json({
       success: true,
@@ -530,7 +519,8 @@ router.put('/byId/:id', checkPermission('reports_edit'), validateReportUpdate, h
       data: report
     });
   } catch (error) {
-    console.error('Update report error:', error);
+    // Error: Database update failure (validation, constraints)
+    logger.error('Update report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating report'
@@ -540,9 +530,9 @@ router.put('/byId/:id', checkPermission('reports_edit'), validateReportUpdate, h
 
 /**
  * @route DELETE /api/reports/byId/:id
- * @description Deletes a custom report by ID.
- *              Only reports belonging to the user's team can be deleted.
- *              Soft delete implementation is recommended for audit trails.
+ * @description Permanently deletes a custom report.
+ *              This is a hard delete - the report cannot be recovered.
+ *              Multi-tenant isolation ensures users can only delete their team's reports.
  * @access Private - Requires authentication + reports_delete permission
  * @middleware protect - JWT authentication required
  * @middleware checkPermission('reports_delete') - Report deletion permission required
@@ -555,17 +545,20 @@ router.put('/byId/:id', checkPermission('reports_edit'), validateReportUpdate, h
  *
  * @throws {403} Forbidden - User lacks reports_delete permission
  * @throws {404} Not found - Report not found or belongs to different team
- * @throws {500} Server error - Database operation failure
+ * @throws {500} Server error - Database deletion failure
  */
 router.delete('/byId/:id', checkPermission('reports_delete'), async (req, res) => {
   try {
+    // Database: Find report with team scoping for security
     const report = await Report.findOne({
       where: {
         id: req.params.id,
+        // Permission: Multi-tenant isolation - must belong to user's team
         team_id: req.user.team_id
       }
     });
 
+    // Validation: Report must exist and belong to user's team
     if (!report) {
       return res.status(404).json({
         success: false,
@@ -573,17 +566,16 @@ router.delete('/byId/:id', checkPermission('reports_delete'), async (req, res) =
       });
     }
 
+    // Database: Permanently delete the report
     await report.destroy();
-
-    // Notification: Notify team members of report deletion
-    await notificationService.notifyReportDeleted(report);
 
     res.json({
       success: true,
       message: 'Report deleted successfully'
     });
   } catch (error) {
-    console.error('Delete report error:', error);
+    // Error: Database deletion failure
+    logger.error('Delete report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error deleting report'
@@ -592,31 +584,864 @@ router.delete('/byId/:id', checkPermission('reports_delete'), async (req, res) =
 });
 
 /**
- * @route POST /api/reports/scouting
- * @description Creates a new scouting report for a specific player.
- *              Scouting reports contain evaluation data including skill ratings and overall grade.
- *              Multi-tenant isolation enforced via Player's team_id.
+ * @route GET /api/reports/player-performance
+ * @description Retrieves player performance statistics for the team.
+ *              Returns batting and pitching statistics for all players with optional filtering.
+ *              Validates that the user is associated with a team before proceeding.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} [req.query.start_date] - Filter by creation date start (ISO 8601)
+ * @param {string} [req.query.end_date] - Filter by creation date end (ISO 8601)
+ * @param {string} [req.query.position] - Filter by player position
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Performance data object
+ * @returns {Array<Object>} response.data.players - Array of player statistics
+ * @returns {number} response.data.players[].id - Player ID
+ * @returns {string} response.data.players[].first_name - Player's first name
+ * @returns {string} response.data.players[].last_name - Player's last name
+ * @returns {string} response.data.players[].position - Player's position
+ * @returns {number|null} response.data.players[].batting_avg - Batting average
+ * @returns {number|null} response.data.players[].home_runs - Home run count
+ * @returns {number|null} response.data.players[].rbi - Runs batted in
+ * @returns {number|null} response.data.players[].era - Earned run average
+ * @returns {number|null} response.data.players[].wins - Pitching wins
+ * @returns {number|null} response.data.players[].losses - Pitching losses
+ * @returns {number|null} response.data.players[].strikeouts - Strikeout count
+ * @returns {Object} response.data.filters - Applied filters
+ * @returns {string} response.data.generated_at - Report generation timestamp
+ *
+ * @throws {400} Bad request - User not associated with a team
+ * @throws {500} Server error - Database query failure
+ */
+router.get('/player-performance', async (req, res) => {
+  try {
+    logger.debug('Player performance request - user:', req.user);
+    logger.debug('Player performance request - user team_id:', req.user.team_id);
+
+    // Validation: User must be associated with a team
+    if (!req.user.team_id) {
+      logger.error('User has no team_id:', req.user.id);
+      return res.status(400).json({
+        success: false,
+        message: 'User is not associated with a team'
+      });
+    }
+
+    // Business logic: Build where clause for player query
+    const whereClause = {
+      // Permission: Multi-tenant isolation - only show team's players
+      team_id: req.user.team_id
+    };
+
+    // Filter: Optionally filter by date range (based on player creation date)
+    if (req.query.start_date && req.query.end_date) {
+      whereClause.created_at = {
+        [Op.between]: [req.query.start_date, req.query.end_date]
+      };
+    }
+
+    // Filter: Optionally filter by position
+    if (req.query.position) {
+      whereClause.position = req.query.position;
+    }
+
+    logger.debug('Player performance query whereClause:', whereClause);
+
+    // Business logic: Check if team has any players (for debugging)
+    const playerCount = await Player.count({
+      where: { team_id: req.user.team_id }
+    });
+    logger.debug('Total players for team:', playerCount);
+
+    // Database: Fetch players with performance statistics
+    const players = await Player.findAll({
+      where: whereClause,
+      // Business logic: Select only relevant performance fields
+      attributes: [
+        'id', 'first_name', 'last_name', 'position', 'batting_avg',
+        'home_runs', 'rbi', 'era', 'wins', 'losses', 'strikeouts'
+      ],
+      // Business logic: Sort alphabetically by name
+      order: [['last_name', 'ASC'], ['first_name', 'ASC']]
+    });
+
+    logger.debug('Player performance query result count:', players.length);
+
+    res.json({
+      success: true,
+      data: {
+        players,
+        filters: req.query,
+        generated_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    // Error: Database query failure or connection issues
+    logger.error('Get player performance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching player performance data'
+    });
+  }
+});
+
+/**
+ * @route GET /api/reports/team-statistics
+ * @description Retrieves aggregated team statistics including batting average, ERA, and win record.
+ *              Calculates averages across all players with valid statistics.
+ *              Win percentage is calculated from pitcher wins/losses.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Team statistics object
+ * @returns {string} response.data.team_name - Name of the team
+ * @returns {number} response.data.total_players - Total player count
+ * @returns {string|null} response.data.team_batting_avg - Team batting average (3 decimal places)
+ * @returns {string|null} response.data.team_era - Team ERA (2 decimal places)
+ * @returns {number} response.data.wins - Total pitcher wins
+ * @returns {number} response.data.losses - Total pitcher losses
+ * @returns {string|null} response.data.win_percentage - Win percentage (1 decimal place)
+ * @returns {Object} response.data.filters - Applied filters (from query params)
+ * @returns {string} response.data.generated_at - Report generation timestamp
+ *
+ * @throws {404} Not found - Team not found
+ * @throws {500} Server error - Database query failure
+ */
+router.get('/team-statistics', async (req, res) => {
+  try {
+    // Database: Fetch team for team name
+    const team = await Team.findByPk(req.user.team_id);
+
+    // Validation: Team must exist
+    if (!team) {
+      return res.status(404).json({
+        success: false,
+        message: 'Team not found'
+      });
+    }
+
+    // Database: Get total player count
+    const playerCount = await Player.count({
+      where: { team_id: req.user.team_id }
+    });
+
+    // Database: Fetch players with statistics for calculations
+    const players = await Player.findAll({
+      where: { team_id: req.user.team_id },
+      attributes: ['batting_avg', 'era', 'wins', 'losses']
+    });
+
+    // Business logic: Calculate team batting average from valid values only
+    // Filters out null/undefined values before averaging
+    const validBattingAverages = players
+      .map(p => p.batting_avg)
+      .filter(avg => avg !== null && avg !== undefined);
+
+    const teamBattingAverage = validBattingAverages.length > 0
+      ? (validBattingAverages.reduce((sum, avg) => sum + avg, 0) / validBattingAverages.length).toFixed(3)
+      : null;
+
+    // Business logic: Calculate team ERA from valid values only
+    // Filters out null/undefined values before averaging
+    const validERAs = players
+      .map(p => p.era)
+      .filter(era => era !== null && era !== undefined);
+
+    const teamERA = validERAs.length > 0
+      ? (validERAs.reduce((sum, era) => sum + era, 0) / validERAs.length).toFixed(2)
+      : null;
+
+    // Business logic: Calculate win/loss record from pitcher statistics
+    // Uses 0 as default for null values
+    const totalWins = players.reduce((sum, p) => sum + (p.wins || 0), 0);
+    const totalLosses = players.reduce((sum, p) => sum + (p.losses || 0), 0);
+
+    // Business logic: Calculate win percentage (avoid division by zero)
+    const winPercentage = (totalWins + totalLosses) > 0
+      ? ((totalWins / (totalWins + totalLosses)) * 100).toFixed(1)
+      : null;
+
+    res.json({
+      success: true,
+      data: {
+        team_name: team.name,
+        total_players: playerCount,
+        team_batting_avg: teamBattingAverage,
+        team_era: teamERA,
+        wins: totalWins,
+        losses: totalLosses,
+        win_percentage: winPercentage,
+        filters: req.query,
+        generated_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    // Error: Database query failure or connection issues
+    logger.error('Get team statistics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching team statistics'
+    });
+  }
+});
+
+
+/**
+ * @route GET /api/reports/recruitment-pipeline
+ * @description Retrieves recruitment pipeline data with prospect stages.
+ *              Returns mock data representing the recruitment funnel.
+ *              Note: This endpoint returns static mock data for demonstration purposes.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Pipeline data object
+ * @returns {Array<Object>} response.data.pipeline - Array of pipeline stages
+ * @returns {string} response.data.pipeline[].stage_name - Name of the pipeline stage
+ * @returns {number} response.data.pipeline[].player_count - Number of players in stage
+ * @returns {number} response.data.pipeline[].avg_grade - Average grade of players in stage
+ * @returns {string} response.data.pipeline[].next_action - Suggested next action for stage
+ * @returns {Object} response.data.filters - Applied filters (from query params)
+ * @returns {string} response.data.generated_at - Report generation timestamp
+ *
+ * @throws {500} Server error - Unexpected error
+ */
+router.get('/recruitment-pipeline', async (req, res) => {
+  try {
+    // Business logic: Mock recruitment pipeline data
+    // TODO: Replace with actual database queries when recruitment system is implemented
+    const pipelineData = [
+      {
+        stage_name: 'Prospects',
+        player_count: 45,
+        avg_grade: 78.5,
+        next_action: 'Schedule evaluation'
+      },
+      {
+        stage_name: 'Evaluated',
+        player_count: 23,
+        avg_grade: 82.3,
+        next_action: 'Make offer decision'
+      },
+      {
+        stage_name: 'Offered',
+        player_count: 12,
+        avg_grade: 85.7,
+        next_action: 'Follow up on offer'
+      },
+      {
+        stage_name: 'Committed',
+        player_count: 8,
+        avg_grade: 87.2,
+        next_action: 'Prepare enrollment'
+      },
+      {
+        stage_name: 'Enrolled',
+        player_count: 5,
+        avg_grade: 89.1,
+        next_action: 'Begin training'
+      }
+    ];
+
+    res.json({
+      success: true,
+      data: {
+        pipeline: pipelineData,
+        filters: req.query,
+        generated_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    // Error: Unexpected error in mock data generation
+    logger.error('Get recruitment pipeline error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching recruitment pipeline data'
+    });
+  }
+});
+
+/**
+ * @route POST /api/reports/generate-pdf
+ * @description Generates a PDF version of a report.
+ *              Note: This is a placeholder implementation - actual PDF generation not yet implemented.
+ *              Returns success response with metadata about what would be generated.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.body.type - Type of report to generate
+ * @param {Object} [req.body.data] - Report data to include in PDF
+ * @param {Object} [req.body.options] - PDF generation options
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Status message (indicates placeholder implementation)
+ * @returns {Object} response.data - Generation metadata
+ * @returns {string} response.data.type - Report type that would be generated
+ * @returns {string} response.data.generated_at - Timestamp of request
+ *
+ * @throws {500} Server error - Unexpected error
+ */
+router.post('/generate-pdf', async (req, res) => {
+  try {
+    // Business logic: Placeholder implementation
+    // TODO: Implement actual PDF generation using a library like pdfmake or puppeteer
+    res.json({
+      success: true,
+      message: 'PDF generation endpoint - implementation would generate actual PDF',
+      data: {
+        type: req.body.type,
+        generated_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    // Error: Unexpected error
+    logger.error('Generate PDF error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error generating PDF'
+    });
+  }
+});
+
+/**
+ * @route POST /api/reports/export-excel
+ * @description Exports report data to Excel format.
+ *              Note: This is a placeholder implementation - actual Excel export not yet implemented.
+ *              Returns success response with metadata about what would be generated.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.body.type - Type of report to export
+ * @param {Object} [req.body.data] - Report data to include in Excel
+ * @param {Object} [req.body.options] - Export options
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Status message (indicates placeholder implementation)
+ * @returns {Object} response.data - Export metadata
+ * @returns {string} response.data.type - Report type that would be exported
+ * @returns {string} response.data.generated_at - Timestamp of request
+ *
+ * @throws {500} Server error - Unexpected error
+ */
+router.post('/export-excel', async (req, res) => {
+  try {
+    // Business logic: Placeholder implementation
+    // TODO: Implement actual Excel export using a library like exceljs or xlsx
+    res.json({
+      success: true,
+      message: 'Excel export endpoint - implementation would generate actual Excel file',
+      data: {
+        type: req.body.type,
+        generated_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    // Error: Unexpected error
+    logger.error('Export Excel error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting to Excel'
+    });
+  }
+});
+
+/**
+ * @route GET /api/reports/player-performance (with permission check)
+ * @description Retrieves detailed player performance statistics with permission validation.
+ *              Returns batting and pitching statistics for active players with optional filtering.
+ *              Includes summary statistics (averages) in the response.
+ *              Note: Due to Express routing, this handler is unreachable because an earlier
+ *              route handler for the same path exists above. Consider refactoring to consolidate.
+ * @access Private - Requires authentication + reports_view permission
+ * @middleware protect - JWT authentication required
+ * @middleware checkPermission('reports_view') - Report viewing permission required
+ *
+ * @param {string} [req.query.start_date] - Filter by date range start (currently unused)
+ * @param {string} [req.query.end_date] - Filter by date range end (currently unused)
+ * @param {string} [req.query.position] - Filter by player position
+ * @param {string} [req.query.school_type] - Filter by school type (HS, COLL)
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Performance data
+ * @returns {Array<Object>} response.data.players - Player statistics array
+ * @returns {Object} response.data.filters - Applied filter values
+ * @returns {Object} response.data.summary - Aggregated statistics
+ * @returns {number} response.data.summary.total_players - Total player count
+ * @returns {number} response.data.summary.avg_batting_avg - Average batting average
+ * @returns {number} response.data.summary.avg_era - Average ERA
+ *
+ * @throws {403} Forbidden - User lacks reports_view permission
+ * @throws {500} Server error - Database query failure
+ * @deprecated This route handler is unreachable - consolidate with the earlier handler
+ */
+router.get('/player-performance', checkPermission('reports_view'), async (req, res) => {
+  try {
+    const { Player } = require('../models');
+    const { start_date, end_date, position, school_type } = req.query;
+
+    // Business logic: Build where clause for active players with filters
+    const whereClause = {
+      team_id: req.user.team_id,
+      status: 'active'
+    };
+
+    // Filter: Optionally filter by position
+    if (position) whereClause.position = position;
+    // Filter: Optionally filter by school type
+    if (school_type) whereClause.school_type = school_type;
+
+    // Database: Fetch players with comprehensive performance stats
+    const players = await Player.findAll({
+      where: whereClause,
+      attributes: [
+        'id', 'first_name', 'last_name', 'position', 'school_type',
+        'batting_avg', 'on_base_pct', 'slugging_pct', 'ops',
+        'runs', 'hits', 'rbis', 'walks', 'strikeouts',
+        'era', 'wins', 'losses', 'saves', 'innings_pitched'
+      ],
+      // Business logic: Sort by batting average descending (best performers first)
+      order: [['batting_avg', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      data: {
+        players,
+        filters: { start_date, end_date, position, school_type },
+        // Business logic: Calculate summary statistics for the team
+        summary: {
+          total_players: players.length,
+          avg_batting_avg: players.reduce((sum, p) => sum + (parseFloat(p.batting_avg) || 0), 0) / players.length || 0,
+          avg_era: players.reduce((sum, p) => sum + (parseFloat(p.era) || 0), 0) / players.length || 0
+        }
+      }
+    });
+  } catch (error) {
+    // Error: Database query failure
+    logger.error('Error fetching player performance report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching player performance report'
+    });
+  }
+});
+
+/**
+ * @route GET /api/reports/team-statistics (with permission check)
+ * @description Retrieves comprehensive team statistics including game records and roster breakdown.
+ *              Calculates win/loss/tie records and categorizes players by position and school type.
+ *              Note: Due to Express routing, this handler is unreachable because an earlier
+ *              route handler for the same path exists above. Consider refactoring to consolidate.
+ * @access Private - Requires authentication + reports_view permission
+ * @middleware protect - JWT authentication required
+ * @middleware checkPermission('reports_view') - Report viewing permission required
+ *
+ * @param {string} [req.query.season] - Optional filter by season
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Team statistics
+ * @returns {Object} response.data.games - Game statistics
+ * @returns {number} response.data.games.total - Total games played
+ * @returns {number} response.data.games.wins - Total wins
+ * @returns {number} response.data.games.losses - Total losses
+ * @returns {number} response.data.games.ties - Total ties
+ * @returns {string} response.data.games.win_percentage - Win percentage
+ * @returns {Object} response.data.players - Player breakdown
+ * @returns {number} response.data.players.total - Total active players
+ * @returns {number} response.data.players.pitchers - Number of pitchers
+ * @returns {number} response.data.players.position_players - Number of position players
+ * @returns {number} response.data.players.high_school - High school players
+ * @returns {number} response.data.players.college - College players
+ * @returns {string} response.data.season - Season filter applied (or 'All')
+ *
+ * @throws {403} Forbidden - User lacks reports_view permission
+ * @throws {500} Server error - Database query failure
+ * @deprecated This route handler is unreachable - consolidate with the earlier handler
+ */
+router.get('/team-statistics', checkPermission('reports_view'), async (req, res) => {
+  try {
+    const { Game, Player } = require('../models');
+    const { season } = req.query;
+
+    // Business logic: Build where clause for games
+    const whereClause = { team_id: req.user.team_id };
+    // Filter: Optionally filter by season
+    if (season) whereClause.season = season;
+
+    // Database: Fetch team games for win/loss record
+    const games = await Game.findAll({ where: whereClause });
+
+    // Database: Fetch active players for roster breakdown
+    const players = await Player.findAll({
+      where: { team_id: req.user.team_id, status: 'active' }
+    });
+
+    // Business logic: Calculate game statistics and player breakdown
+    const stats = {
+      games: {
+        total: games.length,
+        wins: games.filter(g => g.result === 'W').length,
+        losses: games.filter(g => g.result === 'L').length,
+        ties: games.filter(g => g.result === 'T').length,
+        win_percentage: games.length > 0 ? (games.filter(g => g.result === 'W').length / games.length * 100).toFixed(1) : 0
+      },
+      players: {
+        total: players.length,
+        pitchers: players.filter(p => p.position === 'P').length,
+        position_players: players.filter(p => p.position !== 'P').length,
+        high_school: players.filter(p => p.school_type === 'HS').length,
+        college: players.filter(p => p.school_type === 'COLL').length
+      },
+      season: season || 'All'
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    // Error: Database query failure
+    logger.error('Error fetching team statistics report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching team statistics report'
+    });
+  }
+});
+
+/**
+ * @route GET /api/reports/scouting-analysis
+ * @description Retrieves scouting analysis with aggregated metrics across scouting reports.
+ *              Calculates average grades, groups reports by position, and returns recent reports.
+ *              Uses a grade-to-numeric conversion for averaging letter grades (A+ = 97, A = 93, etc.).
+ * @access Private - Requires authentication + reports_view permission
+ * @middleware protect - JWT authentication required
+ * @middleware checkPermission('reports_view') - Report viewing permission required
+ *
+ * @param {string} [req.query.start_date] - Start date for date range filter (ISO 8601)
+ * @param {string} [req.query.end_date] - End date for date range filter (ISO 8601)
+ * @param {string} [req.query.position] - Position filter (currently unused in query)
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Analysis data
+ * @returns {number} response.data.total_reports - Total scouting reports found
+ * @returns {string} response.data.average_grade - Average numeric grade (0-100 scale)
+ * @returns {Object} response.data.reports_by_position - Count of reports grouped by position
+ * @returns {Array<Object>} response.data.recent_reports - Last 10 scouting reports
+ * @returns {Object} response.data.date_range - Applied date range filter
+ * @returns {string} response.data.generated_at - Report generation timestamp
+ *
+ * @throws {403} Forbidden - User lacks reports_view permission
+ * @throws {500} Server error - Database query failure
+ */
+router.get('/scouting-analysis', checkPermission('reports_view'), async (req, res) => {
+  try {
+    const { start_date, end_date, position } = req.query;
+
+    logger.debug('Scouting analysis request - user team_id:', req.user.team_id);
+    logger.debug('Scouting analysis request - query params:', req.query);
+
+    // Business logic: Build where clause for date filtering
+    const whereClause = {};
+    if (start_date && end_date) {
+      whereClause.report_date = { [Op.between]: [start_date, end_date] };
+    }
+
+    // Database: Fetch scouting reports with player info
+    const reports = await ScoutingReport.findAndCountAll({
+      where: whereClause,
+      include: [{
+        model: Player,
+        // Permission: Multi-tenant isolation via Player's team_id
+        where: { team_id: req.user.team_id },
+        attributes: ['id', 'first_name', 'last_name', 'position', 'school_type']
+      }],
+      order: [['report_date', 'DESC']]
+    });
+
+    logger.debug('Scouting analysis query result count:', reports.count);
+
+    /**
+     * @description Converts letter grades to numeric values for statistical calculations.
+     *              Grade scale: A+ = 97, A = 93, A- = 90, B+ = 87, B = 83, B- = 80,
+     *              C+ = 77, C = 73, C- = 70, D+ = 67, D = 63, D- = 60, F = 50
+     * @param {string} grade - Letter grade (e.g., 'A+', 'B-', 'F')
+     * @returns {number} Numeric value (0-100 scale, 0 if grade not recognized)
+     */
+    const gradeToNumeric = (grade) => {
+      const gradeMap = {
+        'A+': 97, 'A': 93, 'A-': 90,
+        'B+': 87, 'B': 83, 'B-': 80,
+        'C+': 77, 'C': 73, 'C-': 70,
+        'D+': 67, 'D': 63, 'D-': 60,
+        'F': 50
+      };
+      return gradeMap[grade] || 0;
+    };
+
+    // Business logic: Calculate average grade from valid grades
+    const totalReports = reports.count;
+    const validGrades = reports.rows.filter(r => r.overall_grade).map(r => gradeToNumeric(r.overall_grade));
+    const avgGrade = validGrades.length > 0
+      ? (validGrades.reduce((sum, grade) => sum + grade, 0) / validGrades.length).toFixed(1)
+      : 0;
+
+    // Business logic: Build analysis response
+    const analysis = {
+      total_reports: totalReports,
+      average_grade: avgGrade,
+      reports_by_position: {},
+      recent_reports: reports.rows.slice(0, 10),
+      date_range: { start_date, end_date },
+      generated_at: new Date().toISOString()
+    };
+
+    // Business logic: Group reports by player position
+    reports.rows.forEach(report => {
+      const position = report.Player.position;
+      if (!analysis.reports_by_position[position]) {
+        analysis.reports_by_position[position] = 0;
+      }
+      analysis.reports_by_position[position]++;
+    });
+
+    res.json({
+      success: true,
+      data: analysis
+    });
+  } catch (error) {
+    // Error: Database query failure
+    logger.error('Error fetching scouting analysis report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching scouting analysis report'
+    });
+  }
+});
+
+/**
+ * @route GET /api/reports/recruitment-pipeline (with permission check)
+ * @description Retrieves recruitment pipeline with actual database data.
+ *              Returns high school recruits grouped by priority, status, and position.
+ *              Uses PreferenceList association for tracking recruitment status.
+ *              Note: Due to Express routing, this handler is unreachable because an earlier
+ *              route handler for the same path exists above. Consider refactoring to consolidate.
+ * @access Private - Requires authentication + reports_view permission
+ * @middleware protect - JWT authentication required
+ * @middleware checkPermission('reports_view') - Report viewing permission required
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Pipeline data
+ * @returns {number} response.data.total_recruits - Total high school recruits
+ * @returns {Object} response.data.by_priority - Counts grouped by priority (high/medium/low/unassigned)
+ * @returns {Object} response.data.by_status - Counts grouped by status (active/committed/declined/pending)
+ * @returns {Object} response.data.by_position - Counts grouped by position
+ * @returns {Array<Object>} response.data.recent_additions - Last 10 added recruits
+ *
+ * @throws {403} Forbidden - User lacks reports_view permission
+ * @throws {500} Server error - Database query failure
+ * @deprecated This route handler is unreachable - consolidate with the earlier handler
+ */
+router.get('/recruitment-pipeline', checkPermission('reports_view'), async (req, res) => {
+  try {
+    const { Player, PreferenceList } = require('../models');
+
+    // Database: Fetch high school recruits with preference list data
+    const recruits = await Player.findAll({
+      where: {
+        team_id: req.user.team_id,
+        // Business logic: Only high school players for recruitment pipeline
+        school_type: 'HS',
+        status: 'active'
+      },
+      include: [{
+        model: PreferenceList,
+        where: { team_id: req.user.team_id },
+        // Business logic: Left join - include players without preference list entries
+        required: false,
+        attributes: ['list_type', 'priority', 'status', 'interest_level']
+      }],
+      // Business logic: Newest recruits first
+      order: [['created_at', 'DESC']]
+    });
+
+    // Business logic: Build pipeline statistics
+    const pipeline = {
+      total_recruits: recruits.length,
+      by_priority: {
+        high: recruits.filter(r => r.PreferenceList?.priority === 'high').length,
+        medium: recruits.filter(r => r.PreferenceList?.priority === 'medium').length,
+        low: recruits.filter(r => r.PreferenceList?.priority === 'low').length,
+        unassigned: recruits.filter(r => !r.PreferenceList?.priority).length
+      },
+      by_status: {
+        active: recruits.filter(r => r.PreferenceList?.status === 'active').length,
+        committed: recruits.filter(r => r.PreferenceList?.status === 'committed').length,
+        declined: recruits.filter(r => r.PreferenceList?.status === 'declined').length,
+        pending: recruits.filter(r => !r.PreferenceList?.status || r.PreferenceList?.status === 'pending').length
+      },
+      by_position: {},
+      recent_additions: recruits.slice(0, 10)
+    };
+
+    // Business logic: Group by position
+    recruits.forEach(recruit => {
+      const position = recruit.position;
+      if (!pipeline.by_position[position]) {
+        pipeline.by_position[position] = 0;
+      }
+      pipeline.by_position[position]++;
+    });
+
+    res.json({
+      success: true,
+      data: pipeline
+    });
+  } catch (error) {
+    // Error: Database query failure
+    logger.error('Error fetching recruitment pipeline report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching recruitment pipeline report'
+    });
+  }
+});
+
+/**
+ * @route POST /api/reports/generate-pdf (with permission check)
+ * @description Generates a PDF report with permission validation.
+ *              Note: This is a placeholder implementation - actual PDF generation not yet implemented.
+ *              Note: Due to Express routing, this handler is unreachable because an earlier
+ *              route handler for the same path exists above. Consider refactoring to consolidate.
  * @access Private - Requires authentication + reports_create permission
  * @middleware protect - JWT authentication required
  * @middleware checkPermission('reports_create') - Report creation permission required
  *
- * @param {number} req.body.player_id - Player ID (required)
- * @param {string} req.body.report_date - Report date (required, ISO 8601)
- * @param {string} req.body.overall_grade - Overall grade A-F (required)
- * @param {Object} req.body.skill_ratings - Skill rating data (optional)
- * @param {string} req.body.narrative - Narrative evaluation text (optional)
+ * @param {string} req.body.type - Type of report to generate
+ * @param {Object} [req.body.data] - Report data to include in PDF
+ * @param {Object} [req.body.options] - PDF generation options
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Created scouting report
+ * @returns {string} response.message - Status message
+ * @returns {Object} response.data - Generation metadata
  *
  * @throws {403} Forbidden - User lacks reports_create permission
- * @throws {404} Not found - Player not found or belongs to different team
- * @throws {500} Server error - Database operation failure
+ * @throws {500} Server error - Unexpected error
+ * @deprecated This route handler is unreachable - consolidate with the earlier handler
  */
-router.post('/scouting', checkPermission('reports_create'), async (req, res) => {
+router.post('/generate-pdf', checkPermission('reports_create'), async (req, res) => {
   try {
+    const { type, data, options } = req.body;
+
+    // Business logic: Placeholder implementation
+    // TODO: Implement actual PDF generation using a library like pdfmake or puppeteer
+    res.json({
+      success: true,
+      message: 'PDF generation endpoint - implement PDF generation logic',
+      data: { type, options }
+    });
+  } catch (error) {
+    // Error: Unexpected error
+    logger.error('Error generating PDF report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error generating PDF report'
+    });
+  }
+});
+
+/**
+ * @route POST /api/reports/export-excel (with permission check)
+ * @description Exports report data to Excel format with permission validation.
+ *              Note: This is a placeholder implementation - actual Excel export not yet implemented.
+ *              Note: Due to Express routing, this handler is unreachable because an earlier
+ *              route handler for the same path exists above. Consider refactoring to consolidate.
+ * @access Private - Requires authentication + reports_create permission
+ * @middleware protect - JWT authentication required
+ * @middleware checkPermission('reports_create') - Report creation permission required
+ *
+ * @param {string} req.body.type - Type of report to export
+ * @param {Object} [req.body.data] - Report data to include in Excel
+ * @param {Object} [req.body.options] - Export options
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Status message
+ * @returns {Object} response.data - Export metadata
+ *
+ * @throws {403} Forbidden - User lacks reports_create permission
+ * @throws {500} Server error - Unexpected error
+ * @deprecated This route handler is unreachable - consolidate with the earlier handler
+ */
+router.post('/export-excel', checkPermission('reports_create'), async (req, res) => {
+  try {
+    const { type, data, options } = req.body;
+
+    // Business logic: Placeholder implementation
+    // TODO: Implement actual Excel export using a library like exceljs or xlsx
+    res.json({
+      success: true,
+      message: 'Excel export endpoint - implement Excel generation logic',
+      data: { type, options }
+    });
+  } catch (error) {
+    // Error: Unexpected error
+    logger.error('Error exporting Excel report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting Excel report'
+    });
+  }
+});
+
+/**
+ * @route POST /api/reports/scouting
+ * @description Creates a new scouting report for a player.
+ *              Validates that the player belongs to the user's team before creation.
+ *              Returns the created report with player and creator information.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.body.player_id - ID of the player being evaluated (required)
+ * @param {string} req.body.report_date - Date of the scouting evaluation
+ * @param {string} [req.body.overall_grade] - Overall grade (A+, A, A-, B+, etc.)
+ * @param {string} [req.body.hitting_grade] - Hitting ability grade
+ * @param {string} [req.body.power_grade] - Power hitting grade
+ * @param {string} [req.body.speed_grade] - Speed/running grade
+ * @param {string} [req.body.arm_grade] - Arm strength grade
+ * @param {string} [req.body.fielding_grade] - Fielding ability grade
+ * @param {string} [req.body.notes] - Narrative evaluation notes
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Success message
+ * @returns {Object} response.data - Created scouting report with associations
+ * @returns {Object} response.data.Player - Player information
+ * @returns {Object} response.data.User - Creator information
+ *
+ * @throws {404} Not found - Player not found or belongs to different team
+ * @throws {500} Server error - Database creation failure
+ */
+router.post('/scouting', async (req, res) => {
+  try {
+    logger.debug('Create scouting report request:', req.body);
+    logger.debug('User team_id:', req.user.team_id);
+
     // Validation: Ensure player exists and belongs to user's team
+    // This enforces multi-tenant isolation for scouting reports
     const player = await Player.findOne({
       where: {
         id: req.body.player_id,
@@ -627,29 +1452,48 @@ router.post('/scouting', checkPermission('reports_create'), async (req, res) => 
     if (!player) {
       return res.status(404).json({
         success: false,
-        message: 'Player not found'
+        message: 'Player not found or does not belong to your team'
       });
     }
 
+    // Database: Create the scouting report
     const scoutingReport = await ScoutingReport.create({
-      player_id: req.body.player_id,
-      report_date: req.body.report_date,
-      overall_grade: req.body.overall_grade,
-      skill_ratings: req.body.skill_ratings || {},
-      narrative: req.body.narrative || '',
-      scout_id: req.user.id
+      ...req.body,
+      // Business logic: Track who created the report
+      created_by: req.user.id
     });
 
-    // Notification: Notify relevant team members of new scouting report
-    await notificationService.notifyScoutingReportCreated(scoutingReport);
+    // Database: Fetch the created report with associations for response
+    const createdReport = await ScoutingReport.findByPk(scoutingReport.id, {
+      include: [
+        {
+          model: Player,
+          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+        },
+        {
+          model: User,
+          attributes: ['id', 'first_name', 'last_name']
+        }
+      ]
+    });
+
+    // Notification: Fire-and-forget notification to team members
+    // This does not block the response - errors are handled gracefully in the service
+    notificationService.sendScoutingReportNotification(
+      createdReport,
+      createdReport.Player,
+      req.user.team_id,
+      req.user.id
+    );
 
     res.status(201).json({
       success: true,
       message: 'Scouting report created successfully',
-      data: scoutingReport
+      data: createdReport
     });
   } catch (error) {
-    console.error('Create scouting report error:', error);
+    // Error: Database creation failure or validation error
+    logger.error('Create scouting report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating scouting report'
@@ -658,263 +1502,173 @@ router.post('/scouting', checkPermission('reports_create'), async (req, res) => 
 });
 
 /**
- * @route GET /api/reports/analytics/player-performance
- * @description Retrieves aggregated player performance analytics for the team.
- *              Provides statistics across the entire roster.
- *              Results are scoped to the authenticated user's team.
- * @access Private - Requires authentication + reports_view permission
+ * @route GET /api/reports/scouting/:id
+ * @description Retrieves a specific scouting report by ID.
+ *              Multi-tenant isolation is enforced via the Player's team_id.
+ *              Returns the report with player and creator information.
+ * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
- * @middleware checkPermission('reports_view') - Report viewing permission required
  *
- * @param {string} [req.query.start_date] - Start date for filtering (ISO 8601)
- * @param {string} [req.query.end_date] - End date for filtering (ISO 8601)
- * @param {string} [req.query.position] - Optional filter by player position
+ * @param {string} req.params.id - Scouting report ID (UUID)
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Aggregated performance analytics
- * @returns {Array} response.data.players - Player performance data
+ * @returns {Object} response.data - Scouting report object
+ * @returns {number} response.data.id - Report ID
+ * @returns {string} response.data.report_date - Date of evaluation
+ * @returns {string} response.data.overall_grade - Overall grade
+ * @returns {Object} response.data.Player - Associated player
+ * @returns {number} response.data.Player.id - Player ID
+ * @returns {string} response.data.Player.first_name - Player's first name
+ * @returns {string} response.data.Player.last_name - Player's last name
+ * @returns {string} response.data.Player.position - Player's position
+ * @returns {string} response.data.Player.school - Player's school
+ * @returns {Object} response.data.User - Report creator
+ * @returns {number} response.data.User.id - Creator's user ID
+ * @returns {string} response.data.User.first_name - Creator's first name
+ * @returns {string} response.data.User.last_name - Creator's last name
  *
- * @throws {403} Forbidden - User lacks reports_view permission
+ * @throws {404} Not found - Report not found or player belongs to different team
  * @throws {500} Server error - Database query failure
  */
-router.get('/analytics/player-performance', checkPermission('reports_view'), async (req, res) => {
+router.get('/scouting/:id', async (req, res) => {
   try {
-    // Analytics: Aggregate player performance data for team roster
-    const players = await Player.findAll({
-      where: { team_id: req.user.team_id }
-    });
-
-    // Placeholder: Actual aggregation logic would compute detailed statistics
-    res.json({
-      success: true,
-      data: {
-        players: players
-      }
-    });
-  } catch (error) {
-    console.error('Get player performance analytics error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching analytics'
-    });
-  }
-});
-
-/**
- * @route GET /api/reports/analytics/team-statistics
- * @description Retrieves team-level statistics and aggregate metrics.
- *              Includes win/loss records, batting averages, ERA, etc.
- *              Results are scoped to the authenticated user's team.
- * @access Private - Requires authentication + reports_view permission
- * @middleware protect - JWT authentication required
- * @middleware checkPermission('reports_view') - Report viewing permission required
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Team-level statistics
- *
- * @throws {403} Forbidden - User lacks reports_view permission
- * @throws {500} Server error - Database query failure
- */
-router.get('/analytics/team-statistics', checkPermission('reports_view'), async (req, res) => {
-  try {
-    // Analytics: Compute team-level aggregate statistics
-    const team = await Team.findOne({
-      where: { id: req.user.team_id }
-    });
-
-    // Placeholder: Actual logic would aggregate team statistics
-    res.json({
-      success: true,
-      data: {
-        team: team,
-        stats: {}
-      }
-    });
-  } catch (error) {
-    console.error('Get team statistics error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching team statistics'
-    });
-  }
-});
-
-/**
- * @route GET /api/reports/analytics/scouting-analysis
- * @description Retrieves aggregated metrics from scouting reports.
- *              Computes grade distributions, skill rating averages, and trends.
- *              Results are scoped to the authenticated user's team.
- * @access Private - Requires authentication + reports_view permission
- * @middleware protect - JWT authentication required
- * @middleware checkPermission('reports_view') - Report viewing permission required
- *
- * @param {string} [req.query.start_date] - Start date for filtering
- * @param {string} [req.query.end_date] - End date for filtering
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Scouting analysis metrics
- *
- * @throws {403} Forbidden - User lacks reports_view permission
- * @throws {500} Server error - Database query failure
- */
-router.get('/analytics/scouting-analysis', checkPermission('reports_view'), async (req, res) => {
-  try {
-    // Analytics: Aggregate scouting report metrics
-    const scoutingReports = await ScoutingReport.findAll({
+    // Database: Find report with team scoping via Player association
+    const report = await ScoutingReport.findOne({
+      where: { id: req.params.id },
       include: [
         {
           model: Player,
-          where: { team_id: req.user.team_id }
+          // Permission: Multi-tenant isolation via Player's team_id
+          where: { team_id: req.user.team_id },
+          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+        },
+        {
+          model: User,
+          attributes: ['id', 'first_name', 'last_name']
         }
       ]
     });
 
-    // Placeholder: Actual analysis logic would compute distributions and trends
+    // Validation: Report must exist and player must belong to user's team
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scouting report not found'
+      });
+    }
+
     res.json({
       success: true,
-      data: {
-        reports: scoutingReports
-      }
+      data: report
     });
   } catch (error) {
-    console.error('Get scouting analysis error:', error);
+    // Error: Database query failure
+    logger.error('Get scouting report error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching scouting analysis'
+      message: 'Error fetching scouting report'
     });
   }
 });
 
 /**
- * @route GET /api/reports/analytics/recruitment-pipeline
- * @description Retrieves recruitment pipeline data including prospect tracking.
- *              Organizes prospects by priority and status.
- *              Results are scoped to the authenticated user's team.
- * @access Private - Requires authentication + reports_view permission
+ * @route PUT /api/reports/scouting/:id
+ * @description Updates an existing scouting report.
+ *              Multi-tenant isolation is enforced via the Player's team_id.
+ *              If changing the player_id, validates the new player belongs to user's team.
+ *              Supports partial updates - only provided fields are modified.
+ * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
- * @middleware checkPermission('reports_view') - Report viewing permission required
+ *
+ * @param {string} req.params.id - Scouting report ID (UUID)
+ * @param {string} [req.body.player_id] - New player ID (must belong to user's team)
+ * @param {string} [req.body.report_date] - Updated evaluation date
+ * @param {string} [req.body.overall_grade] - Updated overall grade
+ * @param {string} [req.body.hitting_grade] - Updated hitting grade
+ * @param {string} [req.body.power_grade] - Updated power grade
+ * @param {string} [req.body.speed_grade] - Updated speed grade
+ * @param {string} [req.body.arm_grade] - Updated arm grade
+ * @param {string} [req.body.fielding_grade] - Updated fielding grade
+ * @param {string} [req.body.notes] - Updated evaluation notes
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Recruitment pipeline data
+ * @returns {string} response.message - Success message
+ * @returns {Object} response.data - Updated scouting report with associations
  *
- * @throws {403} Forbidden - User lacks reports_view permission
- * @throws {500} Server error - Database query failure
+ * @throws {404} Not found - Report not found, player belongs to different team, or new player not found
+ * @throws {500} Server error - Database update failure
  */
-router.get('/analytics/recruitment-pipeline', checkPermission('reports_view'), async (req, res) => {
+router.put('/scouting/:id', async (req, res) => {
   try {
-    // Analytics: Build recruitment pipeline from scouting reports and player data
-    const players = await Player.findAll({
-      where: { team_id: req.user.team_id }
+    logger.debug('Update scouting report request:', req.params.id, req.body);
+
+    // Database: Find existing report with team validation via Player
+    const existingReport = await ScoutingReport.findOne({
+      where: { id: req.params.id },
+      include: [{
+        model: Player,
+        // Permission: Multi-tenant isolation via Player's team_id
+        where: { team_id: req.user.team_id },
+        attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+      }]
     });
 
-    // Placeholder: Actual pipeline logic would organize by priority/status
+    // Validation: Report must exist and belong to user's team
+    if (!existingReport) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scouting report not found or does not belong to your team'
+      });
+    }
+
+    // Validation: If changing player_id, verify new player belongs to user's team
+    // This prevents reassigning reports to players from other teams
+    if (req.body.player_id && req.body.player_id !== existingReport.player_id) {
+      const player = await Player.findOne({
+        where: {
+          id: req.body.player_id,
+          team_id: req.user.team_id
+        }
+      });
+
+      if (!player) {
+        return res.status(404).json({
+          success: false,
+          message: 'Player not found or does not belong to your team'
+        });
+      }
+    }
+
+    // Database: Apply partial update with provided fields
+    await existingReport.update(req.body);
+
+    // Database: Fetch updated report with associations for response
+    const updatedReport = await ScoutingReport.findByPk(existingReport.id, {
+      include: [
+        {
+          model: Player,
+          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+        },
+        {
+          model: User,
+          attributes: ['id', 'first_name', 'last_name']
+        }
+      ]
+    });
+
     res.json({
       success: true,
-      data: {
-        pipeline: players
-      }
+      message: 'Scouting report updated successfully',
+      data: updatedReport
     });
   } catch (error) {
-    console.error('Get recruitment pipeline error:', error);
+    // Error: Database update failure
+    logger.error('Update scouting report error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching recruitment pipeline'
-    });
-  }
-});
-
-/**
- * @route POST /api/reports/export/pdf
- * @description Exports a report to PDF format.
- *              Converts report data to PDF and returns downloadable file.
- *              Multi-tenant isolation ensures only team's reports can be exported.
- * @access Private - Requires authentication + reports_create permission
- * @middleware protect - JWT authentication required
- * @middleware checkPermission('reports_create') - Export permission required
- *
- * @param {number} req.body.report_id - Report ID to export
- *
- * @returns {Buffer} PDF file content
- *
- * @throws {403} Forbidden - User lacks reports_create permission
- * @throws {404} Not found - Report not found or belongs to different team
- * @throws {500} Server error - PDF generation failure
- */
-router.post('/export/pdf', checkPermission('reports_create'), async (req, res) => {
-  try {
-    const report = await Report.findOne({
-      where: {
-        id: req.body.report_id,
-        team_id: req.user.team_id
-      }
-    });
-
-    if (!report) {
-      return res.status(404).json({
-        success: false,
-        message: 'Report not found'
-      });
-    }
-
-    // Placeholder: Actual PDF generation would use a library like pdfkit
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="report-${report.id}.pdf"`);
-    res.send('PDF content placeholder');
-  } catch (error) {
-    console.error('Export PDF error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error exporting to PDF'
-    });
-  }
-});
-
-/**
- * @route POST /api/reports/export/excel
- * @description Exports a report to Excel format.
- *              Converts report data to Excel spreadsheet and returns downloadable file.
- *              Multi-tenant isolation ensures only team's reports can be exported.
- * @access Private - Requires authentication + reports_create permission
- * @middleware protect - JWT authentication required
- * @middleware checkPermission('reports_create') - Export permission required
- *
- * @param {number} req.body.report_id - Report ID to export
- *
- * @returns {Buffer} Excel file content
- *
- * @throws {403} Forbidden - User lacks reports_create permission
- * @throws {404} Not found - Report not found or belongs to different team
- * @throws {500} Server error - Excel generation failure
- */
-router.post('/export/excel', checkPermission('reports_create'), async (req, res) => {
-  try {
-    const report = await Report.findOne({
-      where: {
-        id: req.body.report_id,
-        team_id: req.user.team_id
-      }
-    });
-
-    if (!report) {
-      return res.status(404).json({
-        success: false,
-        message: 'Report not found'
-      });
-    }
-
-    // Placeholder: Actual Excel generation would use a library like xlsx
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="report-${report.id}.xlsx"`);
-    res.send('Excel content placeholder');
-  } catch (error) {
-    console.error('Export Excel error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error exporting to Excel'
+      message: 'Error updating scouting report'
     });
   }
 });

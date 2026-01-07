@@ -21,10 +21,11 @@
  */
 
 const express = require('express');
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, query } = require('express-validator');
 const { Schedule, ScheduleSection, ScheduleActivity, User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
 const notificationService = require('../services/notificationService');
+const logger = require('../utils/logger');
 const router = express.Router();
 
 // Middleware: Apply JWT authentication to all routes in this file
@@ -167,7 +168,7 @@ router.get('/', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching schedules:', error);
+    logger.error('Error fetching schedules:', error);
     res.status(500).json({ error: 'Failed to fetch schedules' });
   }
 });
@@ -267,7 +268,7 @@ router.get('/stats', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching schedule stats:', error);
+    logger.error('Error fetching schedule stats:', error);
     res.status(500).json({ error: 'Failed to fetch schedule stats' });
   }
 });
@@ -335,7 +336,7 @@ router.get('/byId/:id', async (req, res) => {
 
     res.json({ data: schedule });
   } catch (error) {
-    console.error('Error fetching schedule:', error);
+    logger.error('Error fetching schedule:', error);
     res.status(500).json({ error: 'Failed to fetch schedule' });
   }
 });
@@ -400,28 +401,28 @@ router.post('/', validateSchedule, handleValidationErrors, async (req, res) => {
           sort_order: i
         });
 
-        // Business logic: Create activities for this section if provided
-        // Activity sort_order is determined by position in activities array
+        // Business logic: Create all activities for this section using bulk insert
         if (sectionData.activities && sectionData.activities.length > 0) {
-          for (let j = 0; j < sectionData.activities.length; j++) {
-            const activityData = sectionData.activities[j];
-            // Database: Create activity with sort_order from array position
-            await ScheduleActivity.create({
-              section_id: section.id,
-              time: activityData.time,
-              activity: activityData.activity,
-              location: activityData.location || null,
-              staff: activityData.staff || null,
-              group: activityData.group || null,
-              notes: activityData.notes || null,
-              sort_order: j
-            });
-          }
+          const activities = sectionData.activities.map((activity, index) => ({
+            section_id: section.id,
+            time: activity.time,
+            activity: activity.activity,
+            location: activity.location || null,
+            staff: activity.staff || null,
+            group: activity.group || null,
+            notes: activity.notes || null,
+            // Business logic: Sort order from array position for consistent ordering
+            sort_order: index
+          }));
+
+          // Database: Bulk create activities for efficiency
+          await ScheduleActivity.bulkCreate(activities);
         }
       }
     }
 
-    // Database: Fetch the created schedule with full nested data
+    // Database: Fetch the complete created schedule with all associations
+    // This ensures the response includes all nested data with proper formatting
     const createdSchedule = await Schedule.findOne({
       where: { id: schedule.id },
       include: [
@@ -439,7 +440,7 @@ router.post('/', validateSchedule, handleValidationErrors, async (req, res) => {
           include: [
             {
               model: ScheduleActivity,
-              order: [['sort_order', 'ASC']]
+              order: [['sort_order', 'ASC'], ['time', 'ASC']]
             }
           ],
           order: [['sort_order', 'ASC']]
@@ -447,109 +448,115 @@ router.post('/', validateSchedule, handleValidationErrors, async (req, res) => {
       ]
     });
 
+    // Notification: Fire-and-forget notification to team members
+    // This does not block the response - errors are handled gracefully in the service
+    notificationService.sendSchedulePublishedNotification(
+      createdSchedule,
+      req.user.team_id,
+      req.user.id
+    );
+
     res.status(201).json({
       message: 'Schedule created successfully',
       data: createdSchedule
     });
   } catch (error) {
-    console.error('Error creating schedule:', error);
+    logger.error('Error creating schedule:', error);
     res.status(500).json({ error: 'Failed to create schedule' });
   }
 });
 
 /**
- * @route PUT /api/schedules/:id
- * @description Updates a schedule and its sections/activities.
- *              Currently supports full replacement of sections and activities.
- *              Existing sections are deleted and new ones are created based on provided array.
+ * @route PUT /api/schedules/byId/:id
+ * @description Updates an existing schedule with complete replacement of sections and activities.
+ *              This is a full replacement operation - all existing sections and activities are deleted
+ *              and recreated from the request body. Use this for complete schedule restructuring.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  * @middleware validateSchedule - Validates required schedule fields
  * @middleware handleValidationErrors - Returns 400 if validation fails
  *
- * @param {string} req.params.id - Schedule UUID
- * @param {string} req.body.team_name - Updated team name
- * @param {string} req.body.program_name - Updated program name
- * @param {string} req.body.date - Updated schedule date
- * @param {string} [req.body.motto] - Updated motto
- * @param {Array<Object>} req.body.sections - New sections array (replaces existing)
+ * @param {string} req.params.id - Schedule UUID to update
+ * @param {string} req.body.team_name - Display name for the team on this schedule
+ * @param {string} req.body.program_name - Program name
+ * @param {string} req.body.date - Schedule date in YYYY-MM-DD format
+ * @param {string} [req.body.motto] - Optional motivational motto
+ * @param {Array<Object>} req.body.sections - Complete array of sections (replaces existing)
  *
  * @returns {Object} response
  * @returns {string} response.message - Success confirmation
- * @returns {Object} response.data - Updated schedule with full nested data
+ * @returns {Object} response.data - Updated schedule with all nested sections and activities
  *
  * @throws {400} Validation failed - Missing or invalid required fields
- * @throws {404} Not found - Schedule doesn't exist or doesn't belong to user's team
+ * @throws {404} Not found - Schedule doesn't exist, is soft-deleted, or doesn't belong to user's team
  * @throws {500} Server error - Database operation failure
  */
-router.put('/:id', validateSchedule, handleValidationErrors, async (req, res) => {
+router.put('/byId/:id', validateSchedule, handleValidationErrors, async (req, res) => {
   try {
-    // Permission: Check that schedule belongs to user's team
-    const schedule = await Schedule.findOne({
+    const { team_name, program_name, date, motto, sections } = req.body;
+
+    // Database: Verify schedule exists and user has access
+    const existingSchedule = await Schedule.findOne({
       where: {
         id: req.params.id,
-        team_id: req.user.team_id
+        // Permission: Only allow updates to schedules within user's team
+        team_id: req.user.team_id,
+        is_active: true
       }
     });
 
-    // Error: Return 404 if schedule not found or unauthorized
-    if (!schedule) {
+    // Error: Return 404 if schedule not found (includes team access check)
+    if (!existingSchedule) {
       return res.status(404).json({ error: 'Schedule not found' });
     }
 
-    const { team_name, program_name, date, motto, sections } = req.body;
-
-    // Database: Update schedule basic fields
-    await schedule.update({
+    // Database: Update the main schedule fields
+    await existingSchedule.update({
       team_name,
       program_name,
       date,
       motto
     });
 
-    // Business logic: Replace sections entirely if provided
-    // First delete existing sections (cascades to activities)
-    if (sections && sections.length >= 0) {
-      await ScheduleSection.destroy({
-        where: { schedule_id: schedule.id }
-      });
+    // Business logic: Full replacement strategy - delete all existing sections
+    // Cascade deletion will automatically remove all associated activities
+    await ScheduleSection.destroy({
+      where: { schedule_id: existingSchedule.id }
+    });
 
-      // Database: Create new sections from provided array
-      if (sections.length > 0) {
-        for (let i = 0; i < sections.length; i++) {
-          const sectionData = sections[i];
-          // Database: Create section with sort_order from array position
-          const section = await ScheduleSection.create({
-            schedule_id: schedule.id,
-            type: sectionData.type,
-            title: sectionData.title,
-            sort_order: i
-          });
+    // Business logic: Recreate sections and activities from request body
+    // This ensures clean slate with new structure and ordering
+    if (sections && sections.length > 0) {
+      for (let i = 0; i < sections.length; i++) {
+        const sectionData = sections[i];
+        const section = await ScheduleSection.create({
+          schedule_id: existingSchedule.id,
+          type: sectionData.type,
+          title: sectionData.title,
+          sort_order: i
+        });
 
-          // Business logic: Create activities for this section if provided
-          if (sectionData.activities && sectionData.activities.length > 0) {
-            for (let j = 0; j < sectionData.activities.length; j++) {
-              const activityData = sectionData.activities[j];
-              // Database: Create activity with sort_order from array position
-              await ScheduleActivity.create({
-                section_id: section.id,
-                time: activityData.time,
-                activity: activityData.activity,
-                location: activityData.location || null,
-                staff: activityData.staff || null,
-                group: activityData.group || null,
-                notes: activityData.notes || null,
-                sort_order: j
-              });
-            }
-          }
+        // Create activities for this section
+        if (sectionData.activities && sectionData.activities.length > 0) {
+          const activities = sectionData.activities.map((activity, index) => ({
+            section_id: section.id,
+            time: activity.time,
+            activity: activity.activity,
+            location: activity.location || null,
+            staff: activity.staff || null,
+            group: activity.group || null,
+            notes: activity.notes || null,
+            sort_order: index
+          }));
+
+          await ScheduleActivity.bulkCreate(activities);
         }
       }
     }
 
-    // Database: Fetch updated schedule with full nested data
+    // Database: Fetch the complete updated schedule with all associations
     const updatedSchedule = await Schedule.findOne({
-      where: { id: schedule.id },
+      where: { id: existingSchedule.id },
       include: [
         {
           model: User,
@@ -565,7 +572,7 @@ router.put('/:id', validateSchedule, handleValidationErrors, async (req, res) =>
           include: [
             {
               model: ScheduleActivity,
-              order: [['sort_order', 'ASC']]
+              order: [['sort_order', 'ASC'], ['time', 'ASC']]
             }
           ],
           order: [['sort_order', 'ASC']]
@@ -578,164 +585,441 @@ router.put('/:id', validateSchedule, handleValidationErrors, async (req, res) =>
       data: updatedSchedule
     });
   } catch (error) {
-    console.error('Error updating schedule:', error);
+    logger.error('Error updating schedule:', error);
     res.status(500).json({ error: 'Failed to update schedule' });
   }
 });
 
 /**
- * @route DELETE /api/schedules/:id
- * @description Soft deletes a schedule (sets is_active = false).
- *              Does not delete sections or activities - only marks schedule as inactive.
- *              Historical data is preserved for audit trail.
+ * @route DELETE /api/schedules/byId/:id
+ * @description Soft deletes a schedule by setting is_active to false.
+ *              The schedule and all associated data remain in the database for historical purposes.
+ *              Soft-deleted schedules are excluded from all GET queries via the is_active filter.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  *
- * @param {string} req.params.id - Schedule UUID
+ * @param {string} req.params.id - Schedule UUID to delete
  *
  * @returns {Object} response
  * @returns {string} response.message - Success confirmation
  *
- * @throws {404} Not found - Schedule doesn't exist or doesn't belong to user's team
+ * @throws {404} Not found - Schedule doesn't exist, is already soft-deleted, or doesn't belong to user's team
  * @throws {500} Server error - Database operation failure
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/byId/:id', async (req, res) => {
   try {
-    // Permission: Check that schedule belongs to user's team
+    // Database: Find schedule with team isolation and active status check
     const schedule = await Schedule.findOne({
       where: {
         id: req.params.id,
-        team_id: req.user.team_id
+        // Permission: Only allow deletion of schedules within user's team
+        team_id: req.user.team_id,
+        is_active: true
       }
     });
 
-    // Error: Return 404 if schedule not found or unauthorized
+    // Error: Return 404 if schedule not found (includes team access check)
     if (!schedule) {
       return res.status(404).json({ error: 'Schedule not found' });
     }
 
-    // Business logic: Soft delete - preserve historical data
+    // Business logic: Soft delete by setting is_active = false
+    // Preserves historical data while hiding from active queries
     await schedule.update({ is_active: false });
 
     res.json({ message: 'Schedule deleted successfully' });
   } catch (error) {
-    console.error('Error deleting schedule:', error);
+    logger.error('Error deleting schedule:', error);
     res.status(500).json({ error: 'Failed to delete schedule' });
   }
 });
 
 /**
- * @route DELETE /api/schedules/:id/sections/:sectionId
- * @description Hard deletes a section and all its nested activities.
- *              Permanently removes the section and its child records.
+ * @route POST /api/schedules/:id/sections
+ * @description Adds a new section to an existing schedule.
+ *              Automatically assigns the next available sort_order for proper ordering.
+ *              Use this for incremental section additions without affecting existing sections.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
+ * @middleware validateSection - Validates section type and title
+ * @middleware handleValidationErrors - Returns 400 if validation fails
  *
- * @param {string} req.params.id - Schedule UUID
- * @param {string} req.params.sectionId - Section UUID
+ * @param {string} req.params.id - Schedule UUID to add section to
+ * @param {string} req.body.type - Section type (general, pitchers, position_players, etc.)
+ * @param {string} req.body.title - Section display title
  *
  * @returns {Object} response
  * @returns {string} response.message - Success confirmation
+ * @returns {Object} response.data - Created section object
  *
- * @throws {404} Not found - Schedule or section doesn't exist, or schedule doesn't belong to user's team
+ * @throws {400} Validation failed - Invalid section type or missing title
+ * @throws {404} Not found - Schedule doesn't exist, is soft-deleted, or doesn't belong to user's team
  * @throws {500} Server error - Database operation failure
  */
-router.delete('/:id/sections/:sectionId', async (req, res) => {
+router.post('/:id/sections', validateSection, handleValidationErrors, async (req, res) => {
   try {
-    // Permission: Check that schedule belongs to user's team
+    const { type, title } = req.body;
+
+    // Database: Verify schedule exists and user has access
     const schedule = await Schedule.findOne({
       where: {
         id: req.params.id,
-        team_id: req.user.team_id
+        // Permission: Only allow adding sections to user's team schedules
+        team_id: req.user.team_id,
+        is_active: true
       }
     });
 
-    // Error: Return 404 if schedule not found or unauthorized
+    // Error: Return 404 if schedule not found
     if (!schedule) {
       return res.status(404).json({ error: 'Schedule not found' });
     }
 
-    // Database: Find and delete section (cascade deletes activities)
-    const section = await ScheduleSection.findOne({
-      where: {
-        id: req.params.sectionId,
-        schedule_id: schedule.id
-      }
+    // Business logic: Get the highest current sort_order to append new section at the end
+    const lastSection = await ScheduleSection.findOne({
+      where: { schedule_id: schedule.id },
+      order: [['sort_order', 'DESC']]
     });
 
-    // Error: Return 404 if section not found
+    // Business logic: New section gets next sort_order (0 if first section)
+    const sortOrder = lastSection ? lastSection.sort_order + 1 : 0;
+
+    // Database: Create the new section
+    const section = await ScheduleSection.create({
+      schedule_id: schedule.id,
+      type,
+      title,
+      sort_order: sortOrder
+    });
+
+    res.status(201).json({
+      message: 'Section added successfully',
+      data: section
+    });
+  } catch (error) {
+    logger.error('Error adding section:', error);
+    res.status(500).json({ error: 'Failed to add section' });
+  }
+});
+
+/**
+ * @route POST /api/schedules/sections/:sectionId/activities
+ * @description Adds a new activity to an existing section.
+ *              Verifies section belongs to a schedule in the user's team.
+ *              Automatically assigns the next available sort_order.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ * @middleware validateActivity - Validates time and activity fields
+ * @middleware handleValidationErrors - Returns 400 if validation fails
+ *
+ * @param {string} req.params.sectionId - Section UUID to add activity to
+ * @param {string} req.body.time - Activity time (e.g., "9:00 AM")
+ * @param {string} req.body.activity - Activity description/name
+ * @param {string} [req.body.location] - Activity location
+ * @param {string} [req.body.staff] - Staff member responsible
+ * @param {string} [req.body.group] - Player group assignment
+ * @param {string} [req.body.notes] - Additional notes
+ *
+ * @returns {Object} response
+ * @returns {string} response.message - Success confirmation
+ * @returns {Object} response.data - Created activity object
+ *
+ * @throws {400} Validation failed - Missing time or activity description
+ * @throws {404} Not found - Section doesn't exist or parent schedule doesn't belong to user's team
+ * @throws {500} Server error - Database operation failure
+ */
+router.post('/sections/:sectionId/activities', validateActivity, handleValidationErrors, async (req, res) => {
+  try {
+    const { time, activity, location, staff, group, notes } = req.body;
+
+    // Database: Verify section exists and belongs to user's team
+    // Uses nested include to check through Section -> Schedule -> Team
+    const section = await ScheduleSection.findOne({
+      include: [
+        {
+          model: Schedule,
+          where: {
+            // Permission: Verify section belongs to user's team schedule
+            team_id: req.user.team_id,
+            is_active: true
+          }
+        }
+      ],
+      where: { id: req.params.sectionId }
+    });
+
+    // Error: Return 404 if section not found or unauthorized
     if (!section) {
       return res.status(404).json({ error: 'Section not found' });
     }
 
-    // Business logic: Hard delete section (cascades to activities)
+    // Business logic: Get the highest current sort_order to append new activity at the end
+    const lastActivity = await ScheduleActivity.findOne({
+      where: { section_id: section.id },
+      order: [['sort_order', 'DESC']]
+    });
+
+    // Business logic: New activity gets next sort_order (0 if first activity)
+    const sortOrder = lastActivity ? lastActivity.sort_order + 1 : 0;
+
+    // Database: Create the new activity
+    const newActivity = await ScheduleActivity.create({
+      section_id: section.id,
+      time,
+      activity,
+      location,
+      staff,
+      group,
+      notes,
+      sort_order: sortOrder
+    });
+
+    res.status(201).json({
+      message: 'Activity added successfully',
+      data: newActivity
+    });
+  } catch (error) {
+    logger.error('Error adding activity:', error);
+    res.status(500).json({ error: 'Failed to add activity' });
+  }
+});
+
+/**
+ * @route DELETE /api/schedules/sections/:sectionId
+ * @description Hard deletes a section and all its associated activities.
+ *              Verifies section belongs to a schedule in the user's team before deletion.
+ *              Cascade deletion automatically removes all child activities.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.params.sectionId - Section UUID to delete
+ *
+ * @returns {Object} response
+ * @returns {string} response.message - Success confirmation
+ *
+ * @throws {404} Not found - Section doesn't exist or parent schedule doesn't belong to user's team
+ * @throws {500} Server error - Database operation failure
+ */
+router.delete('/sections/:sectionId', async (req, res) => {
+  try {
+    // Database: Verify section exists and belongs to user's team
+    const section = await ScheduleSection.findOne({
+      include: [
+        {
+          model: Schedule,
+          where: {
+            // Permission: Verify section belongs to user's team schedule
+            team_id: req.user.team_id,
+            is_active: true
+          }
+        }
+      ],
+      where: { id: req.params.sectionId }
+    });
+
+    // Error: Return 404 if section not found or unauthorized
+    if (!section) {
+      return res.status(404).json({ error: 'Section not found' });
+    }
+
+    // Database: Hard delete the section
+    // Business logic: Cascade deletion will automatically remove all child activities
     await section.destroy();
 
     res.json({ message: 'Section deleted successfully' });
   } catch (error) {
-    console.error('Error deleting section:', error);
+    logger.error('Error deleting section:', error);
     res.status(500).json({ error: 'Failed to delete section' });
   }
 });
 
 /**
- * @route DELETE /api/schedules/:id/sections/:sectionId/activities/:activityId
+ * @route DELETE /api/schedules/activities/:activityId
  * @description Hard deletes a single activity from a section.
- *              Permanently removes the activity record.
+ *              Verifies activity belongs to a section within the user's team before deletion.
+ *              Uses nested includes to validate ownership through Section -> Schedule -> Team.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  *
- * @param {string} req.params.id - Schedule UUID
- * @param {string} req.params.sectionId - Section UUID
- * @param {string} req.params.activityId - Activity UUID
+ * @param {string} req.params.activityId - Activity UUID to delete
  *
  * @returns {Object} response
  * @returns {string} response.message - Success confirmation
  *
- * @throws {404} Not found - Schedule, section, or activity doesn't exist, or schedule doesn't belong to user's team
+ * @throws {404} Not found - Activity doesn't exist or parent schedule doesn't belong to user's team
  * @throws {500} Server error - Database operation failure
  */
-router.delete('/:id/sections/:sectionId/activities/:activityId', async (req, res) => {
+router.delete('/activities/:activityId', async (req, res) => {
   try {
-    // Permission: Check that schedule belongs to user's team
-    const schedule = await Schedule.findOne({
-      where: {
-        id: req.params.id,
-        team_id: req.user.team_id
-      }
-    });
-
-    // Error: Return 404 if schedule not found or unauthorized
-    if (!schedule) {
-      return res.status(404).json({ error: 'Schedule not found' });
-    }
-
-    // Database: Find and delete activity
+    // Database: Verify activity exists and belongs to user's team
+    // Uses doubly-nested include to check Activity -> Section -> Schedule
     const activity = await ScheduleActivity.findOne({
       include: [
         {
           model: ScheduleSection,
-          where: {
-            id: req.params.sectionId,
-            schedule_id: schedule.id
-          }
+          include: [
+            {
+              model: Schedule,
+              where: {
+                // Permission: Verify activity belongs to user's team schedule
+                team_id: req.user.team_id,
+                is_active: true
+              }
+            }
+          ]
         }
       ],
       where: { id: req.params.activityId }
     });
 
-    // Error: Return 404 if activity not found
+    // Error: Return 404 if activity not found or unauthorized
     if (!activity) {
       return res.status(404).json({ error: 'Activity not found' });
     }
 
-    // Business logic: Hard delete activity
+    // Database: Hard delete the activity
     await activity.destroy();
 
     res.json({ message: 'Activity deleted successfully' });
   } catch (error) {
-    console.error('Error deleting activity:', error);
+    logger.error('Error deleting activity:', error);
     res.status(500).json({ error: 'Failed to delete activity' });
+  }
+});
+
+/**
+ * @route GET /api/schedules/export-pdf
+ * @description Exports all team schedules as a printable HTML document.
+ *              Generates a formatted HTML page with print-friendly CSS styles.
+ *              Includes all schedules, sections, and activities in table format.
+ *
+ *              Note: Currently returns HTML that can be printed as PDF from browser.
+ *              For true PDF generation, would need puppeteer, jsPDF, or similar library.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @returns {string} HTML document - Complete printable schedule document
+ * @header Content-Type: text/html
+ * @header Content-Disposition: attachment; filename="team-schedules.html"
+ *
+ * @throws {500} Server error - Database query or HTML generation failure
+ */
+router.get('/export-pdf', async (req, res) => {
+  try {
+    // Database: Fetch all team schedules with full nested structure
+    // Note: No is_active filter - exports all schedules including inactive
+    const schedules = await Schedule.findAll({
+      where: { team_id: req.user.team_id },
+      include: [
+        {
+          model: ScheduleSection,
+          include: [
+            {
+              model: ScheduleActivity,
+              // Business logic: Order activities by time for chronological display
+              order: [['time', 'ASC']]
+            }
+          ]
+        }
+      ],
+      // Business logic: Order schedules by date, most recent first
+      order: [['date', 'DESC']]
+    });
+
+    // Business logic: Build HTML document with print-friendly styling
+    let html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Team Schedules</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .schedule { margin-bottom: 30px; border: 1px solid #ddd; padding: 20px; }
+          .header { background: #f5f5f5; padding: 10px; margin: -20px -20px 20px -20px; }
+          .section { margin-bottom: 20px; }
+          .activity { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+          .time { font-weight: bold; min-width: 80px; }
+          .activity-name { flex: 1; }
+          .location { font-style: italic; color: #666; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          /* Print-specific styles for proper page breaks */
+          @media print {
+            body { margin: 0; }
+            .schedule { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Team Schedules</h1>
+    `;
+
+    // Business logic: Generate HTML for each schedule with sections and activities
+    schedules.forEach(schedule => {
+      html += `
+        <div class="schedule">
+          <div class="header">
+            <h2>${schedule.team_name} - ${schedule.program_name}</h2>
+            <p><strong>Date:</strong> ${new Date(schedule.date).toLocaleDateString()}</p>
+            ${schedule.motto ? `<p><strong>Motto:</strong> ${schedule.motto}</p>` : ''}
+          </div>
+      `;
+
+      // Business logic: Render sections with activities in table format
+      if (schedule.ScheduleSections && schedule.ScheduleSections.length > 0) {
+        schedule.ScheduleSections.forEach(section => {
+          html += `
+            <div class="section">
+              <h3>${section.title}</h3>
+              ${section.ScheduleActivities && section.ScheduleActivities.length > 0 ? `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Activity</th>
+                      <th>Location</th>
+                      <th>Staff/Group</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${section.ScheduleActivities.map(activity => `
+                      <tr>
+                        <td>${activity.time}</td>
+                        <td>${activity.activity}</td>
+                        <td>${activity.location || ''}</td>
+                        <td>${activity.staff || activity.group || ''}</td>
+                        <td>${activity.notes || ''}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              ` : '<p>No activities scheduled</p>'}
+            </div>
+          `;
+        });
+      } else {
+        html += '<p>No sections defined</p>';
+      }
+
+      html += '</div>';
+    });
+
+    html += `
+        </body>
+      </html>
+    `;
+
+    // Business logic: Set headers for HTML file download
+    // Browser can then print-to-PDF or save directly
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', 'attachment; filename="team-schedules.html"');
+    res.send(html);
+
+  } catch (error) {
+    logger.error('Error exporting schedules:', error);
+    res.status(500).json({ error: 'Failed to export schedules' });
   }
 });
 

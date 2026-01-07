@@ -18,7 +18,11 @@
 
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+<<<<<<< HEAD
 const tokenBlacklistService = require('../services/tokenBlacklistService');
+=======
+const logger = require('../utils/logger');
+>>>>>>> auto-claude/021-remove-sensitive-data-from-production-logs
 
 /**
  * @description Authentication middleware that protects routes by verifying JWT tokens.
@@ -138,7 +142,7 @@ const protect = async (req, res, next) => {
 
       next();
     } catch (error) {
-      console.error('Token verification error:', error);
+      logger.error('Token verification error:', error);
       return res.status(401).json({ success: false, error: 'Not authorized' });
     }
   } else {

@@ -48,6 +48,7 @@ const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Scout, User } = require('../models');
 const { protect } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -193,7 +194,7 @@ router.get('/', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get scouts error:', error);
+    logger.error('Get scouts error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching scouts'
@@ -265,7 +266,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get scout error:', error);
+    logger.error('Get scout error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching scout'
@@ -369,7 +370,7 @@ router.post('/', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Create scout error:', error);
+    logger.error('Create scout error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while creating scout'
@@ -483,7 +484,7 @@ router.put('/:id', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Update scout error:', error);
+    logger.error('Update scout error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while updating scout'
@@ -546,7 +547,7 @@ router.delete('/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Delete scout error:', error);
+    logger.error('Delete scout error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while deleting scout'

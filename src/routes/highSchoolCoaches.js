@@ -49,6 +49,7 @@ const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { HighSchoolCoach, User } = require('../models');
 const { protect } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -213,7 +214,7 @@ router.get('/', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get high school coaches error:', error);
+    logger.error('Get high school coaches error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching high school coaches'
@@ -292,7 +293,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get high school coach error:', error);
+    logger.error('Get high school coach error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching high school coach'
@@ -417,7 +418,7 @@ router.post('/', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Create high school coach error:', error);
+    logger.error('Create high school coach error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while creating high school coach'
@@ -549,7 +550,7 @@ router.put('/:id', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Update high school coach error:', error);
+    logger.error('Update high school coach error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while updating high school coach'
@@ -612,7 +613,7 @@ router.delete('/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Delete high school coach error:', error);
+    logger.error('Delete high school coach error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while deleting high school coach'

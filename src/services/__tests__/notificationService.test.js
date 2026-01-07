@@ -1,10 +1,12 @@
 const notificationService = require('../notificationService');
 const { User } = require('../../models');
 const emailService = require('../emailService');
+const logger = require('../../utils/logger');
 
 // Mock dependencies
 jest.mock('../../models');
 jest.mock('../emailService');
+jest.mock('../../utils/logger');
 
 describe('NotificationService', () => {
   beforeEach(() => {
@@ -180,17 +182,13 @@ describe('NotificationService', () => {
     it('should gracefully handle errors and return empty array', async () => {
       User.findAll = jest.fn().mockRejectedValue(new Error('Database error'));
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
       const recipients = await notificationService.getNotificationRecipients(1, 'playerUpdates');
 
       expect(recipients).toEqual([]);
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Error fetching notification recipients:',
         expect.any(Error)
       );
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -262,7 +260,6 @@ describe('NotificationService', () => {
       ];
 
       emailService.sendNotificationEmail = jest.fn().mockRejectedValue(new Error('SMTP error'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       await notificationService.sendEmailNotifications(
         mockRecipients,
@@ -273,12 +270,13 @@ describe('NotificationService', () => {
       // Wait a tick for the promise to resolve
       await new Promise(resolve => setImmediate(resolve));
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to send notification to user1@test.com:',
-        expect.any(Error)
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to send notification to recipient:',
+        expect.objectContaining({
+          email: expect.any(String),
+          error: expect.any(Error)
+        })
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should send emails without actionUrl when not provided', async () => {
@@ -411,7 +409,6 @@ describe('NotificationService', () => {
 
     it('should gracefully handle errors without throwing', async () => {
       User.findAll = jest.fn().mockRejectedValue(new Error('Database error'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       const mockPlayer = {
         id: 1,
@@ -425,12 +422,10 @@ describe('NotificationService', () => {
       ).resolves.not.toThrow();
 
       // Error is caught in getNotificationRecipients
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Error fetching notification recipients:',
         expect.any(Error)
       );
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -531,7 +526,6 @@ describe('NotificationService', () => {
 
     it('should gracefully handle errors without throwing', async () => {
       User.findAll = jest.fn().mockRejectedValue(new Error('Database error'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       const mockReport = { id: 1 };
       const mockPlayer = { id: 2, first_name: 'Jane', last_name: 'Smith' };
@@ -542,12 +536,10 @@ describe('NotificationService', () => {
       ).resolves.not.toThrow();
 
       // Error is caught in getNotificationRecipients
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Error fetching notification recipients:',
         expect.any(Error)
       );
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -684,7 +676,6 @@ describe('NotificationService', () => {
 
     it('should gracefully handle errors without throwing', async () => {
       User.findAll = jest.fn().mockRejectedValue(new Error('Database error'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       const mockSchedule = { id: 1, name: 'Test Schedule' };
 
@@ -694,12 +685,10 @@ describe('NotificationService', () => {
       ).resolves.not.toThrow();
 
       // Error is caught in getNotificationRecipients
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Error fetching notification recipients:',
         expect.any(Error)
       );
-
-      consoleSpy.mockRestore();
     });
   });
 });

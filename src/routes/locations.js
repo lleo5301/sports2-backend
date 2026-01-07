@@ -66,6 +66,7 @@ const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
 const { Location, User } = require('../models');
 const { Op } = require('sequelize');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -286,7 +287,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get locations error:', error);
+    logger.error('Get locations error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching locations'
@@ -388,7 +389,7 @@ router.get('/:id', param('id').isInt().withMessage('Location ID must be an integ
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get location error:', error);
+    logger.error('Get location error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching location'
@@ -491,7 +492,7 @@ router.post('/', validateLocationCreate, handleValidationErrors, checkPermission
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Create location error:', error);
+    logger.error('Create location error:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating location'
@@ -610,7 +611,7 @@ router.put('/:id',
       });
     } catch (error) {
       // Error: Log and return generic server error
-      console.error('Update location error:', error);
+      logger.error('Update location error:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating location'
@@ -711,7 +712,7 @@ router.delete('/:id',
       });
     } catch (error) {
       // Error: Log and return generic server error
-      console.error('Delete location error:', error);
+      logger.error('Delete location error:', error);
       res.status(500).json({
         success: false,
         message: 'Error deleting location'

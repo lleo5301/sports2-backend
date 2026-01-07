@@ -33,6 +33,7 @@ const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { ScheduleTemplate, User } = require('../models');
 const { protect } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -128,7 +129,7 @@ router.get('/', [
       data: templates
     });
   } catch (error) {
-    console.error('Get schedule templates error:', error);
+    logger.error('Get schedule templates error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching schedule templates'
@@ -195,7 +196,7 @@ router.get('/:id', async (req, res) => {
       data: template
     });
   } catch (error) {
-    console.error('Get schedule template error:', error);
+    logger.error('Get schedule template error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching schedule template'
@@ -296,7 +297,7 @@ router.post('/', [
       data: createdTemplate
     });
   } catch (error) {
-    console.error('Create schedule template error:', error);
+    logger.error('Create schedule template error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while creating schedule template'
@@ -412,7 +413,7 @@ router.put('/:id', [
       data: updatedTemplate
     });
   } catch (error) {
-    console.error('Update schedule template error:', error);
+    logger.error('Update schedule template error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while updating schedule template'
@@ -476,7 +477,7 @@ router.delete('/:id', async (req, res) => {
       message: 'Schedule template deleted successfully'
     });
   } catch (error) {
-    console.error('Delete schedule template error:', error);
+    logger.error('Delete schedule template error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while deleting schedule template'
@@ -587,7 +588,7 @@ router.post('/:id/duplicate', [
       data: createdTemplate
     });
   } catch (error) {
-    console.error('Duplicate schedule template error:', error);
+    logger.error('Duplicate schedule template error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while duplicating schedule template'

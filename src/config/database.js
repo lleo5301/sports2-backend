@@ -1,4 +1,5 @@
 const { Sequelize } = require('sequelize');
+const logger = require('../utils/logger');
 
 const sequelize = new Sequelize(
   process.env.DB_NAME || 'collegiate_baseball',
@@ -8,7 +9,7 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     dialect: 'postgres',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: process.env.NODE_ENV === 'development' ? (msg) => logger.debug('DB Query:', msg) : false,
     pool: {
       max: 5,
       min: 0,

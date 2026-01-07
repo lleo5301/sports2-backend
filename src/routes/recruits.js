@@ -52,6 +52,7 @@ const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Player, PreferenceList, User } = require('../models');
 const { protect } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -216,7 +217,7 @@ router.get('/', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get recruits error:', error);
+    logger.error('Get recruits error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching recruits'
@@ -365,7 +366,7 @@ router.get('/preference-lists', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get preference lists error:', error);
+    logger.error('Get preference lists error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching preference lists'
@@ -527,7 +528,7 @@ router.post('/preference-lists', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Add to preference list error:', error);
+    logger.error('Add to preference list error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while adding to preference list'
@@ -648,7 +649,7 @@ router.put('/preference-lists/:id', [
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Update preference list error:', error);
+    logger.error('Update preference list error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while updating preference list'
@@ -713,7 +714,7 @@ router.delete('/preference-lists/:id', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Remove from preference list error:', error);
+    logger.error('Remove from preference list error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while removing from preference list'

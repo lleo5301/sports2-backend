@@ -70,7 +70,7 @@ const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Vendor, User } = require('../models');
 const { protect } = require('../middleware/auth');
-const { createSortValidators, buildOrderClause } = require('../utils/sorting');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -80,7 +80,7 @@ router.use(protect);
 
 /**
  * Validation middleware for listing vendors.
- * Validates query parameters for filtering, pagination, and sorting.
+ * Validates query parameters for filtering and pagination.
  *
  * @constant {Array<ValidationChain>} validateVendorList
  * @description Express-validator chain for GET /api/vendors
@@ -88,8 +88,6 @@ router.use(protect);
  * @property {string} [search] - Optional search term for text search
  * @property {string} [vendor_type] - Optional filter by vendor category
  * @property {string} [status] - Optional filter by relationship status
- * @property {string} [orderBy] - Optional column to sort by
- * @property {string} [sortDirection] - Optional sort direction ('ASC' or 'DESC')
  * @property {number} [page] - Optional page number (min: 1)
  * @property {number} [limit] - Optional items per page (min: 1, max: 100)
  */
@@ -98,8 +96,7 @@ const validateVendorList = [
   query('vendor_type').optional().isIn(['Equipment', 'Apparel', 'Technology', 'Food Service', 'Transportation', 'Medical', 'Facilities', 'Other']),
   query('status').optional().isIn(['active', 'inactive', 'pending', 'expired']),
   query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 100 }),
-  ...createSortValidators('vendors')
+  query('limit').optional().isInt({ min: 1, max: 100 })
 ];
 
 /**
@@ -199,15 +196,12 @@ const handleValidationErrors = (req, res) => {
  * Supports filtering by vendor type, status, and search text. Search performs
  * case-insensitive partial matching across company_name, contact_person,
  * services_provided, and email fields.
- * Supports configurable sorting via orderBy and sortDirection query parameters.
  *
  * @access  Private - Requires authentication
  *
  * @param {string} [req.query.search] - Search term for text search across multiple fields
  * @param {string} [req.query.vendor_type] - Filter by vendor category (Equipment|Apparel|Technology|Food Service|Transportation|Medical|Facilities|Other)
  * @param {string} [req.query.status=active] - Filter by status (active|inactive|pending|expired), defaults to 'active'
- * @param {string} [req.query.orderBy=created_at] - Column to sort by (company_name, contact_person, vendor_type, contract_value, contract_start_date, contract_end_date, last_contact_date, next_contact_date, created_at, status)
- * @param {string} [req.query.sortDirection=DESC] - Sort direction ('ASC' or 'DESC', case-insensitive)
  * @param {number} [req.query.page=1] - Page number for pagination
  * @param {number} [req.query.limit=20] - Items per page (max 100)
  *
@@ -229,7 +223,7 @@ const handleValidationErrors = (req, res) => {
  * @returns {number} response.pagination.total - Total matching vendors
  * @returns {number} response.pagination.pages - Total number of pages
  *
- * @throws {400} Validation failed - Invalid query parameters or invalid orderBy column or sortDirection value
+ * @throws {400} Validation failed - Invalid query parameters
  * @throws {401} Unauthorized - Missing or invalid authentication token
  * @throws {500} Server error - Database or server failure
  *
@@ -262,8 +256,6 @@ router.get('/', validateVendorList, async (req, res) => {
       search,
       vendor_type,
       status = 'active',  // Default to showing only active vendors
-      orderBy,
-      sortDirection,
       page = 1,
       limit = 20
     } = req.query;
@@ -299,9 +291,6 @@ router.get('/', validateVendorList, async (req, res) => {
       ];
     }
 
-    // Business logic: Build dynamic order clause from query parameters (defaults to created_at DESC)
-    const orderClause = buildOrderClause('vendors', orderBy, sortDirection);
-
     // Database: Fetch paginated vendors with creator association
     const { count, rows: vendors } = await Vendor.findAndCountAll({
       where: whereClause,
@@ -312,7 +301,7 @@ router.get('/', validateVendorList, async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: orderClause,
+      order: [['created_at', 'DESC']],  // Most recently created first
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
@@ -330,10 +319,356 @@ router.get('/', validateVendorList, async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    console.error('Get vendors error:', error);
+    logger.error('Get vendors error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching vendors'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/vendors/:id
+ * @description Retrieves a specific vendor by ID. Only returns vendors belonging
+ * to the authenticated user's team (multi-tenant isolation).
+ *
+ * @access  Private - Requires authentication
+ *
+ * @param {string} req.params.id - Vendor ID (UUID)
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Vendor object with all fields
+ * @returns {number} response.data.id - Vendor ID
+ * @returns {string} response.data.company_name - Company name
+ * @returns {string} response.data.contact_person - Primary contact name
+ * @returns {string} response.data.email - Contact email
+ * @returns {string} response.data.phone - Contact phone
+ * @returns {string} response.data.website - Company website URL
+ * @returns {string} response.data.vendor_type - Vendor category
+ * @returns {string} response.data.services_provided - Description of services
+ * @returns {number} response.data.contract_value - Contract value
+ * @returns {string} response.data.contract_start_date - Contract start date
+ * @returns {string} response.data.contract_end_date - Contract end date
+ * @returns {string} response.data.last_contact_date - Last contact date
+ * @returns {string} response.data.next_contact_date - Next scheduled contact
+ * @returns {string} response.data.status - Relationship status
+ * @returns {Object} response.data.Creator - User who created the record
+ *
+ * @throws {401} Unauthorized - Missing or invalid authentication token
+ * @throws {404} Not found - Vendor does not exist or belongs to different team
+ * @throws {500} Server error - Database or server failure
+ *
+ * @example
+ * // Request: GET /api/vendors/123e4567-e89b-12d3-a456-426614174000
+ * // Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "id": "123e4567-e89b-12d3-a456-426614174000",
+ *     "company_name": "Sports Equipment Inc",
+ *     "contact_person": "John Smith",
+ *     "email": "john@sportsequip.com",
+ *     "vendor_type": "Equipment",
+ *     "status": "active",
+ *     "Creator": { "id": 5, "first_name": "Jane", "last_name": "Coach" }
+ *   }
+ * }
+ */
+router.get('/:id', async (req, res) => {
+  try {
+    // Database: Fetch vendor with team scoping for multi-tenant isolation
+    const vendor = await Vendor.findOne({
+      where: {
+        id: req.params.id,
+        team_id: req.user.team_id  // Multi-tenant: Only fetch vendor from user's team
+      },
+      include: [
+        {
+          model: User,
+          as: 'Creator',
+          attributes: ['id', 'first_name', 'last_name']
+        }
+      ]
+    });
+
+    // Error: Return 404 if vendor not found or belongs to different team
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vendor not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: vendor
+    });
+  } catch (error) {
+    // Error: Log and return generic server error
+    logger.error('Get vendor error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching vendor'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/vendors
+ * @description Creates a new vendor record for the authenticated user's team.
+ * Automatically assigns team_id and created_by from the authenticated user.
+ * New vendors are created with a default status if not specified.
+ *
+ * @access  Private - Requires authentication
+ *
+ * @param {string} req.body.company_name - Company name (required, 1-200 chars)
+ * @param {string} [req.body.contact_person] - Primary contact name (max 100 chars)
+ * @param {string} [req.body.email] - Contact email (valid email format)
+ * @param {string} [req.body.phone] - Contact phone (max 20 chars)
+ * @param {string} [req.body.website] - Company website (valid URL)
+ * @param {string} req.body.vendor_type - Vendor category (required, Equipment|Apparel|Technology|Food Service|Transportation|Medical|Facilities|Other)
+ * @param {number} [req.body.contract_value] - Contract monetary value
+ * @param {string} [req.body.contract_start_date] - Contract start (ISO8601 format)
+ * @param {string} [req.body.contract_end_date] - Contract end (ISO8601 format)
+ * @param {string} [req.body.services_provided] - Description of services/products
+ * @param {string} [req.body.last_contact_date] - Last contact date (ISO8601 format)
+ * @param {string} [req.body.next_contact_date] - Next contact date (ISO8601 format)
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status (true)
+ * @returns {Object} response.data - Created vendor object with all fields
+ *
+ * @throws {400} Validation failed - Invalid or missing required fields
+ * @throws {401} Unauthorized - Missing or invalid authentication token
+ * @throws {500} Server error - Database or server failure
+ *
+ * @example
+ * // Request: POST /api/vendors
+ * // Body:
+ * {
+ *   "company_name": "Pro Sports Equipment",
+ *   "contact_person": "Mike Johnson",
+ *   "email": "mike@prosports.com",
+ *   "phone": "555-123-4567",
+ *   "vendor_type": "Equipment",
+ *   "contract_value": 50000,
+ *   "contract_start_date": "2024-01-01",
+ *   "contract_end_date": "2024-12-31"
+ * }
+ * // Response (201):
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "id": "123e4567-e89b-12d3-a456-426614174000",
+ *     "company_name": "Pro Sports Equipment",
+ *     ...
+ *   }
+ * }
+ */
+router.post('/', validateVendorCreate, async (req, res) => {
+  try {
+    // Validation: Check for any validation errors from middleware
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) return;
+
+    // Database: Create vendor with automatic team and creator assignment
+    // Business logic: team_id and created_by are set from authenticated user
+    const vendor = await Vendor.create({
+      ...req.body,
+      team_id: req.user.team_id,    // Multi-tenant: Assign to user's team
+      created_by: req.user.id        // Audit: Track who created the record
+    });
+
+    // Database: Re-fetch to include Creator association in response
+    const createdVendor = await Vendor.findByPk(vendor.id, {
+      include: [
+        {
+          model: User,
+          as: 'Creator',
+          attributes: ['id', 'first_name', 'last_name']
+        }
+      ]
+    });
+
+    // Return 201 Created with the new vendor
+    res.status(201).json({
+      success: true,
+      data: createdVendor
+    });
+  } catch (error) {
+    // Error: Log and return generic server error
+    logger.error('Create vendor error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while creating vendor'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/vendors/:id
+ * @description Updates an existing vendor record. Only vendors belonging to
+ * the authenticated user's team can be updated (multi-tenant isolation).
+ * Supports partial updates - only provided fields will be modified.
+ *
+ * @access  Private - Requires authentication
+ *
+ * @param {string} req.params.id - Vendor ID to update (UUID)
+ * @param {string} [req.body.company_name] - Updated company name (1-200 chars)
+ * @param {string} [req.body.contact_person] - Updated contact name (max 100 chars)
+ * @param {string} [req.body.email] - Updated email (valid email format)
+ * @param {string} [req.body.phone] - Updated phone (max 20 chars)
+ * @param {string} [req.body.website] - Updated website (valid URL)
+ * @param {string} [req.body.vendor_type] - Updated vendor category
+ * @param {number} [req.body.contract_value] - Updated contract value
+ * @param {string} [req.body.contract_start_date] - Updated contract start (ISO8601)
+ * @param {string} [req.body.contract_end_date] - Updated contract end (ISO8601)
+ * @param {string} [req.body.services_provided] - Updated services description
+ * @param {string} [req.body.last_contact_date] - Updated last contact (ISO8601)
+ * @param {string} [req.body.next_contact_date] - Updated next contact (ISO8601)
+ * @param {string} [req.body.status] - Updated status (active|inactive|pending|expired)
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Updated vendor object with all fields
+ *
+ * @throws {400} Validation failed - Invalid field values
+ * @throws {401} Unauthorized - Missing or invalid authentication token
+ * @throws {404} Not found - Vendor does not exist or belongs to different team
+ * @throws {500} Server error - Database or server failure
+ *
+ * @example
+ * // Request: PUT /api/vendors/123e4567-e89b-12d3-a456-426614174000
+ * // Body:
+ * {
+ *   "contact_person": "Jane Smith",
+ *   "last_contact_date": "2024-03-15",
+ *   "next_contact_date": "2024-04-15"
+ * }
+ * // Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "id": "123e4567-e89b-12d3-a456-426614174000",
+ *     "company_name": "Pro Sports Equipment",
+ *     "contact_person": "Jane Smith",
+ *     ...
+ *   }
+ * }
+ */
+router.put('/:id', validateVendorUpdate, async (req, res) => {
+  try {
+    // Validation: Check for any validation errors from middleware
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) return;
+
+    // Database: Find vendor with team scoping for multi-tenant isolation
+    const vendor = await Vendor.findOne({
+      where: {
+        id: req.params.id,
+        team_id: req.user.team_id  // Multi-tenant: Only update vendor from user's team
+      }
+    });
+
+    // Error: Return 404 if vendor not found or belongs to different team
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vendor not found'
+      });
+    }
+
+    // Database: Apply partial update with provided fields
+    // Business logic: Only fields in req.body are updated, others preserved
+    await vendor.update(req.body);
+
+    // Database: Re-fetch to include Creator association in response
+    const updatedVendor = await Vendor.findByPk(vendor.id, {
+      include: [
+        {
+          model: User,
+          as: 'Creator',
+          attributes: ['id', 'first_name', 'last_name']
+        }
+      ]
+    });
+
+    res.json({
+      success: true,
+      data: updatedVendor
+    });
+  } catch (error) {
+    // Error: Log and return generic server error
+    logger.error('Update vendor error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while updating vendor'
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/vendors/:id
+ * @description Permanently deletes a vendor record. Only vendors belonging to
+ * the authenticated user's team can be deleted (multi-tenant isolation).
+ * This is a hard delete - the record is permanently removed from the database.
+ *
+ * Note: Consider using PUT to set status to 'inactive' instead of deleting,
+ * to preserve audit history and allow for potential recovery.
+ *
+ * @access  Private - Requires authentication
+ *
+ * @param {string} req.params.id - Vendor ID to delete (UUID)
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Success confirmation message
+ *
+ * @throws {401} Unauthorized - Missing or invalid authentication token
+ * @throws {404} Not found - Vendor does not exist or belongs to different team
+ * @throws {500} Server error - Database or server failure
+ *
+ * @example
+ * // Request: DELETE /api/vendors/123e4567-e89b-12d3-a456-426614174000
+ * // Response:
+ * {
+ *   "success": true,
+ *   "message": "Vendor deleted successfully"
+ * }
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    // Database: Find vendor with team scoping for multi-tenant isolation
+    const vendor = await Vendor.findOne({
+      where: {
+        id: req.params.id,
+        team_id: req.user.team_id  // Multi-tenant: Only delete vendor from user's team
+      }
+    });
+
+    // Error: Return 404 if vendor not found or belongs to different team
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vendor not found'
+      });
+    }
+
+    // Database: Permanently delete the vendor record (hard delete)
+    // Note: No cascade protections - vendors can be deleted freely
+    await vendor.destroy();
+
+    res.json({
+      success: true,
+      message: 'Vendor deleted successfully'
+    });
+  } catch (error) {
+    // Error: Log and return generic server error
+    logger.error('Delete vendor error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while deleting vendor'
     });
   }
 });
