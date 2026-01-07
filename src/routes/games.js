@@ -37,7 +37,7 @@ const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { protect } = require('../middleware/auth');
-const { Game, Team } = require('../models');
+const { Game, Team, Player } = require('../models');
 const { createSortValidators, buildOrderClause } = require('../utils/sorting');
 
 const router = express.Router();
@@ -389,7 +389,7 @@ router.post('/', validateGame, handleValidationErrors, async (req, res) => {
  */
 router.put('/byId/:id', validateGame, handleValidationErrors, async (req, res) => {
   try {
-    // Permission: Verify game belongs to user's team before updating
+    // Permission: Verify the game belongs to the user's team
     const game = await Game.findOne({
       where: {
         id: req.params.id,
@@ -397,17 +397,17 @@ router.put('/byId/:id', validateGame, handleValidationErrors, async (req, res) =
       }
     });
 
-    // Error: Return 404 if game not found or doesn't belong to user
+    // Error: Return 404 if game not found or user lacks access
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
 
-    // Database: Update the game with provided fields
+    // Database: Update game fields
     await game.update(req.body);
 
-    // Database: Fetch the updated game with associations for complete response
+    // Database: Fetch updated game with associations for complete response
     const updatedGame = await Game.findOne({
-      where: { id: game.id },
+      where: { id: req.params.id },
       include: [
         {
           model: Team,
@@ -430,7 +430,8 @@ router.put('/byId/:id', validateGame, handleValidationErrors, async (req, res) =
 
 /**
  * @route DELETE /api/games/byId/:id
- * @description Deletes a game from the authenticated user's team.
+ * @description Deletes a game by ID.
+ *              Only allows deletion of games belonging to the user's team.
  *              Note: Uses /byId/:id path pattern for consistency with other routes.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
@@ -446,7 +447,7 @@ router.put('/byId/:id', validateGame, handleValidationErrors, async (req, res) =
  */
 router.delete('/byId/:id', async (req, res) => {
   try {
-    // Permission: Verify game belongs to user's team before deleting
+    // Permission: Verify the game belongs to the user's team
     const game = await Game.findOne({
       where: {
         id: req.params.id,
@@ -454,7 +455,7 @@ router.delete('/byId/:id', async (req, res) => {
       }
     });
 
-    // Error: Return 404 if game not found or doesn't belong to user
+    // Error: Return 404 if game not found or user lacks access
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
@@ -474,25 +475,25 @@ router.delete('/byId/:id', async (req, res) => {
 
 /**
  * @route GET /api/games/stats
- * @description Retrieves aggregate statistics for games.
+ * @description Retrieves aggregate statistics for all games belonging to the user's team.
  *              Calculates win rate, average runs scored, and average runs allowed.
- *              Can be filtered by season.
+ *              Supports filtering by season.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  *
- * @param {string} [req.query.season] - Optional season filter to scope statistics
+ * @param {string} [req.query.season] - Optional filter by season (e.g., "2024")
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
  * @returns {Object} response.data - Statistics object
- * @returns {number} response.data.totalGames - Total number of games (played)
- * @returns {number} response.data.wins - Total number of wins
- * @returns {number} response.data.losses - Total number of losses
- * @returns {number} response.data.ties - Total number of ties
- * @returns {number} response.data.winRate - Win rate percentage (0-100)
- * @returns {number} response.data.avgRunsScored - Average runs scored per game
- * @returns {number} response.data.avgRunsAllowed - Average runs allowed per game
- * @returns {string} [response.data.season] - Season filter applied (if provided)
+ * @returns {number} response.data.totalGames - Total number of games (completed and scheduled)
+ * @returns {number} response.data.completedGames - Number of completed games with results
+ * @returns {number} response.data.wins - Number of wins
+ * @returns {number} response.data.losses - Number of losses
+ * @returns {number} response.data.ties - Number of ties
+ * @returns {number} response.data.winRate - Win rate as percentage (0-100)
+ * @returns {number} response.data.avgScored - Average runs/points scored per game
+ * @returns {number} response.data.avgAllowed - Average runs/points allowed per game
  *
  * @throws {500} Server error - Database query failure
  */
@@ -500,9 +501,7 @@ router.get('/stats', async (req, res) => {
   try {
     // Permission: Filter games to user's team only
     const whereClause = {
-      team_id: req.user.team_id,
-      // Business logic: Only count games with results (not scheduled future games)
-      result: { [Op.not]: null }
+      team_id: req.user.team_id
     };
 
     // Business logic: Apply optional season filter
@@ -510,35 +509,31 @@ router.get('/stats', async (req, res) => {
       whereClause.season = req.query.season;
     }
 
-    // Database: Fetch all completed games for statistics calculation
+    // Database: Fetch all games for the team (season-filtered if specified)
     const games = await Game.findAll({
-      where: whereClause,
-      attributes: ['team_score', 'opponent_score', 'result']
+      where: whereClause
     });
 
+    // Business logic: Filter to only completed games (have results)
+    const completedGames = games.filter(g => g.result !== null);
+
     // Business logic: Calculate statistics
+    const wins = completedGames.filter(g => g.result === 'W').length;
+    const losses = completedGames.filter(g => g.result === 'L').length;
+    const ties = completedGames.filter(g => g.result === 'T').length;
+    const totalScored = completedGames.reduce((sum, g) => sum + (g.team_score || 0), 0);
+    const totalAllowed = completedGames.reduce((sum, g) => sum + (g.opponent_score || 0), 0);
+
     const stats = {
       totalGames: games.length,
-      wins: games.filter(g => g.result === 'W').length,
-      losses: games.filter(g => g.result === 'L').length,
-      ties: games.filter(g => g.result === 'T').length,
-      avgRunsScored: games.length > 0 
-        ? (games.reduce((sum, g) => sum + (g.team_score || 0), 0) / games.length).toFixed(2)
-        : 0,
-      avgRunsAllowed: games.length > 0
-        ? (games.reduce((sum, g) => sum + (g.opponent_score || 0), 0) / games.length).toFixed(2)
-        : 0
+      completedGames: completedGames.length,
+      wins,
+      losses,
+      ties,
+      winRate: completedGames.length > 0 ? ((wins / completedGames.length) * 100).toFixed(2) : 0,
+      avgScored: completedGames.length > 0 ? (totalScored / completedGames.length).toFixed(2) : 0,
+      avgAllowed: completedGames.length > 0 ? (totalAllowed / completedGames.length).toFixed(2) : 0
     };
-
-    // Business logic: Calculate win rate (wins / total games played)
-    stats.winRate = stats.totalGames > 0
-      ? ((stats.wins / stats.totalGames) * 100).toFixed(2)
-      : 0;
-
-    // Response: Include season filter if applied
-    if (req.query.season) {
-      stats.season = req.query.season;
-    }
 
     res.json({
       success: true,

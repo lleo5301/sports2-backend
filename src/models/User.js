@@ -78,6 +78,19 @@ const User = sequelize.define('User', {
       model: 'teams',
       key: 'id'
     }
+  },
+  failed_login_attempts: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  locked_until: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  last_failed_login: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 }, {
   tableName: 'users',
@@ -105,6 +118,37 @@ User.prototype.matchPassword = async function (enteredPassword) {
 // Instance method to get full name
 User.prototype.getFullName = function () {
   return `${this.first_name} ${this.last_name}`;
+};
+
+// Instance method to check if account is currently locked
+User.prototype.isLocked = function () {
+  if (!this.locked_until) {
+    return false;
+  }
+  return new Date() < new Date(this.locked_until);
+};
+
+// Instance method to increment failed login attempts
+User.prototype.incrementFailedAttempts = async function () {
+  this.failed_login_attempts += 1;
+  this.last_failed_login = new Date();
+  await this.save();
+};
+
+// Instance method to reset failed login attempts
+User.prototype.resetFailedAttempts = async function () {
+  this.failed_login_attempts = 0;
+  this.locked_until = null;
+  this.last_failed_login = null;
+  await this.save();
+};
+
+// Instance method to lock account
+User.prototype.lockAccount = async function (durationMinutes) {
+  const lockUntil = new Date();
+  lockUntil.setMinutes(lockUntil.getMinutes() + durationMinutes);
+  this.locked_until = lockUntil;
+  await this.save();
 };
 
 module.exports = User;

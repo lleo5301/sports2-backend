@@ -7,11 +7,16 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 
 const { sequelize } = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 const notFound = require('./middleware/notFound');
+const {
+  doubleCsrfProtection,
+  csrfErrorHandler
+} = require('./middleware/csrf');
 const {
   validateJwtSecret,
   getSecretGenerationInstructions
@@ -72,6 +77,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Compression middleware
 app.use(compression());
 
+// Cookie parsing middleware (required for CSRF protection)
+app.use(cookieParser());
+
+// CSRF protection middleware for state-changing routes
+// Automatically protects POST, PUT, PATCH, DELETE routes
+// GET, HEAD, OPTIONS are exempted as safe methods
+app.use(doubleCsrfProtection);
+
 // Serve static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
@@ -82,7 +95,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Health check endpoint
+// Health check endpoint (no CSRF required for GET)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -110,6 +123,7 @@ app.use('/api/vendors', vendorRoutes);
 app.use('/api/high-school-coaches', highSchoolCoachRoutes);
 
 // Error handling middleware
+app.use(csrfErrorHandler); // Handle CSRF validation errors
 app.use(notFound);
 app.use(errorHandler);
 

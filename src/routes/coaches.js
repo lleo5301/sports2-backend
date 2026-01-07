@@ -398,16 +398,15 @@ router.post('/', [
  * @throws {500} Server error - Database update failure
  *
  * @example
- * // Request: PUT /api/coaches/uuid-here
- * // Body (partial update):
+ * // Request: PUT /api/coaches/:id
+ * // Body:
  * {
- *   "last_contact_date": "2024-01-15",
- *   "next_contact_date": "2024-02-01",
- *   "contact_notes": "Discussed spring recruiting schedule"
+ *   "position": "Recruiting Coordinator",
+ *   "next_contact_date": "2024-03-15"
  * }
  */
 router.put('/:id', [
-  // Validation: All fields optional for partial updates
+  // Validation: Optional fields with format constraints
   body('first_name').optional().trim().isLength({ min: 1, max: 100 }),
   body('last_name').optional().trim().isLength({ min: 1, max: 100 }),
   body('school_name').optional().trim().isLength({ min: 1, max: 200 }),
@@ -432,7 +431,7 @@ router.put('/:id', [
     }
 
     // Database: Find coach by ID, scoped to user's team
-    // Multi-tenant isolation: Only allows update if team_id matches
+    // Multi-tenant isolation: Only update coach if team_id matches
     const coach = await Coach.findOne({
       where: {
         id: req.params.id,
@@ -448,11 +447,12 @@ router.put('/:id', [
       });
     }
 
-    // Database: Apply partial update with provided fields
-    // Business logic: Sequelize's update() only changes provided fields
+    // Database: Update coach with provided fields
+    // Business logic: Only update fields that were provided in request body
     await coach.update(req.body);
 
-    // Database: Fetch updated coach with Creator association
+    // Database: Fetch the updated coach with Creator association
+    // This ensures consistent response format with Creator included
     const updatedCoach = await Coach.findByPk(coach.id, {
       include: [
         {
@@ -480,23 +480,22 @@ router.put('/:id', [
 
 /**
  * @route DELETE /api/coaches/:id
- * @description Permanently deletes a coach record.
+ * @description Deletes a single coach by ID.
  *              Only allows deleting coaches belonging to the authenticated user's team.
- *              This is a HARD DELETE - the record is permanently removed from the database.
  * @access Private - Requires authentication
  *
  * @param {string} req.params.id - UUID of the coach to delete
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status (true)
- * @returns {string} response.message - Confirmation message ('Coach deleted successfully')
+ * @returns {string} response.message - Confirmation message
  *
  * @throws {401} Unauthorized - Missing or invalid JWT token
  * @throws {404} Not found - Coach with given ID not found or belongs to different team
  * @throws {500} Server error - Database deletion failure
  *
  * @example
- * // Request: DELETE /api/coaches/uuid-here
+ * // Request: DELETE /api/coaches/:id
  * // Response:
  * {
  *   "success": true,
@@ -506,7 +505,7 @@ router.put('/:id', [
 router.delete('/:id', async (req, res) => {
   try {
     // Database: Find coach by ID, scoped to user's team
-    // Multi-tenant isolation: Only allows delete if team_id matches
+    // Multi-tenant isolation: Only delete coach if team_id matches
     const coach = await Coach.findOne({
       where: {
         id: req.params.id,
@@ -522,11 +521,10 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    // Database: Permanently delete the coach record
-    // Note: This is a HARD delete, not a soft delete
+    // Database: Delete the coach
     await coach.destroy();
 
-    // Response: Confirm successful deletion
+    // Response: Return success message
     res.json({
       success: true,
       message: 'Coach deleted successfully'
@@ -537,6 +535,96 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server error while deleting coach'
+    });
+  }
+});
+
+/**
+ * @route DELETE /api/coaches
+ * @description Bulk deletes multiple coaches by IDs.
+ *              Only allows deleting coaches belonging to the authenticated user's team.
+ * @access Private - Requires authentication
+ *
+ * @param {Array<string>} req.body.ids - Array of coach UUIDs to delete
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {number} response.deletedCount - Number of coaches successfully deleted
+ * @returns {Array<string>} [response.notFound] - IDs of coaches not found or belonging to different team
+ * @returns {string} response.message - Confirmation message
+ *
+ * @throws {400} Validation failed - Invalid request body or empty ids array
+ * @throws {401} Unauthorized - Missing or invalid JWT token
+ * @throws {500} Server error - Database deletion failure
+ *
+ * @example
+ * // Request: DELETE /api/coaches
+ * // Body:
+ * {
+ *   "ids": ["uuid-1", "uuid-2", "uuid-3"]
+ * }
+ * // Response:
+ * {
+ *   "success": true,
+ *   "deletedCount": 3,
+ *   "message": "3 coaches deleted successfully"
+ * }
+ */
+router.delete('/', [
+  // Validation: ids array required and non-empty
+  body('ids').isArray({ min: 1 }).withMessage('ids must be a non-empty array'),
+  body('ids.*').isUUID().withMessage('Each id must be a valid UUID')
+], async (req, res) => {
+  try {
+    // Validation: Check for validation errors from express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { ids } = req.body;
+
+    // Database: Find all coaches matching the provided IDs, scoped to user's team
+    // Multi-tenant isolation: Only delete coaches belonging to the user's team
+    const coaches = await Coach.findAll({
+      where: {
+        id: ids,
+        team_id: req.user.team_id
+      }
+    });
+
+    // Business logic: Calculate which IDs were found and which were not
+    const foundIds = coaches.map(coach => coach.id);
+    const notFoundIds = ids.filter(id => !foundIds.includes(id));
+
+    // Database: Delete all found coaches
+    const deletedCount = coaches.length;
+    if (deletedCount > 0) {
+      await Coach.destroy({
+        where: {
+          id: foundIds,
+          team_id: req.user.team_id
+        }
+      });
+    }
+
+    // Response: Return success with deletion count and any not-found IDs
+    res.json({
+      success: true,
+      deletedCount,
+      ...(notFoundIds.length > 0 && { notFound: notFoundIds }),
+      message: `${deletedCount} coach${deletedCount === 1 ? '' : 'es'} deleted successfully`
+    });
+  } catch (error) {
+    // Error: Log and return generic server error
+    console.error('Bulk delete coaches error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while deleting coaches'
     });
   }
 });

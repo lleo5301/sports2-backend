@@ -224,7 +224,14 @@ describe('Auth Routes - Password Validation', () => {
         expect(response.body.success).toBe(true);
         expect(response.body.data).toHaveProperty('id');
         expect(response.body.data.email).toBe(validUserData.email);
-        expect(response.body.data).toHaveProperty('token');
+        // Token should NOT be in response body (now in httpOnly cookie)
+        expect(response.body.data).not.toHaveProperty('token');
+        // Verify JWT cookie is set
+        const cookies = response.headers['set-cookie'];
+        expect(cookies).toBeDefined();
+        const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
+        expect(tokenCookie).toBeDefined();
+        expect(tokenCookie).toContain('HttpOnly');
       });
 
       it('should accept password with various special characters', async () => {
@@ -479,6 +486,198 @@ describe('Auth Routes - Password Validation', () => {
       const passwordError = errorDetails.find(e => e.path === 'password');
       expect(passwordError).toBeDefined();
       expect(passwordError.msg).toContain('8 characters');
+    });
+  });
+
+  describe('POST /api/auth/login - Cookie-Based Authentication', () => {
+    it('should set JWT token as httpOnly cookie on successful login', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: testUser.email,
+          password: strongPassword
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('id');
+      expect(response.body.data.email).toBe(testUser.email);
+      // Token should NOT be in response body (now in httpOnly cookie)
+      expect(response.body.data).not.toHaveProperty('token');
+
+      // Verify JWT cookie is set
+      const cookies = response.headers['set-cookie'];
+      expect(cookies).toBeDefined();
+      const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
+      expect(tokenCookie).toBeDefined();
+      expect(tokenCookie).toContain('HttpOnly');
+      expect(tokenCookie).toContain('Path=/');
+    });
+
+    it('should include team information in login response', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: testUser.email,
+          password: strongPassword
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('team');
+      expect(response.body.data.team).toHaveProperty('id');
+      expect(response.body.data.team).toHaveProperty('name');
+    });
+
+    it('should reject login with invalid credentials', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: testUser.email,
+          password: 'WrongPassword123!'
+        })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Invalid credentials');
+
+      // No cookie should be set on failed login
+      const cookies = response.headers['set-cookie'];
+      if (cookies) {
+        const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
+        expect(tokenCookie).toBeUndefined();
+      }
+    });
+
+    it('should reject login with non-existent email', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'nonexistent@example.com',
+          password: strongPassword
+        })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Invalid credentials');
+    });
+  });
+
+  describe('POST /api/auth/logout - Cookie Clearing', () => {
+    it('should clear JWT token cookie on logout', async () => {
+      const response = await request(app)
+        .post('/api/auth/logout')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBeDefined();
+
+      // Verify cookies are cleared
+      const cookies = response.headers['set-cookie'];
+      expect(cookies).toBeDefined();
+
+      // Check that token cookie is cleared (value should be empty or expired)
+      const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
+      expect(tokenCookie).toBeDefined();
+      // Cleared cookies have empty value or very old expiry
+      expect(tokenCookie).toMatch(/token=;|expires=Thu, 01 Jan 1970/);
+    });
+
+    it('should clear CSRF token cookie on logout', async () => {
+      const response = await request(app)
+        .post('/api/auth/logout')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+
+      const cookies = response.headers['set-cookie'];
+      expect(cookies).toBeDefined();
+
+      // Check that CSRF cookie is cleared
+      const csrfCookie = cookies.find(cookie => cookie.includes('csrf-token'));
+      expect(csrfCookie).toBeDefined();
+    });
+
+    it('should allow logout even without authentication', async () => {
+      // Logout should work even if user is not authenticated
+      const response = await request(app)
+        .post('/api/auth/logout')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+    });
+  });
+
+  describe('Protected Routes - Cookie-Based Authentication', () => {
+    let loginCookies;
+
+    beforeAll(async () => {
+      // Login to get cookies for protected route tests
+      const loginResponse = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: testUser.email,
+          password: strongPassword
+        });
+
+      loginCookies = loginResponse.headers['set-cookie'];
+    });
+
+    it('should access protected route with cookie authentication', async () => {
+      const response = await request(app)
+        .get('/api/auth/me')
+        .set('Cookie', loginCookies)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('id');
+      expect(response.body.data.email).toBe(testUser.email);
+    });
+
+    it('should support Bearer token authentication (backward compatibility)', async () => {
+      // Tests should still work with Bearer token for backward compatibility
+      const response = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('id');
+      expect(response.body.data.email).toBe(testUser.email);
+    });
+
+    it('should reject access without authentication', async () => {
+      const response = await request(app)
+        .get('/api/auth/me')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Not authorized');
+    });
+
+    it('should change password with cookie authentication', async () => {
+      const newPassword = 'NewStr0ng!Pass2';
+
+      const response = await request(app)
+        .put('/api/auth/change-password')
+        .set('Cookie', loginCookies)
+        .send({
+          current_password: strongPassword,
+          new_password: newPassword
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('Password changed successfully');
+
+      // Change password back for other tests
+      await request(app)
+        .put('/api/auth/change-password')
+        .set('Cookie', loginCookies)
+        .send({
+          current_password: newPassword,
+          new_password: strongPassword
+        });
     });
   });
 });

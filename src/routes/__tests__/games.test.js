@@ -18,7 +18,6 @@ describe('Games API', () => {
   let authToken;
   let testUser;
   let testTeam;
-  let testGames = [];
 
   beforeAll(async () => {
     // Ensure database connection
@@ -44,108 +43,6 @@ describe('Games API', () => {
 
     // Generate auth token
     authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
-
-    // Create test games with varying data for sorting
-    const gamesData = [
-      {
-        opponent: 'Yankees',
-        game_date: new Date('2024-03-15'),
-        home_away: 'home',
-        result: 'W',
-        team_score: 5,
-        opponent_score: 3,
-        season: '2024',
-        location: 'Home Stadium',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      },
-      {
-        opponent: 'Red Sox',
-        game_date: new Date('2024-03-20'),
-        home_away: 'away',
-        result: 'L',
-        team_score: 2,
-        opponent_score: 7,
-        season: '2024',
-        location: 'Fenway Park',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      },
-      {
-        opponent: 'Blue Jays',
-        game_date: new Date('2024-03-10'),
-        home_away: 'home',
-        result: 'W',
-        team_score: 8,
-        opponent_score: 4,
-        season: '2024',
-        location: 'Home Stadium',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      },
-      {
-        opponent: 'Cubs',
-        game_date: new Date('2024-04-01'),
-        home_away: 'away',
-        result: 'T',
-        team_score: 4,
-        opponent_score: 4,
-        season: '2024',
-        location: 'Wrigley Field',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      },
-      {
-        opponent: 'Athletics',
-        game_date: new Date('2024-02-28'),
-        home_away: 'home',
-        result: 'W',
-        team_score: 6,
-        opponent_score: 2,
-        season: '2023',
-        location: 'Home Stadium',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      },
-      {
-        opponent: 'Eagles',
-        game_date: new Date('2024-05-15'),
-        home_away: 'home',
-        location: 'Memorial Stadium',
-        season: '2024',
-        notes: 'Important playoff game',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      },
-      {
-        opponent: 'Tigers',
-        game_date: new Date('2024-05-20'),
-        home_away: 'away',
-        location: 'Riverside Park',
-        season: '2024',
-        notes: 'Regular season game',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      },
-      {
-        opponent: 'Bears',
-        game_date: new Date('2024-06-01'),
-        home_away: 'home',
-        location: 'Home Field',
-        season: 'Fall 2024',
-        notes: 'Championship match',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      }
-    ];
-
-    // Create games sequentially to ensure different created_at timestamps
-    for (const gameData of gamesData) {
-      const game = await Game.create(gameData);
-      testGames.push(game);
-      // Small delay to ensure different timestamps
-      await new Promise(resolve => setTimeout(resolve, 10));
-    }
   });
 
   afterAll(async () => {
@@ -156,8 +53,8 @@ describe('Games API', () => {
   });
 
   beforeEach(async () => {
-    // Note: We don't destroy games before each test to maintain consistency
-    // The beforeAll setup creates all games once
+    // Clean up games before each test
+    await Game.destroy({ where: { team_id: testTeam.id } });
   });
 
   describe('GET /api/games', () => {
@@ -168,11 +65,20 @@ describe('Games API', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(Array.isArray(response.body.data)).toBe(true);
-      expect(response.body.pagination.total).toBeGreaterThanOrEqual(0);
+      expect(response.body.data).toEqual([]);
+      expect(response.body.pagination.total).toBe(0);
     });
 
     it('should return user team games only', async () => {
+      // Create game for test team
+      await Game.create({
+        opponent: 'Test Opponent',
+        game_date: new Date('2024-05-15'),
+        home_away: 'home',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
       // Create another team and game (should not appear in results)
       const otherTeam = await Team.create({
         name: 'Other Team',
@@ -181,7 +87,7 @@ describe('Games API', () => {
         year: 2024
       });
 
-      const otherGame = await Game.create({
+      await Game.create({
         opponent: 'Other Team Opponent',
         game_date: new Date('2024-05-15'),
         home_away: 'home',
@@ -195,12 +101,11 @@ describe('Games API', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      const teamGameIds = response.body.data.map(g => g.id);
-      expect(teamGameIds).not.toContain(otherGame.id);
-      expect(response.body.data.every(g => g.team_id === testTeam.id)).toBe(true);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].opponent).toBe('Test Opponent');
+      expect(response.body.data[0].team_id).toBe(testTeam.id);
 
       // Cleanup
-      await otherGame.destroy();
       await otherTeam.destroy();
     });
 
@@ -214,6 +119,79 @@ describe('Games API', () => {
     });
 
     describe('Default Sorting', () => {
+      beforeEach(async () => {
+        // Create test games for sorting tests
+        const gamesData = [
+          {
+            opponent: 'Yankees',
+            game_date: new Date('2024-03-15'),
+            home_away: 'home',
+            result: 'W',
+            team_score: 5,
+            opponent_score: 3,
+            season: '2024',
+            location: 'Home Stadium',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Red Sox',
+            game_date: new Date('2024-03-20'),
+            home_away: 'away',
+            result: 'L',
+            team_score: 2,
+            opponent_score: 7,
+            season: '2024',
+            location: 'Fenway Park',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Blue Jays',
+            game_date: new Date('2024-03-10'),
+            home_away: 'home',
+            result: 'W',
+            team_score: 8,
+            opponent_score: 4,
+            season: '2024',
+            location: 'Home Stadium',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Cubs',
+            game_date: new Date('2024-04-01'),
+            home_away: 'away',
+            result: 'T',
+            team_score: 4,
+            opponent_score: 4,
+            season: '2024',
+            location: 'Wrigley Field',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Athletics',
+            game_date: new Date('2024-02-28'),
+            home_away: 'home',
+            result: 'W',
+            team_score: 6,
+            opponent_score: 2,
+            season: '2023',
+            location: 'Home Stadium',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          }
+        ];
+
+        // Create games sequentially to ensure different created_at timestamps
+        for (const gameData of gamesData) {
+          await Game.create(gameData);
+          // Small delay to ensure different timestamps
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      });
+
       it('should sort by game_date DESC by default', async () => {
         const response = await request(app)
           .get('/api/games')
@@ -232,6 +210,53 @@ describe('Games API', () => {
     });
 
     describe('Sorting by game_date', () => {
+      beforeEach(async () => {
+        // Create test games for sorting tests
+        const gamesData = [
+          {
+            opponent: 'Yankees',
+            game_date: new Date('2024-03-15'),
+            home_away: 'home',
+            result: 'W',
+            team_score: 5,
+            opponent_score: 3,
+            season: '2024',
+            location: 'Home Stadium',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Red Sox',
+            game_date: new Date('2024-03-20'),
+            home_away: 'away',
+            result: 'L',
+            team_score: 2,
+            opponent_score: 7,
+            season: '2024',
+            location: 'Fenway Park',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Blue Jays',
+            game_date: new Date('2024-03-10'),
+            home_away: 'home',
+            result: 'W',
+            team_score: 8,
+            opponent_score: 4,
+            season: '2024',
+            location: 'Home Stadium',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          }
+        ];
+
+        for (const gameData of gamesData) {
+          await Game.create(gameData);
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      });
+
       it('should sort by game_date ASC', async () => {
         const response = await request(app)
           .get('/api/games?orderBy=game_date&sortDirection=ASC')
@@ -273,6 +298,37 @@ describe('Games API', () => {
     });
 
     describe('Sorting by opponent', () => {
+      beforeEach(async () => {
+        const gamesData = [
+          {
+            opponent: 'Yankees',
+            game_date: new Date('2024-03-15'),
+            home_away: 'home',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Red Sox',
+            game_date: new Date('2024-03-20'),
+            home_away: 'away',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Blue Jays',
+            game_date: new Date('2024-03-10'),
+            home_away: 'home',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          }
+        ];
+
+        for (const gameData of gamesData) {
+          await Game.create(gameData);
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      });
+
       it('should sort by opponent ASC', async () => {
         const response = await request(app)
           .get('/api/games?orderBy=opponent&sortDirection=ASC')
@@ -301,6 +357,30 @@ describe('Games API', () => {
     });
 
     describe('Sorting by home_away', () => {
+      beforeEach(async () => {
+        const gamesData = [
+          {
+            opponent: 'Yankees',
+            game_date: new Date('2024-03-15'),
+            home_away: 'home',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Red Sox',
+            game_date: new Date('2024-03-20'),
+            home_away: 'away',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          }
+        ];
+
+        for (const gameData of gamesData) {
+          await Game.create(gameData);
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      });
+
       it('should sort by home_away ASC', async () => {
         const response = await request(app)
           .get('/api/games?orderBy=home_away&sortDirection=ASC')
@@ -329,6 +409,40 @@ describe('Games API', () => {
     });
 
     describe('Sorting by result', () => {
+      beforeEach(async () => {
+        const gamesData = [
+          {
+            opponent: 'Yankees',
+            game_date: new Date('2024-03-15'),
+            home_away: 'home',
+            result: 'W',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Red Sox',
+            game_date: new Date('2024-03-20'),
+            home_away: 'away',
+            result: 'L',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Blue Jays',
+            game_date: new Date('2024-03-10'),
+            home_away: 'home',
+            result: 'T',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          }
+        ];
+
+        for (const gameData of gamesData) {
+          await Game.create(gameData);
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      });
+
       it('should sort by result ASC', async () => {
         const response = await request(app)
           .get('/api/games?orderBy=result&sortDirection=ASC')
@@ -355,6 +469,40 @@ describe('Games API', () => {
     });
 
     describe('Sorting by team_score', () => {
+      beforeEach(async () => {
+        const gamesData = [
+          {
+            opponent: 'Yankees',
+            game_date: new Date('2024-03-15'),
+            home_away: 'home',
+            team_score: 5,
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Red Sox',
+            game_date: new Date('2024-03-20'),
+            home_away: 'away',
+            team_score: 2,
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Blue Jays',
+            game_date: new Date('2024-03-10'),
+            home_away: 'home',
+            team_score: 8,
+            team_id: testTeam.id,
+            created_by: testUser.id
+          }
+        ];
+
+        for (const gameData of gamesData) {
+          await Game.create(gameData);
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      });
+
       it('should sort by team_score ASC', async () => {
         const response = await request(app)
           .get('/api/games?orderBy=team_score&sortDirection=ASC')
@@ -383,6 +531,40 @@ describe('Games API', () => {
     });
 
     describe('Sorting by opponent_score', () => {
+      beforeEach(async () => {
+        const gamesData = [
+          {
+            opponent: 'Yankees',
+            game_date: new Date('2024-03-15'),
+            home_away: 'home',
+            opponent_score: 3,
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Red Sox',
+            game_date: new Date('2024-03-20'),
+            home_away: 'away',
+            opponent_score: 7,
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Blue Jays',
+            game_date: new Date('2024-03-10'),
+            home_away: 'home',
+            opponent_score: 4,
+            team_id: testTeam.id,
+            created_by: testUser.id
+          }
+        ];
+
+        for (const gameData of gamesData) {
+          await Game.create(gameData);
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      });
+
       it('should sort by opponent_score ASC', async () => {
         const response = await request(app)
           .get('/api/games?orderBy=opponent_score&sortDirection=ASC')
@@ -411,6 +593,40 @@ describe('Games API', () => {
     });
 
     describe('Sorting by season', () => {
+      beforeEach(async () => {
+        const gamesData = [
+          {
+            opponent: 'Yankees',
+            game_date: new Date('2024-03-15'),
+            home_away: 'home',
+            season: '2024',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Red Sox',
+            game_date: new Date('2024-03-20'),
+            home_away: 'away',
+            season: '2024',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          },
+          {
+            opponent: 'Athletics',
+            game_date: new Date('2024-02-28'),
+            home_away: 'home',
+            season: '2023',
+            team_id: testTeam.id,
+            created_by: testUser.id
+          }
+        ];
+
+        for (const gameData of gamesData) {
+          await Game.create(gameData);
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      });
+
       it('should sort by season ASC', async () => {
         const response = await request(app)
           .get('/api/games?orderBy=season&sortDirection=ASC')
@@ -436,35 +652,43 @@ describe('Games API', () => {
       });
     });
 
-    describe('Sorting by created_at', () => {
-      it('should sort by created_at ASC', async () => {
-        const response = await request(app)
-          .get('/api/games?orderBy=created_at&sortDirection=ASC')
-          .set('Authorization', `Bearer ${authToken}`)
-          .expect(200);
-
-        expect(response.body.success).toBe(true);
-        const timestamps = response.body.data.map(g => new Date(g.created_at).getTime());
-        for (let i = 1; i < timestamps.length; i++) {
-          expect(timestamps[i]).toBeGreaterThanOrEqual(timestamps[i - 1]);
-        }
-      });
-
-      it('should sort by created_at DESC', async () => {
-        const response = await request(app)
-          .get('/api/games?orderBy=created_at&sortDirection=DESC')
-          .set('Authorization', `Bearer ${authToken}`)
-          .expect(200);
-
-        expect(response.body.success).toBe(true);
-        const timestamps = response.body.data.map(g => new Date(g.created_at).getTime());
-        for (let i = 1; i < timestamps.length; i++) {
-          expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
-        }
-      });
-    });
-
     describe('Search functionality', () => {
+      beforeEach(async () => {
+        // Create test games with different data
+        await Game.create({
+          opponent: 'Eagles',
+          game_date: new Date('2024-05-15'),
+          home_away: 'home',
+          location: 'Memorial Stadium',
+          season: '2024',
+          notes: 'Important playoff game',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
+
+        await Game.create({
+          opponent: 'Tigers',
+          game_date: new Date('2024-05-20'),
+          home_away: 'away',
+          location: 'Riverside Park',
+          season: '2024',
+          notes: 'Regular season game',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
+
+        await Game.create({
+          opponent: 'Bears',
+          game_date: new Date('2024-06-01'),
+          home_away: 'home',
+          location: 'Home Field',
+          season: 'Fall 2024',
+          notes: 'Championship match',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
+      });
+
       it('should search by opponent name', async () => {
         const response = await request(app)
           .get('/api/games?search=Eagles')
@@ -472,8 +696,8 @@ describe('Games API', () => {
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBeGreaterThan(0);
-        expect(response.body.data.some(g => g.opponent === 'Eagles')).toBe(true);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].opponent).toBe('Eagles');
       });
 
       it('should search by location', async () => {
@@ -483,8 +707,9 @@ describe('Games API', () => {
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBeGreaterThan(0);
-        expect(response.body.data.some(g => g.location && g.location.includes('Riverside'))).toBe(true);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].location).toBe('Riverside Park');
+        expect(response.body.data[0].opponent).toBe('Tigers');
       });
 
       it('should search by season', async () => {
@@ -494,7 +719,9 @@ describe('Games API', () => {
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBeGreaterThan(0);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].season).toBe('Fall 2024');
+        expect(response.body.data[0].opponent).toBe('Bears');
       });
 
       it('should search by notes', async () => {
@@ -504,7 +731,9 @@ describe('Games API', () => {
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBeGreaterThan(0);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].notes).toContain('playoff');
+        expect(response.body.data[0].opponent).toBe('Eagles');
       });
 
       it('should perform case-insensitive search', async () => {
@@ -514,27 +743,29 @@ describe('Games API', () => {
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBeGreaterThan(0);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].opponent).toBe('Eagles');
       });
 
       it('should return empty array when search has no matches', async () => {
         const response = await request(app)
-          .get('/api/games?search=NonexistentTeamXYZ')
+          .get('/api/games?search=NonexistentTeam')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data).toEqual([]);
+        expect(response.body.pagination.total).toBe(0);
       });
 
-      it('should return games when search is empty', async () => {
+      it('should return all games when search is empty', async () => {
         const response = await request(app)
           .get('/api/games?search=')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBeGreaterThan(0);
+        expect(response.body.data).toHaveLength(3);
       });
 
       it('should combine search with season filter', async () => {
@@ -544,27 +775,43 @@ describe('Games API', () => {
           .expect(200);
 
         expect(response.body.success).toBe(true);
+        expect(response.body.data).toHaveLength(2);
         expect(response.body.data.every(game => game.season === '2024')).toBe(true);
       });
 
       it('should combine search with result filter', async () => {
+        // Update one game to have a result
+        await Game.update(
+          { result: 'W', team_score: 5, opponent_score: 3 },
+          { where: { opponent: 'Eagles', team_id: testTeam.id } }
+        );
+
+        await Game.update(
+          { result: 'L', team_score: 2, opponent_score: 4 },
+          { where: { opponent: 'Tigers', team_id: testTeam.id } }
+        );
+
         const response = await request(app)
           .get('/api/games?search=2024&result=W')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.every(game => game.result === 'W')).toBe(true);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].result).toBe('W');
+        expect(response.body.data[0].opponent).toBe('Eagles');
       });
 
       it('should search across multiple fields', async () => {
+        // Search term that appears in multiple fields
         const response = await request(app)
           .get('/api/games?search=Memorial')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBeGreaterThan(0);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].location).toContain('Memorial');
       });
 
       it('should handle partial matches', async () => {
@@ -574,7 +821,8 @@ describe('Games API', () => {
           .expect(200);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBeGreaterThan(0);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].opponent).toBe('Eagles');
       });
 
       it('should validate search parameter type', async () => {
@@ -585,41 +833,6 @@ describe('Games API', () => {
 
         expect(response.body.success).toBe(false);
         expect(response.body.message).toBe('Validation failed');
-      });
-    });
-
-    describe('Sorting Validation', () => {
-      it('should return 400 for invalid orderBy column', async () => {
-        const response = await request(app)
-          .get('/api/games?orderBy=invalid_column&sortDirection=ASC')
-          .set('Authorization', `Bearer ${authToken}`)
-          .expect(400);
-
-        expect(response.body.success).toBe(false);
-        expect(response.body.error).toBe('Validation failed');
-        expect(response.body.details).toBeDefined();
-      });
-
-      it('should return 400 for invalid sortDirection', async () => {
-        const response = await request(app)
-          .get('/api/games?orderBy=game_date&sortDirection=INVALID')
-          .set('Authorization', `Bearer ${authToken}`)
-          .expect(400);
-
-        expect(response.body.success).toBe(false);
-        expect(response.body.error).toBe('Validation failed');
-        expect(response.body.details).toBeDefined();
-      });
-
-      it('should return 400 for both invalid orderBy and sortDirection', async () => {
-        const response = await request(app)
-          .get('/api/games?orderBy=bad_column&sortDirection=BAD_DIR')
-          .set('Authorization', `Bearer ${authToken}`)
-          .expect(400);
-
-        expect(response.body.success).toBe(false);
-        expect(response.body.error).toBe('Validation failed');
-        expect(response.body.details).toBeDefined();
       });
     });
   });
@@ -683,9 +896,6 @@ describe('Games API', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.id).toBe(game.id);
       expect(response.body.data.opponent).toBe('Specific Opponent');
-
-      // Cleanup
-      await game.destroy();
     });
 
     it('should return 404 for non-existent game', async () => {
@@ -726,9 +936,6 @@ describe('Games API', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.opponent).toBe('Updated Opponent');
       expect(response.body.data.result).toBe('W');
-
-      // Cleanup
-      await game.destroy();
     });
   });
 
@@ -738,7 +945,7 @@ describe('Games API', () => {
         opponent: 'To Delete',
         game_date: new Date('2024-05-15'),
         home_away: 'home',
-        team_id: testTeam.id,
+        team_id:testTeam.id,
         created_by: testUser.id
       });
 

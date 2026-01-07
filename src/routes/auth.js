@@ -8,14 +8,19 @@
  * - JWT tokens for stateless authentication with configurable expiration
  * - OAuth support for Google and Apple sign-in
  * - Input validation and sanitization via express-validator
+ * - CSRF protection via double-submit cookie pattern
+ * - Rate limiting on sensitive endpoints
+ * - httpOnly cookies for token storage (XSS protection)
  *
  * @module routes/auth
  * @requires express
  * @requires express-validator
  * @requires jsonwebtoken
  * @requires passport
+ * @requires express-rate-limit
  * @requires ../models
  * @requires ../middleware/auth
+ * @requires ../middleware/csrf
  * @requires ../services/emailService
  */
 
@@ -25,9 +30,11 @@ const { body, validationResult } = require('express-validator');
 const { passwordValidator, newPasswordValidator } = require('../utils/passwordValidator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
-const { User, Team } = require('../models');
+const rateLimit = require('express-rate-limit');
+const { User, Team, UserTeam } = require('../models');
 const { protect } = require('../middleware/auth');
 const UserPermission = require('../models/UserPermission'); // Added import for UserPermission
+const { generateToken: generateCsrfToken } = require('../middleware/csrf');
 
 const router = express.Router();
 
@@ -53,6 +60,113 @@ const generateToken = (id) => {
 };
 
 /**
+ * @description Calculates cookie maxAge in milliseconds from JWT expiration string.
+ *              Supports common time formats: '7d' (days), '24h' (hours), '60m' (minutes).
+ *              Falls back to 7 days if format is not recognized.
+ *
+ * @param {string} expiresIn - JWT expiration string (e.g., '7d', '24h', '60m')
+ * @returns {number} Cookie maxAge in milliseconds
+ *
+ * @example
+ * getJwtCookieMaxAge('7d');  // Returns: 604800000 (7 days in ms)
+ * getJwtCookieMaxAge('24h'); // Returns: 86400000 (24 hours in ms)
+ */
+const getJwtCookieMaxAge = (expiresIn = process.env.JWT_EXPIRES_IN || '7d') => {
+  // Parse common time format strings used in JWT expiration
+  const match = expiresIn.match(/^(\d+)([dhm])$/);
+
+  if (!match) {
+    // Fallback: Default to 7 days if format not recognized
+    return 7 * 24 * 60 * 60 * 1000;
+  }
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+
+  // Convert to milliseconds based on unit
+  switch (unit) {
+    case 'd': // days
+      return value * 24 * 60 * 60 * 1000;
+    case 'h': // hours
+      return value * 60 * 60 * 1000;
+    case 'm': // minutes
+      return value * 60 * 1000;
+    default:
+      // Fallback: Default to 7 days
+      return 7 * 24 * 60 * 60 * 1000;
+  }
+};
+
+/**
+ * @description Rate limiter for CSRF token endpoint to prevent abuse.
+ *              Allows 60 requests per 15 minutes per IP address.
+ */
+const csrfTokenLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 60, // Limit each IP to 60 requests per windowMs
+  message: 'Too many CSRF token requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+/**
+ * @route GET /api/auth/csrf-token
+ * @description Generates and returns a CSRF token for the client.
+ *              This endpoint must be called before making state-changing requests
+ *              (POST, PUT, PATCH, DELETE) to obtain a valid CSRF token.
+ *              The token is returned in the response body and a corresponding
+ *              CSRF cookie is automatically set by the CSRF middleware.
+ *
+ *              The frontend should:
+ *              1. Call this endpoint to get a CSRF token
+ *              2. Include the token in the 'x-csrf-token' header for state-changing requests
+ *              3. The browser automatically sends the CSRF cookie with requests
+ *
+ * @access Public
+ * @middleware csrfTokenLimiter - Rate limiting to prevent abuse (60 requests per 15 min)
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.token - CSRF token to include in subsequent requests
+ *
+ * @example
+ * // Client-side usage:
+ * const response = await fetch('/api/auth/csrf-token');
+ * const { token } = await response.json();
+ * // Use token in subsequent requests:
+ * await fetch('/api/auth/login', {
+ *   method: 'POST',
+ *   headers: {
+ *     'Content-Type': 'application/json',
+ *     'x-csrf-token': token
+ *   },
+ *   body: JSON.stringify({ email, password })
+ * });
+ */
+router.get('/csrf-token', csrfTokenLimiter, (req, res) => {
+  try {
+    // Generate CSRF token using the double-submit cookie pattern
+    // This function automatically sets the CSRF cookie in the response
+    const csrfToken = generateCsrfToken(req, res);
+
+    // Return the token in the response body
+    // The client should include this token in the 'x-csrf-token' header
+    // for all state-changing requests (POST, PUT, PATCH, DELETE)
+    res.status(200).json({
+      success: true,
+      token: csrfToken
+    });
+  } catch (error) {
+    // Error: Log and return generic server error
+    console.error('CSRF token generation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error generating CSRF token'
+    });
+  }
+});
+
+/**
  * @route POST /api/auth/register
  * @description Registers a new user account with email/password authentication.
  *              Creates the user record, assigns them to a team, generates a JWT token,
@@ -73,7 +187,7 @@ const generateToken = (id) => {
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - User data and authentication token
+ * @returns {Object} response.data - User data
  * @returns {string} response.data.id - User's UUID
  * @returns {string} response.data.email - User's email address
  * @returns {string} response.data.first_name - User's first name
@@ -81,7 +195,8 @@ const generateToken = (id) => {
  * @returns {string} response.data.role - User's role
  * @returns {string} response.data.team_id - Assigned team's UUID
  * @returns {string} [response.data.phone] - User's phone number
- * @returns {string} response.data.token - JWT authentication token
+ *
+ * @cookie {string} token - JWT authentication token (httpOnly, expires with JWT)
  *
  * @throws {400} Validation failed - Email format invalid, password too short, missing required fields
  * @throws {400} User with this email already exists - Duplicate email registration attempt
@@ -157,7 +272,18 @@ router.post('/register', [
     // Security: Generate JWT token for immediate authentication after registration
     const token = generateToken(user.id);
 
-    // Response: Return user data with token (password excluded by model)
+    // Security: Set JWT token as httpOnly cookie to prevent XSS attacks
+    // The httpOnly flag prevents JavaScript access, protecting against token theft
+    // Cookie configuration matches login flow and CSRF cookie settings for consistency
+    res.cookie('token', token, {
+      httpOnly: true, // Prevents JavaScript access to cookie (XSS protection)
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // CSRF protection
+      maxAge: getJwtCookieMaxAge(), // Cookie expiration matches JWT expiration
+      path: '/' // Cookie available for all routes
+    });
+
+    // Response: Return user data (token now in httpOnly cookie, password excluded by model)
     res.status(201).json({
       success: true,
       data: {
@@ -167,8 +293,7 @@ router.post('/register', [
         last_name: user.last_name,
         role: user.role,
         team_id: user.team_id,
-        phone: user.phone,
-        token
+        phone: user.phone
       }
     });
 
@@ -198,12 +323,14 @@ router.post('/register', [
  * @route POST /api/auth/login
  * @description Authenticates a user with email and password credentials.
  *              Validates credentials, checks account status, updates last login
- *              timestamp, and returns a JWT token with user profile data.
+ *              timestamp, and sets a JWT token as an httpOnly cookie.
  *
  *              Security measures:
  *              - Generic error message for invalid credentials (prevents user enumeration)
  *              - Account activation check
  *              - Password comparison via secure bcrypt method
+ *              - JWT token stored in httpOnly cookie (XSS protection)
+ *              - Secure cookie flags (httpOnly, secure, sameSite)
  * @access Public
  * @middleware express-validator - Request body validation
  *
@@ -212,7 +339,7 @@ router.post('/register', [
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - User data and authentication token
+ * @returns {Object} response.data - User profile data
  * @returns {string} response.data.id - User's UUID
  * @returns {string} response.data.email - User's email address
  * @returns {string} response.data.first_name - User's first name
@@ -221,7 +348,8 @@ router.post('/register', [
  * @returns {string} response.data.team_id - User's primary team UUID
  * @returns {string} [response.data.phone] - User's phone number
  * @returns {Object} response.data.team - Team details (id, name, program_name, school_logo_url)
- * @returns {string} response.data.token - JWT authentication token
+ *
+ * @cookie {string} token - JWT authentication token (httpOnly, expires with JWT)
  *
  * @throws {400} Validation failed - Invalid email format or missing password
  * @throws {401} Invalid credentials - Email not found or password mismatch
@@ -288,7 +416,17 @@ router.post('/login', [
     // Security: Generate fresh JWT token for this session
     const token = generateToken(user.id);
 
-    // Response: Return user data with team info and token
+    // Security: Set JWT token as httpOnly cookie to prevent XSS attacks
+    // The httpOnly flag prevents JavaScript access, protecting against token theft
+    res.cookie('token', token, {
+      httpOnly: true, // Prevents JavaScript access to cookie (XSS protection)
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // CSRF protection
+      maxAge: getJwtCookieMaxAge(), // Cookie expiration matches JWT expiration
+      path: '/' // Cookie available for all routes
+    });
+
+    // Response: Return user data with team info and token in cookie
     res.json({
       success: true,
       data: {
@@ -299,8 +437,7 @@ router.post('/login', [
         role: user.role,
         team_id: user.team_id,
         phone: user.phone,
-        team: user.Team,
-        token
+        team: user.Team
       }
     });
   } catch (error) {
@@ -383,38 +520,31 @@ router.get('/me', protect, async (req, res) => {
  * @route PUT /api/auth/me
  * @description Updates the authenticated user's profile information.
  *              Only allows modification of safe fields (name, phone).
- *              Email and role changes require separate administrative endpoints.
- *              Password changes use the dedicated /change-password endpoint.
+ *              Email and role changes require separate administrative processes.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  * @middleware express-validator - Request body validation
  *
- * @param {string} [req.body.first_name] - New first name (1-50 chars, trimmed)
- * @param {string} [req.body.last_name] - New last name (1-50 chars, trimmed)
- * @param {string} [req.body.phone] - New phone number (10-15 chars)
+ * @param {string} [req.body.first_name] - Updated first name (1-50 chars)
+ * @param {string} [req.body.last_name] - Updated last name (1-50 chars)
+ * @param {string} [req.body.phone] - Updated phone number (10-15 chars, optional)
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
  * @returns {Object} response.data - Updated user profile data
- * @returns {string} response.data.id - User's UUID
- * @returns {string} response.data.email - User's email (unchanged)
- * @returns {string} response.data.first_name - User's updated first name
- * @returns {string} response.data.last_name - User's updated last name
- * @returns {string} response.data.role - User's role (unchanged)
- * @returns {string} response.data.team_id - User's team UUID (unchanged)
- * @returns {string} [response.data.phone] - User's updated phone number
  *
  * @throws {400} Validation failed - Invalid field values
- * @throws {500} Server error while updating profile - Database operation failure
+ * @throws {500} Server error during update - Database operation failure
  */
 router.put('/me', protect, [
-  // Validation: Optional fields with length constraints
+  // Validation: Names are optional but must meet requirements if provided
   body('first_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('last_name').optional().trim().isLength({ min: 1, max: 50 }),
+  // Validation: Phone is optional but must be valid length if provided
   body('phone').optional().isLength({ min: 10, max: 15 })
 ], async (req, res) => {
   try {
-    // Validation: Check for validation errors from express-validator
+    // Validation: Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -424,18 +554,27 @@ router.put('/me', protect, [
       });
     }
 
+    // Extract only allowed fields for update
     const { first_name, last_name, phone } = req.body;
+    const updateData = {};
 
-    // Database: Fetch and update user with provided values
-    // Business logic: Only update fields that are provided, preserve existing values
+    // Business logic: Only include fields that were provided
+    if (first_name !== undefined) updateData.first_name = first_name;
+    if (last_name !== undefined) updateData.last_name = last_name;
+    if (phone !== undefined) updateData.phone = phone;
+
+    // Database: Update user record with allowed fields only
     const user = await User.findByPk(req.user.id);
-    await user.update({
-      first_name: first_name || user.first_name,
-      last_name: last_name || user.last_name,
-      phone: phone || user.phone
-    });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
 
-    // Response: Return updated user data (excluding sensitive fields)
+    await user.update(updateData);
+
+    // Response: Return updated user data (password excluded)
     res.json({
       success: true,
       data: {
@@ -453,43 +592,38 @@ router.put('/me', protect, [
     console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
-      error: 'Server error while updating profile'
+      error: 'Server error during profile update'
     });
   }
 });
 
 /**
- * @route PUT /api/auth/change-password
+ * @route POST /api/auth/change-password
  * @description Changes the authenticated user's password.
- *              Requires verification of current password before allowing change.
- *              New password is automatically hashed by User model hooks before storage.
- *
- *              Security measures:
- *              - Current password verification prevents unauthorized changes
- *              - Minimum password length enforced
- *              - Password hashing handled by model layer
+ *              Requires both current password verification and new password validation.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  * @middleware express-validator - Request body validation
  *
- * @param {string} req.body.current_password - User's current password for verification
- * @param {string} req.body.new_password - New password (minimum 6 characters)
+ * @param {string} req.body.currentPassword - User's current password for verification
+ * @param {string} req.body.newPassword - New password (minimum 6 characters, validated)
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {string} response.message - Success confirmation message
+ * @returns {string} response.message - Success message
  *
- * @throws {400} Validation failed - New password too short or missing required fields
- * @throws {400} Current password is incorrect - Password verification failed
- * @throws {500} Server error while changing password - Database operation failure
+ * @throws {400} Validation failed - New password doesn't meet requirements
+ * @throws {401} Current password is incorrect - Password verification failed
+ * @throws {500} Server error during password change - Database operation failure
  */
-router.put('/change-password', protect, [
-  // Validation: Current password must be provided for verification
-  body('current_password').exists(),
+router.post('/change-password', protect, [
+  // Validation: Current password must be provided
+  body('currentPassword').exists().withMessage('Current password is required'),
+  // Validation: New password must meet security requirements
   newPasswordValidator
 ], async (req, res) => {
   try {
-    // Validation: Check for validation errors from express-validator
+    // Validation: Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -499,325 +633,84 @@ router.put('/change-password', protect, [
       });
     }
 
-    const { current_password, new_password } = req.body;
+    const { currentPassword, newPassword } = req.body;
 
-    // Database: Fetch user to verify current password
+    // Database: Fetch user by ID
     const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
 
-    // Security: Verify current password before allowing change
-    const isMatch = await user.matchPassword(current_password);
+    // Security: Verify current password using bcrypt comparison
+    const isMatch = await user.matchPassword(currentPassword);
     if (!isMatch) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
         error: 'Current password is incorrect'
       });
     }
 
-    // Security: Update password (automatically hashed by model beforeUpdate hook)
-    user.password = new_password;
-    await user.save();
+    // Business logic: Prevent using the same password as current
+    const isSamePassword = await user.matchPassword(newPassword);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be different from current password'
+      });
+    }
 
+    // Database: Update password (will be hashed by User model beforeUpdate hook)
+    await user.update({ password: newPassword });
+
+    // Response: Return success message
     res.json({
       success: true,
-      message: 'Password updated successfully'
+      message: 'Password changed successfully'
     });
   } catch (error) {
     // Error: Log and return generic server error
     console.error('Change password error:', error);
     res.status(500).json({
       success: false,
-      error: 'Server error while changing password'
-    });
-  }
-});
-
-// ============================================================================
-// OAuth Routes
-// These routes handle social authentication via Google and Apple sign-in.
-// OAuth flows redirect users to provider authentication pages, then back to
-// callback endpoints where tokens are exchanged and users are created/matched.
-// ============================================================================
-
-/**
- * @route GET /api/auth/google
- * @description Initiates Google OAuth 2.0 authentication flow.
- *              Redirects user to Google's consent screen where they can
- *              authorize the application to access their profile and email.
- *              Requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.
- *
- *              OAuth Flow:
- *              1. User clicks "Sign in with Google" button
- *              2. This endpoint redirects to Google's OAuth consent screen
- *              3. User approves permissions (profile, email)
- *              4. Google redirects to /google/callback with authorization code
- * @access Public
- *
- * @returns {void} Redirects to Google OAuth consent screen
- *
- * @throws {503} Google OAuth is not configured - Missing environment variables
- */
-router.get('/google', (req, res) => {
-  // Configuration: Check if Google OAuth credentials are configured
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    return res.status(503).json({
-      success: false,
-      error: 'Google OAuth is not configured'
-    });
-  }
-  // OAuth: Initiate Google authentication with profile and email scopes
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res);
-});
-
-/**
- * @route GET /api/auth/google/callback
- * @description Handles Google OAuth callback after user authorization.
- *              Exchanges authorization code for access token, retrieves user profile,
- *              finds or creates user in database, generates JWT, and redirects to frontend.
- *
- *              The passport 'google' strategy (configured elsewhere) handles:
- *              - Token exchange with Google
- *              - Profile retrieval
- *              - User lookup/creation
- *
- *              On success: Redirects to APP_URL/oauth-callback?token=xxx&provider=google
- *              On failure: Redirects to LANDING_URL/login?error=oauth_failed
- * @access Public (callback from Google)
- *
- * @returns {void} Redirects to frontend with token or error
- *
- * @throws {503} Google OAuth is not configured - Missing environment variables
- */
-router.get('/google/callback', (req, res, next) => {
-  // Configuration: Verify OAuth is configured before processing callback
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    return res.status(503).json({
-      success: false,
-      error: 'Google OAuth is not configured'
-    });
-  }
-  // OAuth: Process callback with session disabled (using JWT instead)
-  passport.authenticate('google', { session: false })(req, res, next);
-}, (req, res) => {
-  try {
-    // Security: Generate JWT token for authenticated user
-    const token = generateToken(req.user.id);
-
-    // Business logic: Redirect to frontend app with token as query parameter
-    // Frontend will extract token and store it for subsequent API calls
-    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost/app';
-    const redirectUrl = `${appUrl}/oauth-callback?token=${token}&provider=google`;
-    res.redirect(redirectUrl);
-  } catch (error) {
-    // Error: Redirect to landing page with error indicator on failure
-    console.error('Google OAuth callback error:', error);
-    const landingUrl = process.env.LANDING_URL || 'http://localhost';
-    const errorUrl = `${landingUrl}/login?error=oauth_failed`;
-    res.redirect(errorUrl);
-  }
-});
-
-/**
- * @route GET /api/auth/apple
- * @description Initiates Apple OAuth authentication flow (Sign in with Apple).
- *              Redirects user to Apple's authentication page where they can
- *              authorize the application to access their email and name.
- *              Requires APPLE_CLIENT_ID, APPLE_TEAM_ID, and APPLE_KEY_ID environment variables.
- *
- *              Apple Sign In Notes:
- *              - Apple only provides user's name on first authorization
- *              - Users can choose to hide their email (relay address provided)
- *              - Uses POST for callback (unlike Google which uses GET)
- * @access Public
- *
- * @returns {void} Redirects to Apple OAuth authentication page
- *
- * @throws {503} Apple OAuth is not configured - Missing environment variables
- */
-router.get('/apple', (req, res) => {
-  // Configuration: Check if Apple OAuth credentials are configured
-  if (!process.env.APPLE_CLIENT_ID || !process.env.APPLE_TEAM_ID || !process.env.APPLE_KEY_ID) {
-    return res.status(503).json({
-      success: false,
-      error: 'Apple OAuth is not configured'
-    });
-  }
-  // OAuth: Initiate Apple authentication with email and name scopes
-  passport.authenticate('apple', { scope: ['email', 'name'] })(req, res);
-});
-
-/**
- * @route POST /api/auth/apple/callback
- * @description Handles Apple OAuth callback after user authorization.
- *              Apple uses POST for callbacks (unlike Google's GET).
- *              Exchanges authorization code for tokens, processes user data,
- *              finds or creates user, generates JWT, and redirects to frontend.
- *
- *              Apple-specific behavior:
- *              - User info (name) is only provided on first authorization
- *              - Email may be a private relay address if user chose to hide email
- *              - Subsequent logins only provide user identifier
- *
- *              On success: Redirects to APP_URL/oauth-callback?token=xxx&provider=apple
- *              On failure: Redirects to LANDING_URL/login?error=oauth_failed
- * @access Public (callback from Apple)
- *
- * @returns {void} Redirects to frontend with token or error
- *
- * @throws {503} Apple OAuth is not configured - Missing environment variables
- */
-router.post('/apple/callback', (req, res, next) => {
-  // Configuration: Verify OAuth is configured before processing callback
-  if (!process.env.APPLE_CLIENT_ID || !process.env.APPLE_TEAM_ID || !process.env.APPLE_KEY_ID) {
-    return res.status(503).json({
-      success: false,
-      error: 'Apple OAuth is not configured'
-    });
-  }
-  // OAuth: Process callback with session disabled (using JWT instead)
-  passport.authenticate('apple', { session: false })(req, res, next);
-}, (req, res) => {
-  try {
-    // Security: Generate JWT token for authenticated user
-    const token = generateToken(req.user.id);
-
-    // Business logic: Redirect to frontend app with token as query parameter
-    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost/app';
-    const redirectUrl = `${appUrl}/oauth-callback?token=${token}&provider=apple`;
-    res.redirect(redirectUrl);
-  } catch (error) {
-    // Error: Redirect to landing page with error indicator on failure
-    console.error('Apple OAuth callback error:', error);
-    const landingUrl = process.env.LANDING_URL || 'http://localhost';
-    const errorUrl = `${landingUrl}/login?error=oauth_failed`;
-    res.redirect(errorUrl);
-  }
-});
-
-/**
- * @route POST /api/auth/oauth/token
- * @description Endpoint for mobile apps to exchange OAuth provider tokens.
- *              Mobile apps handle OAuth differently - they receive tokens directly
- *              from the provider SDK and need to exchange them for app-specific JWT tokens.
- *
- *              Implementation Note: This is a placeholder endpoint. Production
- *              implementation should verify the access_token with the specified
- *              provider's API before creating/returning a user JWT.
- *
- *              Typical mobile OAuth flow:
- *              1. Mobile app uses provider SDK for authentication
- *              2. SDK returns provider access token
- *              3. App sends token to this endpoint
- *              4. Backend verifies token with provider
- *              5. Backend finds/creates user and returns app JWT
- * @access Public
- *
- * @param {string} req.body.provider - OAuth provider name ('google' or 'apple')
- * @param {string} req.body.access_token - Access token from OAuth provider
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {string} response.message - Status message
- *
- * @throws {400} Provider and access token are required - Missing required parameters
- * @throws {500} Server error during OAuth token processing - Token verification or database failure
- */
-router.post('/oauth/token', (req, res) => {
-  try {
-    const { provider, access_token } = req.body;
-
-    // Validation: Both provider and token are required for token exchange
-    if (!provider || !access_token) {
-      return res.status(400).json({
-        success: false,
-        error: 'Provider and access token are required'
-      });
-    }
-
-    // TODO: Production implementation should:
-    // 1. Verify access_token with provider API (Google/Apple)
-    // 2. Extract user info from verified token
-    // 3. Find or create user in database
-    // 4. Generate and return app JWT
-    // This placeholder exists for mobile app integration development
-
-    res.json({
-      success: true,
-      message: 'OAuth token endpoint - implement based on your mobile app needs'
-    });
-  } catch (error) {
-    // Error: Log and return generic server error
-    console.error('OAuth token error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error during OAuth token processing'
+      error: 'Server error during password change'
     });
   }
 });
 
 /**
- * @route GET /api/auth/permissions
- * @description Retrieves the list of granted permissions for the authenticated user
- *              within their current team context. Permissions control access to
- *              specific features and operations within the application.
- *
- *              Permission types include:
- *              - team_settings: Modify team configuration
- *              - user_management: Manage team users and roles
- *              - roster_management: Add/edit/remove players
- *              - schedule_management: Create/modify schedules
- *              - depth_chart_management: Manage depth charts
- *              - report_management: Create/edit reports
- *
- *              Permission model:
- *              - Permissions are granted per user per team
- *              - Only granted permissions (is_granted=true) are returned
- *              - Super admins may have implicit permissions not stored in database
+ * @route POST /api/auth/logout
+ * @description Logs out the authenticated user by clearing the JWT token cookie.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  *
  * @returns {Object} response
  * @returns {boolean} response.success - Operation success status
- * @returns {Array<string>} response.data - Array of granted permission type strings
- *
- * @example
- * // Response for a user with roster and schedule permissions:
- * {
- *   "success": true,
- *   "data": ["roster_management", "schedule_management"]
- * }
- *
- * @throws {500} Error fetching user permissions - Database query failure
+ * @returns {string} response.message - Logout confirmation message
  */
-router.get('/permissions', protect, async (req, res) => {
+router.post('/logout', protect, (req, res) => {
   try {
-    // Database: Fetch all granted permissions for user within their team
-    const permissions = await UserPermission.findAll({
-      where: {
-        user_id: req.user.id,
-        // Permission: Scope to user's current team (multi-tenant isolation)
-        team_id: req.user.team_id,
-        // Permission: Only include explicitly granted permissions
-        is_granted: true
-      },
-      // Performance: Only select the permission type column
-      attributes: ['permission_type'],
-      // Business logic: Sort alphabetically for consistent ordering
-      order: [['permission_type', 'ASC']]
+    // Security: Clear JWT token cookie
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      path: '/'
     });
 
-    // Business logic: Extract permission types into simple string array
-    const permissionTypes = permissions.map(p => p.permission_type);
-
+    // Response: Return success message
     res.json({
       success: true,
-      data: permissionTypes
+      message: 'Logged out successfully'
     });
   } catch (error) {
-    // Error: Log and return error message
-    console.error('Error fetching user permissions:', error);
+    // Error: Log and return generic server error
+    console.error('Logout error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching user permissions'
+      error: 'Server error during logout'
     });
   }
 });

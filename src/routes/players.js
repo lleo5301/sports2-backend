@@ -392,7 +392,7 @@ router.post('/', uploadVideo, [
  * @throws {500} Server error - Database or file operation failure
  */
 router.put('/byId/:id', uploadVideo, [
-  // Validation: Optional fields with appropriate constraints
+  // Validation: All fields optional for partial updates
   body('first_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('last_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('school_type').optional().isIn(['HS', 'COLL']),
@@ -423,7 +423,7 @@ router.put('/byId/:id', uploadVideo, [
       });
     }
 
-    // Permission: Fetch player with team isolation check
+    // Permission: Find player and verify team ownership
     const player = await Player.findOne({
       where: {
         id: req.params.id,
@@ -431,7 +431,7 @@ router.put('/byId/:id', uploadVideo, [
       }
     });
 
-    // Error: Return 404 if player not found (also handles unauthorized team access)
+    // Error: Return 404 if player not found or doesn't belong to user's team
     if (!player) {
       return res.status(404).json({
         success: false,
@@ -439,20 +439,23 @@ router.put('/byId/:id', uploadVideo, [
       });
     }
 
-    // Business logic: Handle video file replacement - delete old file if new one is uploaded
+    // Business logic: Handle old video file deletion when new video is uploaded
     if (req.file && player.video_url) {
-      const oldFilePath = path.join(__dirname, '../..', player.video_url);
-      fs.unlink(oldFilePath, (err) => {
+      const oldVideoPath = path.join(__dirname, '..', player.video_url);
+      // Async file deletion - don't block response on success or failure
+      fs.unlink(oldVideoPath, (err) => {
         if (err) {
-          console.warn('Failed to delete old video file:', err);
+          console.warn('Warning: Could not delete old video file:', err);
         }
       });
     }
 
-    // Business logic: Update player data with new values
-    const updateData = { ...req.body };
+    // Business logic: Prepare update data from request body
+    const updateData = {
+      ...req.body
+    };
 
-    // Business logic: Update video URL if a new file was uploaded
+    // Business logic: Update video URL if new file was uploaded
     if (req.file) {
       updateData.video_url = `/uploads/videos/${req.file.filename}`;
     }
@@ -460,7 +463,7 @@ router.put('/byId/:id', uploadVideo, [
     // Database: Update the player record
     await player.update(updateData);
 
-    // Database: Fetch the updated player with associations for complete response
+    // Database: Fetch updated player with associations
     const updatedPlayer = await Player.findByPk(player.id, {
       include: [
         {
@@ -490,7 +493,7 @@ router.put('/byId/:id', uploadVideo, [
 
 /**
  * @route DELETE /api/players/byId/:id
- * @description Deletes a player record and associated video file if it exists.
+ * @description Deletes a single player record. Also deletes associated video file if it exists.
  *              Only allows deletion of players belonging to the authenticated user's team.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
@@ -506,7 +509,7 @@ router.put('/byId/:id', uploadVideo, [
  */
 router.delete('/byId/:id', async (req, res) => {
   try {
-    // Permission: Fetch player with team isolation check
+    // Permission: Find player and verify team ownership
     const player = await Player.findOne({
       where: {
         id: req.params.id,
@@ -514,7 +517,7 @@ router.delete('/byId/:id', async (req, res) => {
       }
     });
 
-    // Error: Return 404 if player not found (also handles unauthorized team access)
+    // Error: Return 404 if player not found or doesn't belong to user's team
     if (!player) {
       return res.status(404).json({
         success: false,
@@ -524,10 +527,10 @@ router.delete('/byId/:id', async (req, res) => {
 
     // Business logic: Delete associated video file if it exists
     if (player.video_url) {
-      const filePath = path.join(__dirname, '../..', player.video_url);
-      fs.unlink(filePath, (err) => {
+      const videoPath = path.join(__dirname, '..', player.video_url);
+      fs.unlink(videoPath, (err) => {
         if (err) {
-          console.warn('Failed to delete video file:', err);
+          console.warn('Warning: Could not delete video file:', err);
         }
       });
     }
@@ -544,6 +547,101 @@ router.delete('/byId/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server error while deleting player'
+    });
+  }
+});
+
+/**
+ * @route DELETE /api/players
+ * @description Deletes multiple player records in a bulk operation. Also deletes associated video files.
+ *              Only allows deletion of players belonging to the authenticated user's team.
+ *              Supports flexible request format: array of IDs or object with ids array.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ * @middleware express-validator - Request body validation
+ *
+ * @param {Array<string>} req.body.ids - Array of player IDs to delete
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Success message with count of deleted players
+ * @returns {number} response.deletedCount - Number of players successfully deleted
+ * @returns {Array<string>} [response.failedIds] - IDs of players that could not be deleted (optional)
+ *
+ * @throws {400} Validation failed - Invalid request body format or empty IDs array
+ * @throws {500} Server error - Database operation failure
+ */
+router.delete('/', [
+  // Validation: Ensure ids is an array of strings
+  body('ids')
+    .isArray({ min: 1 })
+    .withMessage('ids must be a non-empty array'),
+  body('ids.*')
+    .isUUID()
+    .withMessage('Each id must be a valid UUID')
+], async (req, res) => {
+  try {
+    // Validation: Check for validation errors from express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { ids } = req.body;
+
+    // Permission: Find all players that belong to user's team
+    const playersToDelete = await Player.findAll({
+      where: {
+        id: ids,
+        team_id: req.user.team_id
+      }
+    });
+
+    // Business logic: Track IDs that were not found (unauthorized or non-existent)
+    const foundIds = playersToDelete.map(p => p.id);
+    const notFoundIds = ids.filter(id => !foundIds.includes(id));
+
+    // Business logic: Delete associated video files for all players
+    playersToDelete.forEach(player => {
+      if (player.video_url) {
+        const videoPath = path.join(__dirname, '..', player.video_url);
+        fs.unlink(videoPath, (err) => {
+          if (err) {
+            console.warn('Warning: Could not delete video file:', err);
+          }
+        });
+      }
+    });
+
+    // Database: Delete all matching players
+    const deletedCount = await Player.destroy({
+      where: {
+        id: foundIds,
+        team_id: req.user.team_id
+      }
+    });
+
+    // Response: Include deleted count and any IDs that couldn't be found
+    const response = {
+      success: true,
+      message: `Successfully deleted ${deletedCount} player(s)`,
+      deletedCount
+    };
+
+    if (notFoundIds.length > 0) {
+      response.failedIds = notFoundIds;
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error('Bulk delete players error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while deleting players'
     });
   }
 });
