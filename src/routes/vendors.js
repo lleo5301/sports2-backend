@@ -66,11 +66,11 @@
  */
 
 const express = require('express');
-const { body, query, validationResult } = require('express-validator');
+const { body, query } = require('express-validator');
 const { Op } = require('sequelize');
 const { Vendor, User } = require('../models');
 const { protect } = require('../middleware/auth');
-const { createSortValidators, buildOrderClause } = require('../utils/sorting');
+const { handleValidationErrors } = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -80,7 +80,7 @@ router.use(protect);
 
 /**
  * Validation middleware for listing vendors.
- * Validates query parameters for filtering, pagination, and sorting.
+ * Validates query parameters for filtering and pagination.
  *
  * @constant {Array<ValidationChain>} validateVendorList
  * @description Express-validator chain for GET /api/vendors
@@ -88,8 +88,6 @@ router.use(protect);
  * @property {string} [search] - Optional search term for text search
  * @property {string} [vendor_type] - Optional filter by vendor category
  * @property {string} [status] - Optional filter by relationship status
- * @property {string} [orderBy] - Optional column to sort by
- * @property {string} [sortDirection] - Optional sort direction ('ASC' or 'DESC')
  * @property {number} [page] - Optional page number (min: 1)
  * @property {number} [limit] - Optional items per page (min: 1, max: 100)
  */
@@ -98,8 +96,7 @@ const validateVendorList = [
   query('vendor_type').optional().isIn(['Equipment', 'Apparel', 'Technology', 'Food Service', 'Transportation', 'Medical', 'Facilities', 'Other']),
   query('status').optional().isIn(['active', 'inactive', 'pending', 'expired']),
   query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 100 }),
-  ...createSortValidators('vendors')
+  query('limit').optional().isInt({ min: 1, max: 100 })
 ];
 
 /**
@@ -171,43 +168,17 @@ const validateVendorUpdate = [
 ];
 
 /**
- * Helper function to handle validation errors.
- * Extracts validation errors and returns a formatted 400 response.
- *
- * @description Checks for validation errors from express-validator and
- * sends a standardized error response if any are found.
- *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @returns {Object|null} Returns error response if validation failed, null otherwise
- */
-const handleValidationErrors = (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      error: 'Validation failed',
-      details: errors.array()
-    });
-  }
-  return null;
-};
-
-/**
  * @route   GET /api/vendors
  * @description Retrieves a paginated list of vendors for the authenticated user's team.
  * Supports filtering by vendor type, status, and search text. Search performs
  * case-insensitive partial matching across company_name, contact_person,
  * services_provided, and email fields.
- * Supports configurable sorting via orderBy and sortDirection query parameters.
  *
  * @access  Private - Requires authentication
  *
  * @param {string} [req.query.search] - Search term for text search across multiple fields
  * @param {string} [req.query.vendor_type] - Filter by vendor category (Equipment|Apparel|Technology|Food Service|Transportation|Medical|Facilities|Other)
  * @param {string} [req.query.status=active] - Filter by status (active|inactive|pending|expired), defaults to 'active'
- * @param {string} [req.query.orderBy=created_at] - Column to sort by (company_name, contact_person, vendor_type, contract_value, contract_start_date, contract_end_date, last_contact_date, next_contact_date, created_at, status)
- * @param {string} [req.query.sortDirection=DESC] - Sort direction ('ASC' or 'DESC', case-insensitive)
  * @param {number} [req.query.page=1] - Page number for pagination
  * @param {number} [req.query.limit=20] - Items per page (max 100)
  *
@@ -229,7 +200,7 @@ const handleValidationErrors = (req, res) => {
  * @returns {number} response.pagination.total - Total matching vendors
  * @returns {number} response.pagination.pages - Total number of pages
  *
- * @throws {400} Validation failed - Invalid query parameters or invalid orderBy column or sortDirection value
+ * @throws {400} Validation failed - Invalid query parameters
  * @throws {401} Unauthorized - Missing or invalid authentication token
  * @throws {500} Server error - Database or server failure
  *
@@ -251,19 +222,13 @@ const handleValidationErrors = (req, res) => {
  *   "pagination": { "page": 1, "limit": 10, "total": 1, "pages": 1 }
  * }
  */
-router.get('/', validateVendorList, async (req, res) => {
+router.get('/', validateVendorList, handleValidationErrors, async (req, res) => {
   try {
-    // Validation: Check for any validation errors from middleware
-    const validationError = handleValidationErrors(req, res);
-    if (validationError) return;
-
     // Extract query parameters with defaults
     const {
       search,
       vendor_type,
       status = 'active',  // Default to showing only active vendors
-      orderBy,
-      sortDirection,
       page = 1,
       limit = 20
     } = req.query;
@@ -299,9 +264,6 @@ router.get('/', validateVendorList, async (req, res) => {
       ];
     }
 
-    // Business logic: Build dynamic order clause from query parameters (defaults to created_at DESC)
-    const orderClause = buildOrderClause('vendors', orderBy, sortDirection);
-
     // Database: Fetch paginated vendors with creator association
     const { count, rows: vendors } = await Vendor.findAndCountAll({
       where: whereClause,
@@ -312,7 +274,7 @@ router.get('/', validateVendorList, async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: orderClause,
+      order: [['created_at', 'DESC']],  // Most recently created first
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
@@ -477,12 +439,8 @@ router.get('/:id', async (req, res) => {
  *   }
  * }
  */
-router.post('/', validateVendorCreate, async (req, res) => {
+router.post('/', validateVendorCreate, handleValidationErrors, async (req, res) => {
   try {
-    // Validation: Check for any validation errors from middleware
-    const validationError = handleValidationErrors(req, res);
-    if (validationError) return;
-
     // Database: Create vendor with automatic team and creator assignment
     // Business logic: team_id and created_by are set from authenticated user
     const vendor = await Vendor.create({
@@ -568,12 +526,8 @@ router.post('/', validateVendorCreate, async (req, res) => {
  *   }
  * }
  */
-router.put('/:id', validateVendorUpdate, async (req, res) => {
+router.put('/:id', validateVendorUpdate, handleValidationErrors, async (req, res) => {
   try {
-    // Validation: Check for any validation errors from middleware
-    const validationError = handleValidationErrors(req, res);
-    if (validationError) return;
-
     // Database: Find vendor with team scoping for multi-tenant isolation
     const vendor = await Vendor.findOne({
       where: {
@@ -680,95 +634,6 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server error while deleting vendor'
-    });
-  }
-});
-
-/**
- * @route POST /api/vendors/bulk-delete
- * @description Permanently deletes multiple vendor records from the database in a single operation.
- *              Only allows deletion of vendors belonging to the authenticated user's team.
- *              Validates all IDs before deletion to ensure team isolation.
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- * @middleware express-validator - Request body validation
- *
- * @param {string[]} req.body.ids - Array of vendor UUIDs to delete
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {number} response.deleted - Count of successfully deleted vendors
- * @returns {Array<Object>} [response.failures] - Array of failed deletions with ID and reason
- *
- * @throws {400} Validation failed - Empty array or invalid UUIDs provided
- * @throws {500} Server error - Database operation failure
- */
-router.post('/bulk-delete', [
-  // Validation: IDs must be an array
-  body('ids').isArray({ min: 1 }).withMessage('IDs must be a non-empty array'),
-  // Validation: Each ID must be a valid UUID
-  body('ids.*').isUUID().withMessage('Each ID must be a valid UUID')
-], async (req, res) => {
-  try {
-    // Validation: Check for validation errors from express-validator
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation failed',
-        details: errors.array()
-      });
-    }
-
-    const { ids } = req.body;
-
-    // Database: Find all vendors matching the IDs with team isolation
-    // Permission: Only fetch vendors belonging to user's team
-    const vendorsToDelete = await Vendor.findAll({
-      where: {
-        id: {
-          [Op.in]: ids
-        },
-        team_id: req.user.team_id
-      },
-      attributes: ['id']
-    });
-
-    // Business logic: Track which IDs were found and can be deleted
-    const foundIds = vendorsToDelete.map(v => v.id);
-    const notFoundIds = ids.filter(id => !foundIds.includes(id));
-
-    // Database: Delete all found vendors that belong to user's team
-    const deletedCount = await Vendor.destroy({
-      where: {
-        id: {
-          [Op.in]: foundIds
-        },
-        // Permission: Double-check team isolation on delete
-        team_id: req.user.team_id
-      }
-    });
-
-    // Business logic: Build response with deletion results
-    const response = {
-      success: true,
-      deleted: deletedCount
-    };
-
-    // Business logic: Include failure details if some IDs weren't found or didn't belong to team
-    if (notFoundIds.length > 0) {
-      response.failures = notFoundIds.map(id => ({
-        id,
-        reason: 'Vendor not found or does not belong to your team'
-      }));
-    }
-
-    res.json(response);
-  } catch (error) {
-    console.error('Bulk delete vendors error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error while deleting vendors'
     });
   }
 });

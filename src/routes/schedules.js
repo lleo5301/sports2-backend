@@ -21,11 +21,10 @@
  */
 
 const express = require('express');
-const { body, validationResult, query } = require('express-validator');
+const { body, query } = require('express-validator');
 const { Schedule, ScheduleSection, ScheduleActivity, User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
-const notificationService = require('../services/notificationService');
-const logger = require('../utils/logger');
+const { handleValidationErrors } = require('../middleware/validation');
 const router = express.Router();
 
 // Middleware: Apply JWT authentication to all routes in this file
@@ -71,24 +70,6 @@ const validateActivity = [
   body('time').notEmpty().withMessage('Time is required'),
   body('activity').notEmpty().withMessage('Activity is required')
 ];
-
-/**
- * @description Helper middleware to check validation results from express-validator.
- * Returns 400 error with validation details if any validation rules failed.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      error: 'Validation failed',
-      details: errors.array()
-    });
-  }
-  next();
-};
 
 /**
  * @route GET /api/schedules
@@ -168,7 +149,7 @@ router.get('/', async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching schedules:', error);
+    console.error('Error fetching schedules:', error);
     res.status(500).json({ error: 'Failed to fetch schedules' });
   }
 });
@@ -268,7 +249,7 @@ router.get('/stats', async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching schedule stats:', error);
+    console.error('Error fetching schedule stats:', error);
     res.status(500).json({ error: 'Failed to fetch schedule stats' });
   }
 });
@@ -336,7 +317,7 @@ router.get('/byId/:id', async (req, res) => {
 
     res.json({ data: schedule });
   } catch (error) {
-    logger.error('Error fetching schedule:', error);
+    console.error('Error fetching schedule:', error);
     res.status(500).json({ error: 'Failed to fetch schedule' });
   }
 });
@@ -448,20 +429,12 @@ router.post('/', validateSchedule, handleValidationErrors, async (req, res) => {
       ]
     });
 
-    // Notification: Fire-and-forget notification to team members
-    // This does not block the response - errors are handled gracefully in the service
-    notificationService.sendSchedulePublishedNotification(
-      createdSchedule,
-      req.user.team_id,
-      req.user.id
-    );
-
     res.status(201).json({
       message: 'Schedule created successfully',
       data: createdSchedule
     });
   } catch (error) {
-    logger.error('Error creating schedule:', error);
+    console.error('Error creating schedule:', error);
     res.status(500).json({ error: 'Failed to create schedule' });
   }
 });
@@ -585,7 +558,7 @@ router.put('/byId/:id', validateSchedule, handleValidationErrors, async (req, re
       data: updatedSchedule
     });
   } catch (error) {
-    logger.error('Error updating schedule:', error);
+    console.error('Error updating schedule:', error);
     res.status(500).json({ error: 'Failed to update schedule' });
   }
 });
@@ -629,7 +602,7 @@ router.delete('/byId/:id', async (req, res) => {
 
     res.json({ message: 'Schedule deleted successfully' });
   } catch (error) {
-    logger.error('Error deleting schedule:', error);
+    console.error('Error deleting schedule:', error);
     res.status(500).json({ error: 'Failed to delete schedule' });
   }
 });
@@ -697,7 +670,7 @@ router.post('/:id/sections', validateSection, handleValidationErrors, async (req
       data: section
     });
   } catch (error) {
-    logger.error('Error adding section:', error);
+    console.error('Error adding section:', error);
     res.status(500).json({ error: 'Failed to add section' });
   }
 });
@@ -779,7 +752,7 @@ router.post('/sections/:sectionId/activities', validateActivity, handleValidatio
       data: newActivity
     });
   } catch (error) {
-    logger.error('Error adding activity:', error);
+    console.error('Error adding activity:', error);
     res.status(500).json({ error: 'Failed to add activity' });
   }
 });
@@ -828,7 +801,7 @@ router.delete('/sections/:sectionId', async (req, res) => {
 
     res.json({ message: 'Section deleted successfully' });
   } catch (error) {
-    logger.error('Error deleting section:', error);
+    console.error('Error deleting section:', error);
     res.status(500).json({ error: 'Failed to delete section' });
   }
 });
@@ -882,7 +855,7 @@ router.delete('/activities/:activityId', async (req, res) => {
 
     res.json({ message: 'Activity deleted successfully' });
   } catch (error) {
-    logger.error('Error deleting activity:', error);
+    console.error('Error deleting activity:', error);
     res.status(500).json({ error: 'Failed to delete activity' });
   }
 });
@@ -1018,7 +991,7 @@ router.get('/export-pdf', async (req, res) => {
     res.send(html);
 
   } catch (error) {
-    logger.error('Error exporting schedules:', error);
+    console.error('Error exporting schedules:', error);
     res.status(500).json({ error: 'Failed to export schedules' });
   }
 });

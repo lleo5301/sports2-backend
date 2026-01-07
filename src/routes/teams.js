@@ -21,13 +21,13 @@
  */
 
 const express = require('express');
-const { body, param, validationResult } = require('express-validator');
+const { body, param } = require('express-validator');
 const path = require('path');
 const fs = require('fs');
 const { protect } = require('../middleware/auth');
 const { checkPermission, isSuperAdmin } = require('../middleware/permissions');
 const { uploadLogo, handleUploadError, logosDir } = require('../middleware/upload');
-const logger = require('../utils/logger');
+const { handleValidationErrors } = require('../middleware/validation');
 
 /**
  * @description Helper function to check if a user has permission to modify team branding.
@@ -94,25 +94,6 @@ const validatePermission = [
 ];
 
 /**
- * @description Helper middleware to handle express-validator validation errors.
- *              Returns 400 status with error details if validation fails.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array()
-    });
-  }
-  next();
-};
-
-/**
  * @route GET /api/teams
  * @description Retrieves a list of all teams in the system. This is a public endpoint
  *              used primarily during user registration to allow users to select their team.
@@ -145,7 +126,7 @@ router.get('/', async (req, res) => {
       data: teams
     });
   } catch (error) {
-    logger.error('Get teams error:', error);
+    console.error('Get teams error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching teams'
@@ -212,7 +193,7 @@ router.post('/',
         data: team
       });
     } catch (error) {
-      logger.error('Create team error:', error);
+      console.error('Create team error:', error);
       res.status(500).json({
         success: false,
         message: 'Error creating team'
@@ -310,7 +291,7 @@ router.get('/recent-schedules', async (req, res) => {
       data: events.slice(0, limit)
     });
   } catch (error) {
-    logger.error('Error fetching recent schedules:', error);
+    console.error('Error fetching recent schedules:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching recent schedules'
@@ -402,7 +383,7 @@ router.get('/upcoming-schedules', async (req, res) => {
       data: events.slice(0, limit)
     });
   } catch (error) {
-    logger.error('Error fetching upcoming schedules:', error);
+    console.error('Error fetching upcoming schedules:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching upcoming schedules'
@@ -427,9 +408,9 @@ router.get('/upcoming-schedules', async (req, res) => {
  */
 router.get('/me', async (req, res) => {
   try {
-    logger.debug('Teams /me endpoint hit');
-    logger.debug('User team_id:', req.user.team_id);
-    logger.debug('User object:', req.user);
+    console.log('Teams /me endpoint hit');
+    console.log('User team_id:', req.user.team_id);
+    console.log('User object:', req.user);
 
     // Validation: Ensure user has a team association
     if (!req.user.team_id) {
@@ -455,7 +436,7 @@ router.get('/me', async (req, res) => {
       data: team
     });
   } catch (error) {
-    logger.error('Error fetching team:', error);
+    console.error('Error fetching team:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team'
@@ -510,7 +491,7 @@ router.get('/byId/:id', async (req, res) => {
       data: team
     });
   } catch (error) {
-    logger.error('Error fetching team:', error);
+    console.error('Error fetching team:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team'
@@ -567,7 +548,7 @@ router.put('/me',
         data: team
       });
     } catch (error) {
-      logger.error('Error updating team:', error);
+      console.error('Error updating team:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating team'
@@ -640,7 +621,7 @@ router.post('/logo',
             fs.unlinkSync(oldLogoPath);
           }
         } catch (err) {
-          logger.warn('Could not delete old logo:', err.message);
+          console.warn('Could not delete old logo:', err.message);
         }
       }
 
@@ -656,7 +637,7 @@ router.post('/logo',
         }
       });
     } catch (error) {
-      logger.error('Error uploading logo:', error);
+      console.error('Error uploading logo:', error);
       res.status(500).json({
         success: false,
         message: 'Error uploading logo'
@@ -708,7 +689,7 @@ router.delete('/logo',
             fs.unlinkSync(logoPath);
           }
         } catch (err) {
-          logger.warn('Could not delete logo file:', err.message);
+          console.warn('Could not delete logo file:', err.message);
         }
       }
 
@@ -720,7 +701,7 @@ router.delete('/logo',
         message: 'Logo removed successfully'
       });
     } catch (error) {
-      logger.error('Error removing logo:', error);
+      console.error('Error removing logo:', error);
       res.status(500).json({
         success: false,
         message: 'Error removing logo'
@@ -795,7 +776,7 @@ router.put('/branding',
         }
       });
     } catch (error) {
-      logger.error('Error updating branding:', error);
+      console.error('Error updating branding:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating team branding'
@@ -849,7 +830,7 @@ router.get('/branding', async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching branding:', error);
+    console.error('Error fetching branding:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team branding'
@@ -894,7 +875,7 @@ router.get('/users', async (req, res) => {
       data: users
     });
   } catch (error) {
-    logger.error('Error fetching team users:', error);
+    console.error('Error fetching team users:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team users'
@@ -946,7 +927,7 @@ router.get('/permissions', async (req, res) => {
       data: permissions
     });
   } catch (error) {
-    logger.error('Error fetching team permissions:', error);
+    console.error('Error fetching team permissions:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team permissions'
@@ -1035,7 +1016,7 @@ router.post('/permissions',
         data: permission
       });
     } catch (error) {
-      logger.error('Error adding permission:', error);
+      console.error('Error adding permission:', error);
       res.status(500).json({
         success: false,
         message: 'Error adding permission'
@@ -1095,7 +1076,7 @@ router.put('/permissions/:id',
         data: permission
       });
     } catch (error) {
-      logger.error('Error updating permission:', error);
+      console.error('Error updating permission:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating permission'
@@ -1138,7 +1119,7 @@ router.get('/byid/:id/users', async (req, res) => {
       data: users
     });
   } catch (error) {
-    logger.error('Error fetching team users:', error);
+    console.error('Error fetching team users:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team users'
@@ -1184,7 +1165,7 @@ router.get('/byid/:id/permissions', async (req, res) => {
       data: permissions
     });
   } catch (error) {
-    logger.error('Error fetching team permissions:', error);
+    console.error('Error fetching team permissions:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team permissions'
@@ -1276,7 +1257,7 @@ router.post('/byid/:id/permissions',
         data: permission
       });
     } catch (error) {
-      logger.error('Error adding permission:', error);
+      console.error('Error adding permission:', error);
       res.status(500).json({
         success: false,
         message: 'Error adding permission'
@@ -1352,7 +1333,7 @@ router.put('/byid/:team_id/permissions/:id',
         data: permission
       });
     } catch (error) {
-      logger.error('Error updating permission:', error);
+      console.error('Error updating permission:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating permission'
@@ -1413,7 +1394,7 @@ router.delete('/permissions/:id',
         message: 'Permission removed successfully'
       });
     } catch (error) {
-      logger.error('Error removing permission:', error);
+      console.error('Error removing permission:', error);
       res.status(500).json({
         success: false,
         message: 'Error removing permission'
@@ -1529,7 +1510,7 @@ router.get('/stats', protect, async (req, res) => {
       data: stats
     });
   } catch (error) {
-    logger.error('Error fetching team stats:', error);
+    console.error('Error fetching team stats:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team statistics'
@@ -1595,7 +1576,7 @@ router.get('/roster', protect, async (req, res) => {
       data: roster
     });
   } catch (error) {
-    logger.error('Error fetching team roster:', error);
+    console.error('Error fetching team roster:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team roster'
@@ -1656,7 +1637,7 @@ router.get('/:id', async (req, res) => {
       data: team
     });
   } catch (error) {
-    logger.error('Error fetching team:', error);
+    console.error('Error fetching team:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching team'
@@ -1732,7 +1713,7 @@ router.put('/:id',
         data: team
       });
     } catch (error) {
-      logger.error('Error updating team:', error);
+      console.error('Error updating team:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating team'

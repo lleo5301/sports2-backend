@@ -61,12 +61,12 @@
  */
 
 const express = require('express');
-const { body, param, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
+const { handleValidationErrors } = require('../middleware/validation');
 const { Location, User } = require('../models');
 const { Op } = require('sequelize');
-const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -139,31 +139,6 @@ const validateLocationUpdate = [
   body('is_active').optional().isBoolean().withMessage('is_active must be a boolean'),
   body('is_home_venue').optional().isBoolean().withMessage('is_home_venue must be a boolean')
 ];
-
-/**
- * Helper function to handle validation errors from express-validator.
- * Checks for validation errors and returns a 400 response if found.
- *
- * @function handleValidationErrors
- * @description Express middleware that processes validation results
- *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- *
- * @returns {Object|void} Returns 400 error response if validation fails, otherwise calls next()
- */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array()
-    });
-  }
-  next();
-};
 
 // Middleware: Apply JWT authentication to all routes in this file
 // All subsequent routes require a valid JWT token in the Authorization header
@@ -287,7 +262,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     // Error: Log and return generic server error
-    logger.error('Get locations error:', error);
+    console.error('Get locations error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching locations'
@@ -346,18 +321,11 @@ router.get('/', async (req, res) => {
  *   }
  * }
  */
-router.get('/:id', param('id').isInt().withMessage('Location ID must be an integer'), async (req, res) => {
+router.get('/:id',
+  param('id').isInt().withMessage('Location ID must be an integer'),
+  handleValidationErrors,
+  async (req, res) => {
   try {
-    // Validation: Check for validation errors from express-validator
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid location ID',
-        errors: errors.array()
-      });
-    }
-
     // Database: Find location by ID, scoped to user's team
     // Multi-tenant isolation: Only returns location if team_id matches
     const location = await Location.findOne({
@@ -389,7 +357,7 @@ router.get('/:id', param('id').isInt().withMessage('Location ID must be an integ
     });
   } catch (error) {
     // Error: Log and return generic server error
-    logger.error('Get location error:', error);
+    console.error('Get location error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching location'
@@ -492,7 +460,7 @@ router.post('/', validateLocationCreate, handleValidationErrors, checkPermission
     });
   } catch (error) {
     // Error: Log and return generic server error
-    logger.error('Create location error:', error);
+    console.error('Create location error:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating location'
@@ -611,7 +579,7 @@ router.put('/:id',
       });
     } catch (error) {
       // Error: Log and return generic server error
-      logger.error('Update location error:', error);
+      console.error('Update location error:', error);
       res.status(500).json({
         success: false,
         message: 'Error updating location'
@@ -687,7 +655,7 @@ router.delete('/:id',
       const eventsUsingLocation = await ScheduleEvent.count({
         where: {
           [Op.or]: [
-            { location_id: req.params.id }
+            { location_id: req.params.id },
           ]
         }
       });
@@ -712,7 +680,7 @@ router.delete('/:id',
       });
     } catch (error) {
       // Error: Log and return generic server error
-      logger.error('Delete location error:', error);
+      console.error('Delete location error:', error);
       res.status(500).json({
         success: false,
         message: 'Error deleting location'

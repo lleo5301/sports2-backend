@@ -34,9 +34,10 @@
  */
 
 const express = require('express');
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const { Op } = require('sequelize');
 const { protect } = require('../middleware/auth');
+const { handleValidationErrors } = require('../middleware/validation');
 const { Game, Team, Player } = require('../models');
 const { createSortValidators, buildOrderClause } = require('../utils/sorting');
 
@@ -45,26 +46,6 @@ const router = express.Router();
 // Middleware: Apply JWT authentication to all routes in this file
 // All subsequent routes require a valid JWT token in the Authorization header
 router.use(protect);
-
-/**
- * @description Middleware to check for validation errors from express-validator.
- *              Returns a 400 error response if validation fails, otherwise continues.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- * @returns {void|Object} Calls next() on success, or returns 400 JSON response on validation failure
- */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array()
-    });
-  }
-  next();
-};
 
 /**
  * @description Validation rules for game creation and updates.

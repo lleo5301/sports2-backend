@@ -24,9 +24,10 @@
  */
 
 const express = require('express');
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { depthChartPermissions } = require('../middleware/permissions');
+const { handleValidationErrors } = require('../middleware/validation');
 const {
   DepthChart,
   DepthChartPosition,
@@ -81,25 +82,6 @@ const validatePlayerAssignment = [
   body('depth_order').isInt({ min: 1 }).withMessage('Depth order must be a positive integer'),
   body('notes').optional().isLength({ max: 500 }).withMessage('Notes must be less than 500 characters')
 ];
-
-/**
- * @description Middleware to handle express-validator validation errors.
- * Returns a 400 response with validation error details if any errors exist.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
- */
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array()
-    });
-  }
-  next();
-};
 
 /**
  * @route GET /api/depth-charts
