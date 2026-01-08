@@ -1,14 +1,5 @@
-<<<<<<< HEAD
-// Integration tests for coaches route handlers
-// We use supertest for integration testing with the full app stack
-const request = require('supertest');
-const app = require('../../server');
-<<<<<<< HEAD
-const { Coach, User, Team, sequelize } = require('../../models');
-=======
 const { Coach, User, Team } = require('../../models');
 const { sequelize } = require('../../config/database');
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
 const jwt = require('jsonwebtoken');
 
 describe('coaches routes basic structure', () => {
@@ -22,31 +13,6 @@ describe('coaches routes basic structure', () => {
   })
 })
 
-<<<<<<< HEAD
-=======
-const request = require('supertest');
-const app = require('../../server');
-const { sequelize, User, Team, Coach } = require('../../models');
-const jwt = require('jsonwebtoken');
-
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
-describe('Coaches API - Complete CRUD Tests', () => {
-  let authToken;
-  let testUser;
-  let testTeam;
-  let otherTeam;
-  let otherUser;
-  let otherAuthToken;
-
-  beforeAll(async () => {
-    // Ensure database connection
-<<<<<<< HEAD
-    if (process.env.NODE_ENV !== 'test') {
-      process.env.NODE_ENV = 'test';
-    }
-    
-=======
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
     await sequelize.authenticate();
 
     // Create test teams
@@ -84,72 +50,8 @@ describe('Coaches API - Complete CRUD Tests', () => {
     });
 
     // Generate auth tokens
-<<<<<<< HEAD
-=======
-describe('Coaches List Sorting API', () => {
-  let authToken;
-  let testUser;
-  let testTeam;
-  let testCoaches = [];
-
-  beforeAll(async () => {
-    // Ensure we're using the test database
-    if (process.env.NODE_ENV !== 'test') {
-      process.env.NODE_ENV = 'test';
-    }
-
-    // Sync database
-    await sequelize.sync({ force: true });
-
-    // Create test team
-    testTeam = await Team.create({
-      name: 'Test Team',
-      program_name: 'Test Program',
-      school: 'Test University',
-      division: 'D1',
-      conference: 'Test Conference',
-      city: 'Test City',
-      state: 'TS'
-    });
-
-    // Create test user
-    testUser = await User.create({
-      first_name: 'Test',
-      last_name: 'Coach',
-      email: 'test@example.com',
-      password: 'password123',
-      role: 'coach',
-      team_id: testTeam.id
-    });
-
-    // Generate auth token
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
-    authToken = jwt.sign(
-      {
-        id: testUser.id,
-        email: testUser.email,
-        role: testUser.role,
-        team_id: testUser.team_id
-      },
-      process.env.JWT_SECRET || 'test-secret',
-      { expiresIn: '1h' }
-    );
-<<<<<<< HEAD
-    
-    otherAuthToken = jwt.sign(
-      {
-        id: otherUser.id,
-        email: otherUser.email,
-        role: otherUser.role,
-        team_id: otherUser.team_id
-      },
-      process.env.JWT_SECRET || 'test-secret',
-      { expiresIn: '1h' }
-    );
-=======
     authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
     otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
   });
 
   afterAll(async () => {
@@ -159,10 +61,6 @@ describe('Coaches List Sorting API', () => {
     await otherUser.destroy();
     await testTeam.destroy();
     await otherTeam.destroy();
-<<<<<<< HEAD
-    await sequelize.close();
-=======
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
   });
 
   beforeEach(async () => {
@@ -170,11 +68,7 @@ describe('Coaches List Sorting API', () => {
     await Coach.destroy({ where: {}, force: true });
   });
 
-<<<<<<< HEAD
-  describe('GET /api/coaches - Authentication', () => {
-=======
   describe('GET /api/coaches', () => {
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should require authentication', async () => {
       const response = await request(app)
         .get('/api/coaches')
@@ -182,12 +76,6 @@ describe('Coaches List Sorting API', () => {
 
       expect(response.body.success).toBe(false);
     });
-<<<<<<< HEAD
-  });
-
-  describe('GET /api/coaches - Basic Retrieval', () => {
-    it('should return empty array when no coaches exist', async () => {
-=======
 
     // Create test coaches with varying data for sorting
     const coachesData = [
@@ -273,7 +161,6 @@ describe('Coaches List Sorting API', () => {
 
   describe('GET /api/coaches - Default Sorting', () => {
     it('should sort by created_at DESC by default', async () => {
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
 =======
 
     it('should return empty array when no coaches exist', async () => {
@@ -284,10 +171,6 @@ describe('Coaches List Sorting API', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
       expect(Array.isArray(response.body.data)).toBe(true);
       expect(response.body.data.length).toBe(0);
     });
@@ -328,13 +211,7 @@ describe('Coaches List Sorting API', () => {
       expect(response.body.pagination).toBeDefined();
       expect(response.body.pagination.total).toBe(2);
     });
-<<<<<<< HEAD
-  });
 
-  describe('GET /api/coaches - Team Isolation', () => {
-=======
-
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should only return coaches for user team (team isolation)', async () => {
       // Create coaches for different teams
       await Coach.create({
@@ -366,13 +243,7 @@ describe('Coaches List Sorting API', () => {
       expect(response.body.data.length).toBe(1);
       expect(response.body.data[0].first_name).toBe('My');
     });
-<<<<<<< HEAD
-  });
 
-  describe('GET /api/coaches - Status Filtering', () => {
-=======
-
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should filter coaches by status (active)', async () => {
       // Create coaches with different statuses
       await Coach.create({
@@ -469,103 +340,6 @@ describe('Coaches List Sorting API', () => {
       expect(response.body.data[0].status).toBe('active');
     });
 
-<<<<<<< HEAD
-    it('should sort by status ASC', async () => {
-      // Create test coaches
-      await Coach.create({
-        first_name: 'Active1',
-        last_name: 'Coach',
-        school_name: 'School A',
-        position: 'Head Coach',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      await Coach.create({
-        first_name: 'Inactive1',
-        last_name: 'Coach',
-        school_name: 'School B',
-        position: 'Head Coach',
-        status: 'inactive',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      await Coach.create({
-        first_name: 'Active2',
-        last_name: 'Coach',
-        school_name: 'School C',
-        position: 'Head Coach',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const response = await request(app)
-        .get('/api/coaches?orderBy=status&sortDirection=ASC&status=')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const statuses = response.body.data.map(c => c.status);
-      // Alphabetical order: active comes before inactive
-      const activeCount = statuses.filter(s => s === 'active').length;
-      const inactiveCount = statuses.filter(s => s === 'inactive').length;
-      expect(activeCount).toBe(2);
-      expect(inactiveCount).toBe(1);
-      expect(statuses[0]).toBe('active');
-      expect(statuses[statuses.length - 1]).toBe('inactive');
-    });
-
-    it('should sort by status DESC', async () => {
-      // Create test coaches
-      await Coach.create({
-        first_name: 'Active1',
-        last_name: 'Coach',
-        school_name: 'School A',
-        position: 'Head Coach',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      await Coach.create({
-        first_name: 'Inactive1',
-        last_name: 'Coach',
-        school_name: 'School B',
-        position: 'Head Coach',
-        status: 'inactive',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      await Coach.create({
-        first_name: 'Active2',
-        last_name: 'Coach',
-        school_name: 'School C',
-        position: 'Head Coach',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const response = await request(app)
-        .get('/api/coaches?orderBy=status&sortDirection=DESC&status=')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const statuses = response.body.data.map(c => c.status);
-      // Reverse alphabetical order: inactive comes before active
-      expect(statuses[0]).toBe('inactive');
-      expect(statuses[statuses.length - 1]).toBe('active');
-    });
-  });
-
-  describe('GET /api/coaches - Position Filtering', () => {
-=======
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should filter coaches by position (Head Coach)', async () => {
       // Create coaches with different positions
       await Coach.create({
@@ -694,119 +468,6 @@ describe('Coaches List Sorting API', () => {
       expect(response.body.data[0].position).toBe('Volunteer');
     });
 
-<<<<<<< HEAD
-    it('should sort by position ASC', async () => {
-      // Create test coaches
-      await Coach.create({
-        first_name: 'Head',
-        last_name: 'Coach',
-        school_name: 'School A',
-        position: 'Head Coach',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      await Coach.create({
-        first_name: 'Pitching',
-        last_name: 'Coach',
-        school_name: 'School B',
-        position: 'Pitching Coach',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      await Coach.create({
-        first_name: 'Recruiting',
-        last_name: 'Coordinator',
-        school_name: 'School C',
-        position: 'Recruiting Coordinator',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      await Coach.create({
-        first_name: 'Volunteer',
-        last_name: 'Coach',
-        school_name: 'School D',
-        position: 'Volunteer',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const response = await request(app)
-        .get('/api/coaches?orderBy=position&sortDirection=ASC&status=')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const positions = response.body.data.map(c => c.position);
-      // Alphabetical order: Head Coach, Pitching Coach, Recruiting Coordinator, Volunteer
-      expect(positions[0]).toBe('Head Coach');
-      expect(positions[positions.length - 1]).toBe('Volunteer');
-    });
-
-    it('should sort by position DESC', async () => {
-      // Create test coaches
-      await Coach.create({
-        first_name: 'Head',
-        last_name: 'Coach',
-        school_name: 'School A',
-        position: 'Head Coach',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      await Coach.create({
-        first_name: 'Pitching',
-        last_name: 'Coach',
-        school_name: 'School B',
-        position: 'Pitching Coach',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      await Coach.create({
-        first_name: 'Recruiting',
-        last_name: 'Coordinator',
-        school_name: 'School C',
-        position: 'Recruiting Coordinator',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      await Coach.create({
-        first_name: 'Volunteer',
-        last_name: 'Coach',
-        school_name: 'School D',
-        position: 'Volunteer',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const response = await request(app)
-        .get('/api/coaches?orderBy=position&sortDirection=DESC&status=')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const positions = response.body.data.map(c => c.position);
-      // Reverse alphabetical order
-      expect(positions[0]).toBe('Volunteer');
-      expect(positions[positions.length - 1]).toBe('Head Coach');
-    });
-  });
-
-  describe('GET /api/coaches - Search Functionality', () => {
-=======
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
     it('should search coaches by first name', async () => {
       // Create test coaches
       await Coach.create({
@@ -934,19 +595,12 @@ describe('Coaches List Sorting API', () => {
       });
 
       const response = await request(app)
-<<<<<<< HEAD
-        .get('/api/coaches?search=jsmith')
-=======
         .get('/api/coaches?search=mjohnson')
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.length).toBe(1);
-<<<<<<< HEAD
-      expect(response.body.data[0].email).toBe('jsmith@lincoln.edu');
-=======
       expect(response.body.data.length).toBeGreaterThan(0);
 
       // Verify descending order by created_at (most recent first)
@@ -954,92 +608,10 @@ describe('Coaches List Sorting API', () => {
       for (let i = 1; i < timestamps.length; i++) {
         expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
       }
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     });
   });
 
   describe('GET /api/coaches - Sorting by first_name', () => {
-<<<<<<< HEAD
-    beforeEach(async () => {
-      // Create test coaches with varying data for sorting
-      const coachesData = [
-        {
-          first_name: 'Alice',
-          last_name: 'Anderson',
-          school_name: 'Lincoln High School',
-          position: 'Head Coach',
-          email: 'alice@lincoln.edu',
-          phone: '555-0001',
-          last_contact_date: new Date('2024-01-15'),
-          next_contact_date: new Date('2024-02-15'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Bob',
-          last_name: 'Brown',
-          school_name: 'Washington Academy',
-          position: 'Recruiting Coordinator',
-          email: 'bob@washington.edu',
-          phone: '555-0002',
-          last_contact_date: new Date('2024-02-10'),
-          next_contact_date: new Date('2024-03-10'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Charlie',
-          last_name: 'Chen',
-          school_name: 'Jefferson Prep',
-          position: 'Pitching Coach',
-          email: 'charlie@jefferson.edu',
-          phone: '555-0003',
-          last_contact_date: new Date('2024-03-05'),
-          next_contact_date: new Date('2024-04-05'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Diana',
-          last_name: 'Davis',
-          school_name: 'Adams High School',
-          position: 'Volunteer',
-          email: 'diana@adams.edu',
-          phone: '555-0004',
-          last_contact_date: new Date('2024-01-20'),
-          next_contact_date: new Date('2024-02-20'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Edward',
-          last_name: 'Evans',
-          school_name: 'Madison Academy',
-          position: 'Head Coach',
-          email: 'edward@madison.edu',
-          phone: '555-0005',
-          last_contact_date: new Date('2024-02-25'),
-          next_contact_date: new Date('2024-03-25'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        }
-      ];
-
-      // Create coaches sequentially to ensure different created_at timestamps
-      for (const coachData of coachesData) {
-        await Coach.create(coachData);
-        // Small delay to ensure different timestamps
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-    });
-
-=======
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by first_name ASC', async () => {
       const response = await request(app)
         .get('/api/coaches?orderBy=first_name&sortDirection=ASC&status=')
@@ -1068,116 +640,6 @@ describe('Coaches List Sorting API', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-<<<<<<< HEAD
-      const names = response.body.data.map(c => c.first_name);
-      expect(names).toEqual(['Alice', 'Bob', 'Charlie', 'Diana', 'Edward']);
-    });
-
-    it('should sort by first_name DESC', async () => {
-      const response = await request(app)
-        .get('/api/coaches?orderBy=first_name&sortDirection=DESC&status=')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const names = response.body.data.map(c => c.first_name);
-      expect(names).toEqual(['Edward', 'Diana', 'Charlie', 'Bob', 'Alice']);
-    });
-
-    it('should handle case-insensitive sortDirection for first_name', async () => {
-      const response = await request(app)
-        .get('/api/coaches?orderBy=first_name&sortDirection=asc&status=')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const names = response.body.data.map(c => c.first_name);
-      expect(names).toEqual(['Alice', 'Bob', 'Charlie', 'Diana', 'Edward']);
-    });
-  });
-
-  describe('GET /api/coaches - Sorting by last_name', () => {
-<<<<<<< HEAD
-    beforeEach(async () => {
-      // Create test coaches with varying data for sorting
-      const coachesData = [
-        {
-          first_name: 'Alice',
-          last_name: 'Anderson',
-          school_name: 'Lincoln High School',
-          position: 'Head Coach',
-          email: 'alice@lincoln.edu',
-          phone: '555-0001',
-          last_contact_date: new Date('2024-01-15'),
-          next_contact_date: new Date('2024-02-15'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Bob',
-          last_name: 'Brown',
-          school_name: 'Washington Academy',
-          position: 'Recruiting Coordinator',
-          email: 'bob@washington.edu',
-          phone: '555-0002',
-          last_contact_date: new Date('2024-02-10'),
-          next_contact_date: new Date('2024-03-10'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Charlie',
-          last_name: 'Chen',
-          school_name: 'Jefferson Prep',
-          position: 'Pitching Coach',
-          email: 'charlie@jefferson.edu',
-          phone: '555-0003',
-          last_contact_date: new Date('2024-03-05'),
-          next_contact_date: new Date('2024-04-05'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Diana',
-          last_name: 'Davis',
-          school_name: 'Adams High School',
-          position: 'Volunteer',
-          email: 'diana@adams.edu',
-          phone: '555-0004',
-          last_contact_date: new Date('2024-01-20'),
-          next_contact_date: new Date('2024-02-20'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Edward',
-          last_name: 'Evans',
-          school_name: 'Madison Academy',
-          position: 'Head Coach',
-          email: 'edward@madison.edu',
-          phone: '555-0005',
-          last_contact_date: new Date('2024-02-25'),
-          next_contact_date: new Date('2024-03-25'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        }
-      ];
-
-      // Create coaches sequentially to ensure different created_at timestamps
-      for (const coachData of coachesData) {
-        await Coach.create(coachData);
-        // Small delay to ensure different timestamps
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-    });
-
-=======
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by last_name ASC', async () => {
       const response = await request(app)
         .get('/api/coaches?orderBy=last_name&sortDirection=ASC&status=')
@@ -1202,87 +664,6 @@ describe('Coaches List Sorting API', () => {
   });
 
   describe('GET /api/coaches - Sorting by school_name', () => {
-<<<<<<< HEAD
-    beforeEach(async () => {
-      // Create test coaches with varying data for sorting
-      const coachesData = [
-        {
-          first_name: 'Alice',
-          last_name: 'Anderson',
-          school_name: 'Lincoln High School',
-          position: 'Head Coach',
-          email: 'alice@lincoln.edu',
-          phone: '555-0001',
-          last_contact_date: new Date('2024-01-15'),
-          next_contact_date: new Date('2024-02-15'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Bob',
-          last_name: 'Brown',
-          school_name: 'Washington Academy',
-          position: 'Recruiting Coordinator',
-          email: 'bob@washington.edu',
-          phone: '555-0002',
-          last_contact_date: new Date('2024-02-10'),
-          next_contact_date: new Date('2024-03-10'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Charlie',
-          last_name: 'Chen',
-          school_name: 'Jefferson Prep',
-          position: 'Pitching Coach',
-          email: 'charlie@jefferson.edu',
-          phone: '555-0003',
-          last_contact_date: new Date('2024-03-05'),
-          next_contact_date: new Date('2024-04-05'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Diana',
-          last_name: 'Davis',
-          school_name: 'Adams High School',
-          position: 'Volunteer',
-          email: 'diana@adams.edu',
-          phone: '555-0004',
-          last_contact_date: new Date('2024-01-20'),
-          next_contact_date: new Date('2024-02-20'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Edward',
-          last_name: 'Evans',
-          school_name: 'Madison Academy',
-          position: 'Head Coach',
-          email: 'edward@madison.edu',
-          phone: '555-0005',
-          last_contact_date: new Date('2024-02-25'),
-          next_contact_date: new Date('2024-03-25'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        }
-      ];
-
-      // Create coaches sequentially to ensure different created_at timestamps
-      for (const coachData of coachesData) {
-        await Coach.create(coachData);
-        // Small delay to ensure different timestamps
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-    });
-
-=======
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by school_name ASC', async () => {
       const response = await request(app)
         .get('/api/coaches?orderBy=school_name&sortDirection=ASC&status=')
@@ -1306,87 +687,6 @@ describe('Coaches List Sorting API', () => {
     });
   });
 
-<<<<<<< HEAD
-  describe('GET /api/coaches - Sorting by last_contact_date', () => {
-    beforeEach(async () => {
-      // Create test coaches with varying data for sorting
-      const coachesData = [
-        {
-          first_name: 'Alice',
-          last_name: 'Anderson',
-          school_name: 'Lincoln High School',
-          position: 'Head Coach',
-          email: 'alice@lincoln.edu',
-          phone: '555-0001',
-          last_contact_date: new Date('2024-01-15'),
-          next_contact_date: new Date('2024-02-15'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Bob',
-          last_name: 'Brown',
-          school_name: 'Washington Academy',
-          position: 'Recruiting Coordinator',
-          email: 'bob@washington.edu',
-          phone: '555-0002',
-          last_contact_date: new Date('2024-02-10'),
-          next_contact_date: new Date('2024-03-10'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Charlie',
-          last_name: 'Chen',
-          school_name: 'Jefferson Prep',
-          position: 'Pitching Coach',
-          email: 'charlie@jefferson.edu',
-          phone: '555-0003',
-          last_contact_date: new Date('2024-03-05'),
-          next_contact_date: new Date('2024-04-05'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Diana',
-          last_name: 'Davis',
-          school_name: 'Adams High School',
-          position: 'Volunteer',
-          email: 'diana@adams.edu',
-          phone: '555-0004',
-          last_contact_date: new Date('2024-01-20'),
-          next_contact_date: new Date('2024-02-20'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Edward',
-          last_name: 'Evans',
-          school_name: 'Madison Academy',
-          position: 'Head Coach',
-          email: 'edward@madison.edu',
-          phone: '555-0005',
-          last_contact_date: new Date('2024-02-25'),
-          next_contact_date: new Date('2024-03-25'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        }
-      ];
-
-      // Create coaches sequentially to ensure different created_at timestamps
-      for (const coachData of coachesData) {
-        await Coach.create(coachData);
-        // Small delay to ensure different timestamps
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-    });
-
-=======
   describe('GET /api/coaches - Sorting by position', () => {
     it('should sort by position ASC', async () => {
       const response = await request(app)
@@ -1416,7 +716,6 @@ describe('Coaches List Sorting API', () => {
   });
 
   describe('GET /api/coaches - Sorting by last_contact_date', () => {
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by last_contact_date ASC', async () => {
       const response = await request(app)
         .get('/api/coaches?orderBy=last_contact_date&sortDirection=ASC&status=')
@@ -1445,87 +744,6 @@ describe('Coaches List Sorting API', () => {
   });
 
   describe('GET /api/coaches - Sorting by next_contact_date', () => {
-<<<<<<< HEAD
-    beforeEach(async () => {
-      // Create test coaches with varying data for sorting
-      const coachesData = [
-        {
-          first_name: 'Alice',
-          last_name: 'Anderson',
-          school_name: 'Lincoln High School',
-          position: 'Head Coach',
-          email: 'alice@lincoln.edu',
-          phone: '555-0001',
-          last_contact_date: new Date('2024-01-15'),
-          next_contact_date: new Date('2024-02-15'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Bob',
-          last_name: 'Brown',
-          school_name: 'Washington Academy',
-          position: 'Recruiting Coordinator',
-          email: 'bob@washington.edu',
-          phone: '555-0002',
-          last_contact_date: new Date('2024-02-10'),
-          next_contact_date: new Date('2024-03-10'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Charlie',
-          last_name: 'Chen',
-          school_name: 'Jefferson Prep',
-          position: 'Pitching Coach',
-          email: 'charlie@jefferson.edu',
-          phone: '555-0003',
-          last_contact_date: new Date('2024-03-05'),
-          next_contact_date: new Date('2024-04-05'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Diana',
-          last_name: 'Davis',
-          school_name: 'Adams High School',
-          position: 'Volunteer',
-          email: 'diana@adams.edu',
-          phone: '555-0004',
-          last_contact_date: new Date('2024-01-20'),
-          next_contact_date: new Date('2024-02-20'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Edward',
-          last_name: 'Evans',
-          school_name: 'Madison Academy',
-          position: 'Head Coach',
-          email: 'edward@madison.edu',
-          phone: '555-0005',
-          last_contact_date: new Date('2024-02-25'),
-          next_contact_date: new Date('2024-03-25'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        }
-      ];
-
-      // Create coaches sequentially to ensure different created_at timestamps
-      for (const coachData of coachesData) {
-        await Coach.create(coachData);
-        // Small delay to ensure different timestamps
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-    });
-
-=======
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by next_contact_date ASC', async () => {
       const response = await request(app)
         .get('/api/coaches?orderBy=next_contact_date&sortDirection=ASC&status=')
@@ -1553,110 +771,14 @@ describe('Coaches List Sorting API', () => {
     });
   });
 
-<<<<<<< HEAD
-  describe('GET /api/coaches - Sorting by created_at', () => {
-    beforeEach(async () => {
-      // Create test coaches with varying data for sorting
-      const coachesData = [
-        {
-          first_name: 'Alice',
-          last_name: 'Anderson',
-          school_name: 'Lincoln High School',
-          position: 'Head Coach',
-          email: 'alice@lincoln.edu',
-          phone: '555-0001',
-          last_contact_date: new Date('2024-01-15'),
-          next_contact_date: new Date('2024-02-15'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Bob',
-          last_name: 'Brown',
-          school_name: 'Washington Academy',
-          position: 'Recruiting Coordinator',
-          email: 'bob@washington.edu',
-          phone: '555-0002',
-          last_contact_date: new Date('2024-02-10'),
-          next_contact_date: new Date('2024-03-10'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Charlie',
-          last_name: 'Chen',
-          school_name: 'Jefferson Prep',
-          position: 'Pitching Coach',
-          email: 'charlie@jefferson.edu',
-          phone: '555-0003',
-          last_contact_date: new Date('2024-03-05'),
-          next_contact_date: new Date('2024-04-05'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Diana',
-          last_name: 'Davis',
-          school_name: 'Adams High School',
-          position: 'Volunteer',
-          email: 'diana@adams.edu',
-          phone: '555-0004',
-          last_contact_date: new Date('2024-01-20'),
-          next_contact_date: new Date('2024-02-20'),
-          status: 'active',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        },
-        {
-          first_name: 'Edward',
-          last_name: 'Evans',
-          school_name: 'Madison Academy',
-          position: 'Head Coach',
-          email: 'edward@madison.edu',
-          phone: '555-0005',
-          last_contact_date: new Date('2024-02-25'),
-          next_contact_date: new Date('2024-03-25'),
-          status: 'inactive',
-          team_id: testTeam.id,
-          created_by: testUser.id
-        }
-      ];
-
-      // Create coaches sequentially to ensure different created_at timestamps
-      for (const coachData of coachesData) {
-        await Coach.create(coachData);
-        // Small delay to ensure different timestamps
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-    });
-
-    it('should sort by created_at DESC by default', async () => {
-      const response = await request(app)
-        .get('/api/coaches')
-=======
   describe('GET /api/coaches - Sorting by status', () => {
     it('should sort by status ASC', async () => {
       const response = await request(app)
         .get('/api/coaches?orderBy=status&sortDirection=ASC&status=')
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
-<<<<<<< HEAD
-      expect(response.body.data.length).toBeGreaterThan(0);
-
-      // Verify descending order by created_at (most recent first)
-      const timestamps = response.body.data.map(c => new Date(c.created_at).getTime());
-      for (let i = 1; i < timestamps.length; i++) {
-        expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
-      }
-    });
-
-=======
       const statuses = response.body.data.map(c => c.status);
       // Alphabetical order: active comes before inactive
       const activeCount = statuses.filter(s => s === 'active').length;
@@ -1682,7 +804,6 @@ describe('Coaches List Sorting API', () => {
   });
 
   describe('GET /api/coaches - Sorting by created_at', () => {
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
     it('should sort by created_at ASC', async () => {
       const response = await request(app)
         .get('/api/coaches?orderBy=created_at&sortDirection=ASC&status=')
@@ -1731,11 +852,6 @@ describe('Coaches List Sorting API', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe('Validation failed');
-<<<<<<< HEAD
-    });
-  });
-});
-=======
       expect(response.body.details).toBeDefined();
     });
 
@@ -1903,30 +1019,15 @@ describe('Coaches List Sorting API', () => {
         position: 'Head Coach',
         status: 'active',
         team_id: testTeam.id,
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
         created_by: testUser.id
       });
 
       const response = await request(app)
-<<<<<<< HEAD
-        .get('/api/coaches?orderBy=first_name&sortDirection=ASC&status=')
-=======
         .get('/api/coaches')
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
-<<<<<<< HEAD
-      expect(response.body.data).toHaveLength(5); // Only original 5 coaches
-      const names = response.body.data.map(c => c.first_name);
-      expect(names).toEqual(['Alice', 'Bob', 'Charlie', 'Diana', 'Edward']);
-      expect(names).not.toContain('Zack');
-    });
-  });
-});
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
-=======
       expect(response.body.data[0].Creator).toBeDefined();
       expect(response.body.data[0].Creator.id).toBe(testUser.id);
       expect(response.body.data[0].Creator.first_name).toBe('Coaches');
@@ -2805,4 +1906,3 @@ describe('Coaches List Sorting API', () => {
     });
   });
 });
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
