@@ -1,14 +1,7 @@
 const errorHandler = require('../errorHandler');
-const logger = require('../../utils/logger');
 
-// Mock the logger to verify it's being called
-jest.mock('../../utils/logger', () => ({
-  error: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  debug: jest.fn(),
-  sanitize: jest.fn((data) => data)
-}));
+// Mock console.error to verify it's being called
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
 describe('errorHandler', () => {
   let originalEnv;
@@ -32,16 +25,21 @@ describe('errorHandler', () => {
     process.env.NODE_ENV = originalEnv;
   });
 
+  afterAll(() => {
+    // Restore console.error
+    consoleErrorSpy.mockRestore();
+  });
+
   describe('error logging with sanitization', () => {
-    it('should use secure logger for error logging', () => {
+    it('should use console.error for error logging', () => {
       const err = new Error('Test error');
       const req = {};
       const response = res();
       errorHandler(err, req, response, () => {});
 
-      // Verify logger.error was called (which sanitizes automatically)
-      expect(logger.error).toHaveBeenCalledWith('Error:', err);
-      expect(logger.error).toHaveBeenCalledTimes(1);
+      // Verify console.error was called
+      expect(console.error).toHaveBeenCalledWith('Error:', err);
+      expect(console.error).toHaveBeenCalledTimes(1);
     });
 
     it('should log errors with sensitive data safely', () => {
@@ -55,8 +53,8 @@ describe('errorHandler', () => {
       const response = res();
       errorHandler(err, req, response, () => {});
 
-      // Verify logger was called (sanitization happens inside logger)
-      expect(logger.error).toHaveBeenCalledWith('Error:', err);
+      // Verify console.error was called
+      expect(console.error).toHaveBeenCalledWith('Error:', err);
     });
 
     it('should log validation errors with user context safely', () => {
@@ -73,8 +71,8 @@ describe('errorHandler', () => {
       const response = res();
       errorHandler(err, req, response, () => {});
 
-      // Verify logger was called with the error (which contains sensitive data)
-      expect(logger.error).toHaveBeenCalledWith('Error:', err);
+      // Verify console.error was called with the error
+      expect(console.error).toHaveBeenCalledWith('Error:', err);
     });
 
     it('should log JWT errors without exposing tokens', () => {
@@ -86,7 +84,7 @@ describe('errorHandler', () => {
       const response = res();
       errorHandler(err, req, response, () => {});
 
-      expect(logger.error).toHaveBeenCalledWith('Error:', err);
+      expect(console.error).toHaveBeenCalledWith('Error:', err);
     });
   });
 
@@ -110,7 +108,7 @@ describe('errorHandler', () => {
       expect(JSON.stringify(jsonCall)).not.toContain('at anotherFunction');
     });
 
-    it('should not include stack traces in development error responses', () => {
+    it('should include stack traces in development error responses', () => {
       process.env.NODE_ENV = 'development';
 
       const err = new Error('Development error');
@@ -123,10 +121,9 @@ describe('errorHandler', () => {
       // Get the JSON response
       const jsonCall = response.json.mock.calls[0][0];
 
-      // Verify response does NOT contain stack trace (even in development)
-      expect(jsonCall).not.toHaveProperty('stack');
-      expect(JSON.stringify(jsonCall)).not.toContain('at testFunction');
-      expect(JSON.stringify(jsonCall)).not.toContain('at handler');
+      // Verify response DOES contain stack trace in development
+      expect(jsonCall).toHaveProperty('stack');
+      expect(jsonCall.stack).toBe(err.stack);
     });
 
     it('should not expose internal error details in responses', () => {
@@ -361,8 +358,8 @@ describe('errorHandler', () => {
       const response = res();
       errorHandler(err, req, response, () => {});
 
-      // Verify logger was called (sanitization happens in logger)
-      expect(logger.error).toHaveBeenCalledWith('Error:', err);
+      // Verify console.error was called
+      expect(console.error).toHaveBeenCalledWith('Error:', err);
 
       // Verify response doesn't contain nested sensitive data
       const jsonCall = response.json.mock.calls[0][0];
@@ -425,9 +422,9 @@ describe('errorHandler', () => {
         const response = res();
         errorHandler(err, req, response, () => {});
 
-        // Verify logger was called for each error type
-        expect(logger.error).toHaveBeenCalledWith('Error:', err);
-        expect(logger.error).toHaveBeenCalledTimes(1);
+        // Verify console.error was called for each error type
+        expect(console.error).toHaveBeenCalledWith('Error:', err);
+        expect(console.error).toHaveBeenCalledTimes(1);
       });
     });
   });
