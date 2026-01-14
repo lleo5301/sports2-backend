@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const tokenBlacklistService = require('../services/tokenBlacklistService');
 
 const protect = async (req, res, next) => {
   let token;
@@ -11,6 +12,20 @@ const protect = async (req, res, next) => {
 
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Check if token has jti (JWT ID) and if it's blacklisted
+      if (decoded.jti) {
+        const tokenIssuedAt = decoded.iat ? new Date(decoded.iat * 1000) : null;
+        const isBlacklisted = await tokenBlacklistService.isBlacklisted(
+          decoded.jti,
+          decoded.id,
+          tokenIssuedAt
+        );
+
+        if (isBlacklisted) {
+          return res.status(401).json({ success: false, error: 'Token has been revoked' });
+        }
+      }
 
       // Get user from token
       req.user = await User.findByPk(decoded.id, {
