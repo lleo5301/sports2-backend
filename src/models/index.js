@@ -199,6 +199,4 @@ module.exports = {
   HighSchoolCoach,
   UserTeam,
   TokenBlacklist
-}; 
-=======
->>>>>>> auto-claude/037-add-eslint-configuration-to-backend-service
+};

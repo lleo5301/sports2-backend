@@ -3,10 +3,6 @@
 const request = require('supertest');
 const app = require('../../server');
 const { sequelize, User, Team, Player, ScoutingReport } = require('../../models');
-=======
-const { Player, User, Team } = require('../../models');
-const { sequelize } = require('../../config/database');
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
 const jwt = require('jsonwebtoken');
 
 describe('players routes basic structure', () => {
@@ -310,5 +306,4 @@ describe('GET /api/players/stats/summary', () => {
     expect(response.body.data.team_avg).toBeCloseTo(0.29, 2);
   });
 });
-=======
->>>>>>> auto-claude/037-add-eslint-configuration-to-backend-service
+});

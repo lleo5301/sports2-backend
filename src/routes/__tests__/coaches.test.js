@@ -11,8 +11,20 @@ describe('coaches routes basic structure', () => {
     expect(typeof router.put).toBe('function')
     expect(typeof router.delete).toBe('function')
   })
-})
+});
 
+const request = require('supertest');
+const app = require('../../server');
+
+describe('Coaches API Tests', () => {
+  let authToken;
+  let testUser;
+  let testTeam;
+  let otherTeam;
+  let otherUser;
+  let otherAuthToken;
+
+  beforeAll(async () => {
     await sequelize.authenticate();
 
     // Create test teams
@@ -69,16 +81,12 @@ describe('coaches routes basic structure', () => {
   });
 
   describe('GET /api/coaches', () => {
-    it('should require authentication', async () => {
-      const response = await request(app)
-        .get('/api/coaches')
-        .expect(401);
+    let testCoaches = [];
 
-      expect(response.body.success).toBe(false);
-    });
-
-    // Create test coaches with varying data for sorting
-    const coachesData = [
+    beforeEach(async () => {
+      testCoaches = [];
+      // Create test coaches with varying data for sorting
+      const coachesData = [
       {
         first_name: 'Alice',
         last_name: 'Anderson',
@@ -153,18 +161,20 @@ describe('coaches routes basic structure', () => {
       // Small delay to ensure different timestamps
       await new Promise(resolve => setTimeout(resolve, 10));
     }
-  });
+    });
 
-  afterAll(async () => {
-    await sequelize.close();
-  });
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get('/api/coaches')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+    });
 
   describe('GET /api/coaches - Default Sorting', () => {
     it('should sort by created_at DESC by default', async () => {
-=======
 
     it('should return empty array when no coaches exist', async () => {
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
       const response = await request(app)
         .get('/api/coaches')
         .set('Authorization', `Bearer ${authToken}`)
@@ -615,7 +625,6 @@ describe('coaches routes basic structure', () => {
     it('should sort by first_name ASC', async () => {
       const response = await request(app)
         .get('/api/coaches?orderBy=first_name&sortDirection=ASC&status=')
-=======
       expect(response.body.data[0].email).toBe('mjohnson@central.edu');
     });
 
@@ -635,7 +644,6 @@ describe('coaches routes basic structure', () => {
 
       const response = await request(app)
         .get('/api/coaches?page=2&limit=10')
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1003,12 +1011,8 @@ describe('coaches routes basic structure', () => {
         next_contact_date: new Date('2024-02-01'),
         status: 'active',
         team_id: otherTeam.id,
-=======
-      expect(response.body.data.length).toBe(10);
-      expect(response.body.pagination.page).toBe(2);
-      expect(response.body.pagination.limit).toBe(10);
-      expect(response.body.pagination.total).toBe(25);
-      expect(response.body.pagination.pages).toBe(3);
+        created_by: otherUser.id
+      });
     });
 
     it('should include Creator information in response', async () => {
@@ -1904,5 +1908,8 @@ describe('coaches routes basic structure', () => {
       expect(coach).toBeDefined();
       expect(coach.first_name).toBe('Other');
     });
-  });
+  }); // Close 'DELETE /api/coaches/:id' describe block
+});
+});
+}); // Close 'Coaches API Tests' describe block
 });

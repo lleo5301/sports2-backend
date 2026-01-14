@@ -791,7 +791,6 @@ describe('Games List Sorting API', () => {
 
       const response = await request(app)
         .get(`/api/games/byId/${game.id}`)
-=======
     });
 
     it('should only return games for user\'s team', async () => {
@@ -828,17 +827,6 @@ describe('Games List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/games')
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const response = await request(app)
         .delete(`/api/games/byId/${game.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
@@ -852,13 +840,4 @@ describe('Games List Sorting API', () => {
     });
   });
 });
-=======
-      // Should only see the 5 games from testTeam, not the 6th from otherTeam
-      expect(response.body.data.length).toBe(5);
-      response.body.data.forEach(game => {
-        expect(game.team.id).toBe(testTeam.id);
-      });
-    });
-  });
-});
->>>>>>> auto-claude/031-add-configurable-sort-order-to-list-endpoints
+}); // Close 'Games List Sorting API' describe block

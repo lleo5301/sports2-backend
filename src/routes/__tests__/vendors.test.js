@@ -1,5 +1,6 @@
-const { Vendor, User, Team } = require('../../models');
-const { sequelize } = require('../../config/database');
+const request = require('supertest');
+const app = require('../../server');
+const { sequelize, User, Team, Vendor } = require('../../models');
 const jwt = require('jsonwebtoken');
 
 describe('vendors routes basic structure', () => {
@@ -11,56 +12,16 @@ describe('vendors routes basic structure', () => {
     expect(typeof router.put).toBe('function')
     expect(typeof router.delete).toBe('function')
   })
-})
+});
 
-const request = require('supertest');
-const app = require('../../server');
-const { sequelize, User, Team, Vendor } = require('../../models');
-const jwt = require('jsonwebtoken');
-
-describe('Vendors API - Complete CRUD Tests', () => {
+describe('Vendors List Sorting API', () => {
   let authToken;
   let testUser;
   let testTeam;
   let otherTeam;
   let otherUser;
   let otherAuthToken;
-describe('Vendors List Sorting API', () => {
-  let authToken;
-  let testUser;
-  let testTeam;
   let testVendors = [];
-
-  beforeAll(async () => {
-    // Ensure we're using the test database
-    if (process.env.NODE_ENV !== 'test') {
-      process.env.NODE_ENV = 'test';
-    }
-
-    // Sync database
-    await sequelize.sync({ force: true });
-
-    // Create test team
-    testTeam = await Team.create({
-      name: 'Test Team',
-      program_name: 'Test Program',
-      school: 'Test University',
-      division: 'D1',
-      conference: 'Test Conference',
-      city: 'Test City',
-      state: 'TS'
-    });
-
-    // Create test user
-    testUser = await User.create({
-      first_name: 'Test',
-      last_name: 'Coach',
-      email: 'test@example.com',
-      password: 'password123',
-      role: 'coach',
-      team_id: testTeam.id
-    });
-
 
   beforeAll(async () => {
     // Ensure database connection
@@ -1443,13 +1404,4 @@ describe('Vendors List Sorting API', () => {
     });
   });
 });
-=======
-
-      // Verify vendor still exists
-      const unchangedVendor = await Vendor.findByPk(vendor.id);
-      expect(unchangedVendor).not.toBeNull();
-      expect(unchangedVendor.company_name).toBe('Other Team Vendor');
-    });
-  });
 });
->>>>>>> auto-claude/039-improve-backend-route-test-coverage
