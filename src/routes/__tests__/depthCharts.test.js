@@ -18,6 +18,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'DepthChart Test Team',
+      program_name: 'DepthChart Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024
@@ -25,6 +26,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
     otherTeam = await Team.create({
       name: 'Other Team',
+      program_name: 'Other Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024

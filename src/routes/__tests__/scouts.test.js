@@ -18,6 +18,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'Scouts Test Team',
+      program_name: 'Scouts Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024
@@ -25,6 +26,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
     otherTeam = await Team.create({
       name: 'Other Scouts Test Team',
+      program_name: 'Other Scouts Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024

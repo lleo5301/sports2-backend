@@ -37,6 +37,7 @@ describe('Teams API - Core Operations', () => {
 
     otherTeam = await Team.create({
       name: 'Other Teams Test Team',
+      program_name: 'Other Teams Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024
@@ -44,6 +45,7 @@ describe('Teams API - Core Operations', () => {
 
     adminTeam = await Team.create({
       name: 'Admin Teams Test Team',
+      program_name: 'Admin Teams Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024
@@ -372,6 +374,7 @@ describe('Teams API - Core Operations', () => {
       // Create temporary team and user
       const tempTeam = await Team.create({
         name: 'Temp Test Team',
+      program_name: 'Temp Test Team Program',
         sport: 'baseball',
         season: 'spring',
         year: 2024

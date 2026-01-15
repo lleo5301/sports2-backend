@@ -20,6 +20,7 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'ScheduleEvents Test Team',
+      program_name: 'ScheduleEvents Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024
@@ -27,6 +28,7 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
 
     otherTeam = await Team.create({
       name: 'Other ScheduleEvents Test Team',
+      program_name: 'Other ScheduleEvents Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024

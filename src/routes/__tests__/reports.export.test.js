@@ -16,6 +16,7 @@ describe('Reports Export API - Player CSV Export', () => {
     // Create test team
     testTeam = await Team.create({
       name: 'Export Test Team',
+      program_name: 'Export Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024
@@ -24,6 +25,7 @@ describe('Reports Export API - Player CSV Export', () => {
     // Create other team for isolation testing
     otherTeam = await Team.create({
       name: 'Other Export Team',
+      program_name: 'Other Export Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024

@@ -22,6 +22,7 @@ describe('CSRF Protection - Integration Tests', () => {
     // Create test team
     testTeam = await Team.create({
       name: 'CSRF Test Team',
+      program_name: 'CSRF Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024

@@ -18,6 +18,7 @@ describe('Locations API - Complete CRUD Tests', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'Locations Test Team',
+      program_name: 'Locations Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024
@@ -25,6 +26,7 @@ describe('Locations API - Complete CRUD Tests', () => {
 
     otherTeam = await Team.create({
       name: 'Other Locations Test Team',
+      program_name: 'Other Locations Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024

@@ -30,6 +30,7 @@ describe('Vendors List Sorting API', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'Vendors Test Team',
+      program_name: 'Vendors Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024
@@ -37,6 +38,7 @@ describe('Vendors List Sorting API', () => {
 
     otherTeam = await Team.create({
       name: 'Other Vendors Test Team',
+      program_name: 'Other Vendors Test Team Program',
       sport: 'baseball',
       season: 'spring',
       year: 2024

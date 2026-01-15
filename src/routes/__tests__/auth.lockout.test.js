@@ -21,6 +21,7 @@ describe('Auth Routes - Account Lockout', () => {
     // Create test team
     testTeam = await Team.create({
       name: 'Lockout Test Team',
+      program_name: 'Lockout Test Team Program',
       sport: 'basketball',
       season: 'winter',
       year: 2024
