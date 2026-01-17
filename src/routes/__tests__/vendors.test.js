@@ -53,7 +53,15 @@ describe('Vendors List Sorting API', () => {
       role: 'head_coach',
       team_id: testTeam.id
     });
-
+    // Generate auth token with jti for blacklist checking
+    authToken = jwt.sign(
+      {
+        id: testUser.id,
+        jti: '9916faf3-535a-4d46-b1bc-c5375a6f9bee',
+        iat: Math.floor(Date.now() / 1000)
+      },
+      process.env.JWT_SECRET || 'test_secret'
+    );
     otherUser = await User.create({
       first_name: 'Other',
       last_name: 'User',
@@ -62,7 +70,15 @@ describe('Vendors List Sorting API', () => {
       role: 'head_coach',
       team_id: otherTeam.id
     });
-
+    // Generate auth token for other user
+    otherAuthToken = jwt.sign(
+      {
+        id: otherUser.id,
+        jti: '840de278-a2a9-4d0d-af0a-fe0e13d1c890',
+        iat: Math.floor(Date.now() / 1000)
+      },
+      process.env.JWT_SECRET || 'test_secret'
+    );
     // Generate auth tokens
     // Create test vendors with varying data for sorting
     const vendorsData = [
