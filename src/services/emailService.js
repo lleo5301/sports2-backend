@@ -4,32 +4,88 @@ const logger = require('../utils/logger');
 /**
  * Email Service for Sports2 Application
  * Handles all email communications including notifications and password resets
+ * Supports Gmail/Google Workspace OAuth2 and standard SMTP
+ *
+ * This service is designed to fail gracefully - email issues should never
+ * prevent the application from starting or functioning.
  */
 class EmailService {
   constructor() {
     this.transporter = null;
     this.isConfigured = false;
-    this.initialize();
+    this.configType = 'none';
+    this.lastError = null;
+    this.initializeSafely();
+  }
+
+  /**
+   * Safely initialize the email transporter
+   * Never throws - all errors are caught and logged
+   */
+  initializeSafely() {
+    try {
+      this.initialize();
+    } catch (error) {
+      this.lastError = error.message;
+      logger.error('❌ Email service initialization failed (non-blocking):', {
+        error: error.message,
+        stack: error.stack
+      });
+      // Ensure service is in a safe state
+      this.transporter = null;
+      this.isConfigured = false;
+      this.configType = 'error';
+    }
   }
 
   /**
    * Initialize the email transporter
+   * Supports two modes:
+   * 1. Gmail OAuth2 (recommended for Google Workspace)
+   * 2. Standard SMTP
    */
   initialize() {
-    try {
-      // Check if SMTP is actually configured (not using defaults)
-      const hasCustomConfig = process.env.SMTP_USER && process.env.SMTP_PASS &&
-                             process.env.SMTP_USER !== 'admin@mail.theprogram1814.com';
+    let config;
 
-      if (!hasCustomConfig) {
-        logger.warn('⚠️  Email service not configured - SMTP credentials not provided. Email functionality will be disabled.');
-        return;
-      }
+    // Log current environment for debugging
+    this.logConfigStatus();
 
-      const config = {
-        host: process.env.SMTP_HOST || 'mail.theprogram1814.com',
-        port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true' || false,
+    // Check for Gmail OAuth2 configuration (preferred for Google Workspace)
+    const hasGmailOAuth = process.env.GMAIL_USER &&
+                          process.env.GMAIL_CLIENT_ID &&
+                          process.env.GMAIL_CLIENT_SECRET &&
+                          process.env.GMAIL_REFRESH_TOKEN;
+
+    // Check for standard SMTP configuration
+    const hasSmtpConfig = process.env.SMTP_USER &&
+                          process.env.SMTP_PASS &&
+                          process.env.SMTP_USER !== 'admin@mail.theprogram1814.com';
+
+    if (hasGmailOAuth) {
+      // Gmail OAuth2 configuration for Google Workspace
+      this.configType = 'gmail-oauth2';
+      logger.info('📧 Configuring email service with Gmail OAuth2...');
+      config = {
+        service: 'gmail',
+        auth: {
+          type: 'OAuth2',
+          user: process.env.GMAIL_USER,
+          clientId: process.env.GMAIL_CLIENT_ID,
+          clientSecret: process.env.GMAIL_CLIENT_SECRET,
+          refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+          accessToken: process.env.GMAIL_ACCESS_TOKEN // Optional, will be auto-generated
+        }
+      };
+    } else if (hasSmtpConfig) {
+      // Standard SMTP configuration
+      this.configType = 'smtp';
+      const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+      const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
+      logger.info(`📧 Configuring email service with SMTP (${smtpHost}:${smtpPort})...`);
+      config = {
+        host: smtpHost,
+        port: smtpPort,
+        secure: process.env.SMTP_SECURE === 'true',
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS
@@ -38,30 +94,99 @@ class EmailService {
           rejectUnauthorized: false // For self-signed certificates in development
         }
       };
-
-      // Check if nodemailer.createTransporter exists
-      if (typeof nodemailer.createTransporter !== 'function') {
-        logger.error('❌ Email service error: nodemailer.createTransporter is not available');
-        return;
-      }
-
-      this.transporter = nodemailer.createTransporter(config);
-      this.isConfigured = true;
-
-      // Verify connection configuration
-      this.transporter.verify((error, _success) => {
-        if (error) {
-          logger.error('❌ Email service configuration error:', error);
-          this.isConfigured = false;
-        } else {
-          logger.info('✅ Email service ready');
-        }
-      });
-    } catch (error) {
-      logger.error('❌ Failed to initialize email service:', error);
-      this.transporter = null;
-      this.isConfigured = false;
+    } else {
+      this.configType = 'none';
+      logger.info('📧 Email service: No configuration provided - email functionality disabled');
+      logger.info('   To enable Gmail/Google Workspace, set: GMAIL_USER, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN');
+      logger.info('   To enable SMTP, set: SMTP_HOST, SMTP_USER, SMTP_PASS');
+      return;
     }
+
+    this.transporter = nodemailer.createTransport(config);
+    this.isConfigured = true;
+
+    // Verify connection configuration (non-blocking)
+    this.verifyConnection();
+  }
+
+  /**
+   * Log configuration status for debugging
+   */
+  logConfigStatus() {
+    const configStatus = {
+      gmail: {
+        GMAIL_USER: !!process.env.GMAIL_USER,
+        GMAIL_CLIENT_ID: !!process.env.GMAIL_CLIENT_ID,
+        GMAIL_CLIENT_SECRET: !!process.env.GMAIL_CLIENT_SECRET,
+        GMAIL_REFRESH_TOKEN: !!process.env.GMAIL_REFRESH_TOKEN
+      },
+      smtp: {
+        SMTP_HOST: process.env.SMTP_HOST || '(not set)',
+        SMTP_USER: !!process.env.SMTP_USER,
+        SMTP_PASS: !!process.env.SMTP_PASS,
+        SMTP_PORT: process.env.SMTP_PORT || '(default: 587)'
+      }
+    };
+    logger.debug('📧 Email service config check:', configStatus);
+  }
+
+  /**
+   * Verify the email connection (non-blocking)
+   */
+  verifyConnection() {
+    if (!this.transporter) return;
+
+    this.transporter.verify()
+      .then(() => {
+        logger.info('✅ Email service ready and verified');
+        this.lastError = null;
+      })
+      .catch((error) => {
+        this.lastError = error.message;
+        this.isConfigured = false;
+        logger.warn('⚠️  Email service verification failed (non-blocking):', {
+          error: error.message,
+          configType: this.configType,
+          hint: this.getErrorHint(error)
+        });
+      });
+  }
+
+  /**
+   * Get helpful error hints based on error type
+   */
+  getErrorHint(error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes('enotfound') || msg.includes('getaddrinfo')) {
+      return 'DNS resolution failed - check SMTP_HOST or network connectivity';
+    }
+    if (msg.includes('auth') || msg.includes('credential')) {
+      return 'Authentication failed - verify credentials and OAuth2 tokens';
+    }
+    if (msg.includes('timeout')) {
+      return 'Connection timeout - check firewall/network settings';
+    }
+    if (msg.includes('certificate')) {
+      return 'SSL/TLS certificate issue - try SMTP_SECURE=false for development';
+    }
+    return 'Check email service configuration';
+  }
+
+  /**
+   * Get service status for diagnostics
+   */
+  getStatus() {
+    return {
+      configured: this.isConfigured,
+      configType: this.configType,
+      hasTransporter: !!this.transporter,
+      lastError: this.lastError,
+      environment: {
+        hasGmailConfig: !!(process.env.GMAIL_USER && process.env.GMAIL_CLIENT_ID),
+        hasSmtpConfig: !!(process.env.SMTP_USER && process.env.SMTP_PASS),
+        smtpHost: process.env.SMTP_HOST || '(not set)'
+      }
+    };
   }
 
   /**
@@ -80,8 +205,12 @@ class EmailService {
     }
 
     try {
+      // Determine the from address based on configuration
+      const fromEmail = process.env.EMAIL_FROM ||
+                        process.env.GMAIL_USER ||
+                        process.env.SMTP_USER;
       const mailOptions = {
-        from: process.env.SMTP_FROM || `"Sports2 Team" <${process.env.SMTP_USER}>`,
+        from: `"Sports2 Team" <${fromEmail}>`,
         to,
         subject,
         text,
