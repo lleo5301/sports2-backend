@@ -28,6 +28,7 @@ const passport = require('passport');
 const { User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
 const UserPermission = require('../models/UserPermission'); // Added import for UserPermission
+const { generateToken: generateCsrfToken } = require('../middleware/csrf');
 
 const router = express.Router();
 
@@ -288,7 +289,17 @@ router.post('/login', [
     // Security: Generate fresh JWT token for this session
     const token = generateToken(user.id);
 
-    // Response: Return user data with team info and token
+    // Set JWT token as httpOnly cookie for secure authentication
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('jwt', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/'
+    });
+
+    // Response: Return user data with team info (token is now in cookie)
     res.json({
       success: true,
       data: {
@@ -300,7 +311,7 @@ router.post('/login', [
         team_id: user.team_id,
         phone: user.phone,
         team: user.Team,
-        token
+        token // Keep token in response for backwards compatibility
       }
     });
   } catch (error) {
@@ -818,6 +829,33 @@ router.get('/permissions', protect, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching user permissions'
+    });
+  }
+});
+
+/**
+ * @route GET /api/auth/csrf-token
+ * @description Generates and returns a CSRF token for use in state-changing requests.
+ *              The token must be included in the X-CSRF-Token header for POST, PUT,
+ *              PATCH, and DELETE requests. A corresponding cookie is also set.
+ * @access Public
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.token - The CSRF token to use in request headers
+ */
+router.get('/csrf-token', (req, res) => {
+  try {
+    const token = generateCsrfToken(req, res);
+    res.json({
+      success: true,
+      token
+    });
+  } catch (error) {
+    console.error('Error generating CSRF token:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate CSRF token'
     });
   }
 });

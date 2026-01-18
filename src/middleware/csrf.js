@@ -9,12 +9,17 @@ if (!process.env.CSRF_SECRET && process.env.NODE_ENV === 'production') {
 }
 
 // Cookie configuration
+const isProduction = process.env.NODE_ENV === 'production';
 const cookieOptions = {
-  sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+  sameSite: isProduction ? 'strict' : 'lax',
   path: '/',
-  secure: process.env.NODE_ENV === 'production',
+  secure: isProduction,
   httpOnly: true
 };
+
+// Use __Host- prefix only in production (requires HTTPS)
+// In development, use a regular cookie name for HTTP compatibility
+const cookieName = isProduction ? '__Host-psifi.x-csrf-token' : 'psifi.x-csrf-token';
 
 // Initialize CSRF protection with double-submit cookie pattern
 const {
@@ -23,7 +28,7 @@ const {
   invalidCsrfTokenError, // Error type for invalid tokens
 } = doubleCsrf({
   getSecret: () => csrfSecret,
-  cookieName: '__Host-psifi.x-csrf-token', // Prefix __Host- for additional security
+  cookieName,
   cookieOptions,
   size: 64, // Token size in bytes
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'], // Safe methods that don't need CSRF protection
