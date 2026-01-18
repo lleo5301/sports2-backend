@@ -860,4 +860,40 @@ router.get('/csrf-token', (req, res) => {
   }
 });
 
+/**
+ * @route POST /api/auth/logout
+ * @description Logs out the current user by clearing the JWT cookie.
+ *              This endpoint invalidates the user's session by removing
+ *              the httpOnly JWT cookie from the client.
+ * @access Public (but typically called by authenticated users)
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Logout confirmation message
+ */
+router.post('/logout', (req, res) => {
+  try {
+    // Clear the JWT cookie
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('jwt', '', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      expires: new Date(0), // Set expiry to past date to delete cookie
+      path: '/'
+    });
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('Error during logout:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to logout'
+    });
+  }
+});
+
 module.exports = router;
