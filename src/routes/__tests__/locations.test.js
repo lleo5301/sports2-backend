@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../../server');
 const { sequelize, User, Team, Location, Permission, ScheduleEvent } = require('../../models');
 const jwt = require('jsonwebtoken');
+const { getCsrfToken } = require('../../test/helpers');
 
 describe('Locations API - Complete CRUD Tests', () => {
   let authToken;
@@ -517,8 +518,11 @@ describe('Locations API - Complete CRUD Tests', () => {
 
   describe('POST /api/locations', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           name: 'Test Location',
           location_type: 'field'
@@ -541,8 +545,11 @@ describe('Locations API - Complete CRUD Tests', () => {
 
       const noPermToken = jwt.sign({ id: userWithoutPermission.id }, process.env.JWT_SECRET || 'test_secret');
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${noPermToken}`)
         .send({
           name: 'Test Location',
@@ -557,8 +564,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should create location with required fields only', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Simple Field'
@@ -574,8 +584,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should create location with all fields', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Complete Stadium',
@@ -609,8 +622,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate required name field', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           location_type: 'field'
@@ -622,8 +638,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate name length (max 200 characters)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'a'.repeat(201),
@@ -636,8 +655,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate address length (max 500 characters)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Test Location',
@@ -650,8 +672,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate city length (max 100 characters)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Test Location',
@@ -664,8 +689,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate state length (max 50 characters)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Test Location',
@@ -678,8 +706,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate zip_code length (max 20 characters)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Test Location',
@@ -692,8 +723,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate location_type enum - field', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Field Test',
@@ -706,8 +740,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate location_type enum - gym', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Gym Test',
@@ -720,8 +757,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate location_type enum - facility', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Facility Test',
@@ -734,8 +774,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate location_type enum - stadium', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Stadium Test',
@@ -748,8 +791,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate location_type enum - practice_field', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Practice Field Test',
@@ -762,8 +808,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate location_type enum - batting_cage', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Batting Cage Test',
@@ -776,8 +825,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate location_type enum - weight_room', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Weight Room Test',
@@ -790,8 +842,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate location_type enum - classroom', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Classroom Test',
@@ -804,8 +859,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate location_type enum - other', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Other Test',
@@ -818,8 +876,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should reject invalid location_type', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Invalid Type',
@@ -832,8 +893,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate capacity is positive integer', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Negative Capacity',
@@ -846,8 +910,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate notes length (max 1000 characters)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Long Notes',
@@ -860,8 +927,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate contact_info is object', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Invalid Contact Info',
@@ -874,8 +944,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate amenities is array', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Invalid Amenities',
@@ -888,8 +961,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate is_active is boolean', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Invalid Active',
@@ -902,8 +978,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should validate is_home_venue is boolean', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Invalid Home Venue',
@@ -925,8 +1004,11 @@ describe('Locations API - Complete CRUD Tests', () => {
       });
 
       // Try to create second location with same name
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Duplicate Name',
@@ -955,8 +1037,11 @@ describe('Locations API - Complete CRUD Tests', () => {
       });
 
       // Create location with same name for other team should succeed
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${otherAuthToken}`)
         .send({
           name: 'Common Name',
@@ -970,8 +1055,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should auto-assign team_id from authenticated user', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Auto Team ID',
@@ -984,8 +1072,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should auto-assign created_by from authenticated user', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Auto Created By',
@@ -998,8 +1089,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should include Creator information in response', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/locations')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Creator Info',
@@ -1016,8 +1110,11 @@ describe('Locations API - Complete CRUD Tests', () => {
 
   describe('PUT /api/locations/:id', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/locations/1')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           name: 'Updated Name'
         })
@@ -1046,8 +1143,11 @@ describe('Locations API - Complete CRUD Tests', () => {
 
       const noEditToken = jwt.sign({ id: userWithoutPermission.id }, process.env.JWT_SECRET || 'test_secret');
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/locations/${location.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${noEditToken}`)
         .send({
           name: 'Updated Name'
@@ -1069,8 +1169,11 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/locations/${location.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           capacity: 1500
@@ -1091,8 +1194,11 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/locations/${location.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'New Name',
@@ -1133,8 +1239,11 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/locations/${location.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           location_type: 'invalid_type'
@@ -1161,8 +1270,11 @@ describe('Locations API - Complete CRUD Tests', () => {
       });
 
       // Try to update location2 to have the same name as existing location
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/locations/${location2.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Existing Location'
@@ -1181,8 +1293,11 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/locations/${location.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Same Name',
@@ -1196,8 +1311,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 for non-existent location', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/locations/99999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Updated Name'
@@ -1217,8 +1335,11 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/locations/${otherLocation.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Hacked Name'
@@ -1234,8 +1355,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should return 400 for invalid ID format', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/locations/invalid-id')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Updated Name'
@@ -1253,8 +1377,11 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/locations/${location.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           capacity: 2000
@@ -1270,8 +1397,11 @@ describe('Locations API - Complete CRUD Tests', () => {
 
   describe('DELETE /api/locations/:id', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/locations/1')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1297,8 +1427,11 @@ describe('Locations API - Complete CRUD Tests', () => {
 
       const noDeleteToken = jwt.sign({ id: userWithoutPermission.id }, process.env.JWT_SECRET || 'test_secret');
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/locations/${location.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${noDeleteToken}`)
         .expect(403);
 
@@ -1316,8 +1449,11 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/locations/${location.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1337,8 +1473,11 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       await request(app)
         .delete(`/api/locations/${location.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1348,8 +1487,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 for non-existent location', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/locations/99999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -1366,8 +1508,11 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/locations/${otherLocation.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -1380,8 +1525,11 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     it('should return 400 for invalid ID format', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/locations/invalid-id')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -1406,8 +1554,11 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/locations/${location.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 

@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../../server');
 const { sequelize, User, Team, ScheduleEvent, ScheduleEventDate, Location, ScheduleTemplate, Permission } = require('../../models');
 const jwt = require('jsonwebtoken');
+const { getCsrfToken } = require('../../test/helpers');
 
 describe('Schedule Events API - Complete CRUD Tests', () => {
   let authToken;
@@ -647,8 +648,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
 
   describe('POST /api/schedule-events', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           title: 'Test Event',
           schedule_template_id: testTemplate.id,
@@ -672,8 +676,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
 
       const tokenWithoutPerms = jwt.sign({ id: userWithoutPerms.id }, process.env.JWT_SECRET || 'test_secret');
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${tokenWithoutPerms}`)
         .send({
           title: 'Test Event',
@@ -690,8 +697,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should create a schedule event with minimal required fields', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Minimal Event',
@@ -718,8 +728,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should create a schedule event with all optional fields', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Complete Event',
@@ -761,8 +774,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should create event with multiple event dates', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Multi-Date Event',
@@ -786,8 +802,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate title is required', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           schedule_template_id: testTemplate.id,
@@ -800,8 +819,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate title length (1-200 characters)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'a'.repeat(201),
@@ -815,8 +837,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate description length (max 1000 characters)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -831,8 +856,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate event_type enum (practice, game, scrimmage, tournament, meeting, training, conditioning, team_building, other)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -850,8 +878,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
       const validTypes = ['practice', 'game', 'scrimmage', 'tournament', 'meeting', 'training', 'conditioning', 'team_building', 'other'];
 
       for (const type of validTypes) {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/schedule-events')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             title: `${type} Event`,
@@ -867,8 +898,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate priority enum (low, medium, high, critical)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -886,8 +920,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
       const validPriorities = ['low', 'medium', 'high', 'critical'];
 
       for (const priority of validPriorities) {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/schedule-events')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             title: `${priority} Priority Event`,
@@ -903,8 +940,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate schedule_template_id is required', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -917,8 +957,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate schedule_template_id is a positive integer', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -932,8 +975,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate event_dates array is required', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -946,8 +992,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate event_dates array has at least one date', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -961,8 +1010,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate event_date is a valid ISO8601 date', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -976,8 +1028,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate start_time format (HH:MM)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -992,8 +1047,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate end_time format (HH:MM)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1008,8 +1066,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate duration_minutes range (1-1440)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1024,8 +1085,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate max_participants is a positive integer', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1040,8 +1104,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate required_equipment is an array', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1056,8 +1123,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate target_groups is an array', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1072,8 +1142,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate recurring_pattern is an object', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1088,8 +1161,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should validate preparation_notes length (max 1000 characters)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1104,8 +1180,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 if schedule template does not exist', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1126,8 +1205,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1144,8 +1226,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 if location does not exist', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1167,8 +1252,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Test Event',
@@ -1186,8 +1274,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should auto-assign team_id and created_by from authenticated user', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-events')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Auto-assigned Event',
@@ -1212,8 +1303,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
 
   describe('PUT /api/schedule-events/:id', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/schedule-events/1')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({ title: 'Updated Event' })
         .expect(401);
 
@@ -1246,8 +1340,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
 
       const tokenWithoutPerms = jwt.sign({ id: userWithoutPerms.id }, process.env.JWT_SECRET || 'test_secret');
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/schedule-events/${event.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${tokenWithoutPerms}`)
         .send({ title: 'Updated Event' })
         .expect(403);
@@ -1276,8 +1373,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/schedule-events/${event.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Updated Title'
@@ -1307,8 +1407,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/schedule-events/${event.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Completely Updated Event',
@@ -1359,8 +1462,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
       ]);
 
       // Update with new dates
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/schedule-events/${event.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           event_dates: [
@@ -1399,8 +1505,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/schedule-events/${event.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           title: 'Updated Title'
@@ -1413,8 +1522,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 for non-existent event', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/schedule-events/99999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ title: 'Updated Event' })
         .expect(404);
@@ -1445,8 +1557,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/schedule-events/${otherEvent.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ title: 'Hacked Event' })
         .expect(404);
@@ -1461,8 +1576,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
 
   describe('DELETE /api/schedule-events/:id', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/schedule-events/1')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1494,8 +1612,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
 
       const tokenWithoutPerms = jwt.sign({ id: userWithoutPerms.id }, process.env.JWT_SECRET || 'test_secret');
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/schedule-events/${event.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${tokenWithoutPerms}`)
         .expect(403);
 
@@ -1521,8 +1642,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/schedule-events/${event.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1556,8 +1680,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/schedule-events/${event.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1571,8 +1698,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 for non-existent event', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/schedule-events/99999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -1581,8 +1711,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
     });
 
     it('should return 400 for invalid event ID format', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/schedule-events/invalid')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -1612,8 +1745,11 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/schedule-events/${otherEvent.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 

@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../../server');
 const { sequelize, User, Team, Report, UserPermission, ScoutingReport, Player } = require('../../models');
 const jwt = require('jsonwebtoken');
+const { getCsrfToken } = require('../../test/helpers');
 
 describe('Reports API - Custom Reports CRUD', () => {
   let authToken;
@@ -375,8 +376,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         filters: { position: 'pitcher' }
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(201);
@@ -405,8 +409,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         type: 'custom'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(201);
@@ -425,8 +432,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         type: 'team-statistics'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(201);
@@ -440,8 +450,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         type: 'custom'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(400);
@@ -455,8 +468,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         title: 'Test Report'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(400);
@@ -471,8 +487,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         type: 'custom'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(400);
@@ -488,8 +507,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         type: 'custom'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(400);
@@ -504,8 +526,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         type: 'invalid-type'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(400);
@@ -529,8 +554,11 @@ describe('Reports API - Custom Reports CRUD', () => {
           type: type
         };
 
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/reports')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send(reportData)
           .expect(201);
@@ -547,8 +575,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         data_sources: 'not-an-array'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(400);
@@ -564,8 +595,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         sections: 'not-an-array'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(400);
@@ -581,8 +615,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         filters: 'not-an-object'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(400);
@@ -598,8 +635,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         schedule: 'not-an-object'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(400);
@@ -614,8 +654,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         type: 'custom'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send(reportData)
         .expect(401);
 
@@ -628,8 +671,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         type: 'custom'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${userWithoutPermissionsToken}`)
         .send(reportData)
         .expect(403);
@@ -644,8 +690,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         type: 'custom'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(201);
@@ -660,8 +709,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         type: 'custom'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(201);
@@ -688,8 +740,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         status: 'published'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -721,8 +776,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         title: 'Only Title Updated'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -746,8 +804,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         status: 'published'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -768,8 +829,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         data_sources: ['new-source-1', 'new-source-2']
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -790,8 +854,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         sections: [{ name: 'New Section', type: 'chart' }]
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -812,8 +879,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         filters: { position: 'catcher', year: 2024 }
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -834,8 +904,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         title: 'a'.repeat(201)
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(400);
@@ -856,8 +929,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         description: 'a'.repeat(1001)
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(400);
@@ -879,8 +955,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         status: 'invalid-status'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(400);
@@ -894,8 +973,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         title: 'Updated Title'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/reports/byId/999999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(404);
@@ -916,8 +998,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         title: 'Malicious Update'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${otherTeamReport.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(404);
@@ -942,8 +1027,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         title: 'Updated Title'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send(updateData)
         .expect(401);
 
@@ -962,8 +1050,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         title: 'Updated Title'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${userWithoutPermissionsToken}`)
         .send(updateData)
         .expect(403);
@@ -982,8 +1073,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -996,8 +1090,11 @@ describe('Reports API - Custom Reports CRUD', () => {
     });
 
     it('should return 404 for non-existent report', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/reports/byId/999999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -1013,8 +1110,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/reports/byId/${otherTeamReport.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -1035,8 +1135,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1054,8 +1157,11 @@ describe('Reports API - Custom Reports CRUD', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/reports/byId/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${userWithoutPermissionsToken}`)
         .expect(403);
 
@@ -1395,8 +1501,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_notes: 'Excellent prospect with great potential'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/scouting')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(201);
@@ -1423,8 +1532,11 @@ describe('Reports API - Scouting Reports', () => {
         report_date: '2024-01-15'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/scouting')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(201);
@@ -1441,8 +1553,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_grade: 'B+'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/scouting')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(201);
@@ -1460,8 +1575,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_grade: 'A'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/scouting')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(404);
@@ -1477,8 +1595,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_grade: 'A'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/scouting')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(404);
@@ -1494,8 +1615,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_grade: 'A'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/scouting')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(reportData)
         .expect(201);
@@ -1516,8 +1640,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_grade: 'A'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/scouting')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send(reportData)
         .expect(401);
 
@@ -1652,8 +1779,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_notes: 'Updated notes - showing improvement'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/scouting/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -1684,8 +1814,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_grade: 'A'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/scouting/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -1708,8 +1841,11 @@ describe('Reports API - Scouting Reports', () => {
         player_id: testPlayer2.id
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/scouting/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -1731,8 +1867,11 @@ describe('Reports API - Scouting Reports', () => {
         player_id: otherTeamPlayer.id
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/scouting/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(404);
@@ -1746,8 +1885,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_grade: 'A'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/reports/scouting/999999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(404);
@@ -1768,8 +1910,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_grade: 'A'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/scouting/${otherTeamReport.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(404);
@@ -1794,8 +1939,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_grade: 'A'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/scouting/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -1819,8 +1967,11 @@ describe('Reports API - Scouting Reports', () => {
         overall_grade: 'A'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/reports/scouting/${report.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send(updateData)
         .expect(401);
 
@@ -2549,8 +2700,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
         options: { format: 'A4' }
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/generate-pdf')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(requestData)
         .expect(200);
@@ -2568,8 +2722,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       for (const type of types) {
         const requestData = { type };
 
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/reports/generate-pdf')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send(requestData)
           .expect(200);
@@ -2584,8 +2741,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
         type: 'custom'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/generate-pdf')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(requestData)
         .expect(200);
@@ -2599,8 +2759,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
         type: 'player-performance'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/generate-pdf')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send(requestData)
         .expect(401);
 
@@ -2616,8 +2779,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
         options: { includeCharts: true }
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/export-excel')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(requestData)
         .expect(200);
@@ -2635,8 +2801,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       for (const type of types) {
         const requestData = { type };
 
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/reports/export-excel')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send(requestData)
           .expect(200);
@@ -2651,8 +2820,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
         type: 'custom'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/export-excel')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(requestData)
         .expect(200);
@@ -2666,8 +2838,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
         type: 'team-statistics'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/reports/export-excel')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send(requestData)
         .expect(401);
 

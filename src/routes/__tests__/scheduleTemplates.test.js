@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../../server');
 const { sequelize, User, Team, ScheduleTemplate } = require('../../models');
 const jwt = require('jsonwebtoken');
+const { getCsrfToken } = require('../../test/helpers');
 
 describe('Schedule Templates API', () => {
   let authToken;
@@ -153,8 +154,11 @@ describe('Schedule Templates API', () => {
         }
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-templates')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(templateData)
         .expect(201);
@@ -172,8 +176,11 @@ describe('Schedule Templates API', () => {
         template_data: { sections: [] }
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-templates')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(templateData)
         .expect(400);
@@ -199,8 +206,11 @@ describe('Schedule Templates API', () => {
         is_default: true
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/schedule-templates')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(templateData)
         .expect(201);
@@ -262,8 +272,11 @@ describe('Schedule Templates API', () => {
         description: 'Updated description'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/schedule-templates/${template.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData)
         .expect(200);
@@ -283,8 +296,11 @@ describe('Schedule Templates API', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/schedule-templates/${template.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -321,8 +337,11 @@ describe('Schedule Templates API', () => {
         description: 'Duplicated description'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post(`/api/schedule-templates/${originalTemplate.id}/duplicate`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(duplicateData)
         .expect(201);

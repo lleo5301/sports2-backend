@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../../server');
 const { sequelize, User, Team } = require('../../models');
 const jwt = require('jsonwebtoken');
+const { getCsrfToken } = require('../../test/helpers');
 
 describe('Settings Routes - Password Change Validation', () => {
   let testTeam;
@@ -64,8 +65,11 @@ describe('Settings Routes - Password Change Validation', () => {
   describe('PUT /api/settings/change-password - Password Validation', () => {
     describe('should reject weak new passwords', () => {
       it('should reject new password that is too short', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -87,8 +91,11 @@ describe('Settings Routes - Password Change Validation', () => {
       });
 
       it('should reject new password without uppercase letter', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -110,8 +117,11 @@ describe('Settings Routes - Password Change Validation', () => {
       });
 
       it('should reject new password without lowercase letter', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -133,8 +143,11 @@ describe('Settings Routes - Password Change Validation', () => {
       });
 
       it('should reject new password without digit', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -156,8 +169,11 @@ describe('Settings Routes - Password Change Validation', () => {
       });
 
       it('should reject new password without special character', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -179,8 +195,11 @@ describe('Settings Routes - Password Change Validation', () => {
       });
 
       it('should reject commonly used weak password "123456"', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -194,8 +213,11 @@ describe('Settings Routes - Password Change Validation', () => {
       });
 
       it('should reject commonly used weak password "password"', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -213,8 +235,11 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should accept new password meeting all requirements', async () => {
         const newStrongPassword = 'NewStr0ng!Pass';
 
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -242,8 +267,11 @@ describe('Settings Routes - Password Change Validation', () => {
         ];
 
         for (const password of passwordsWithSpecialChars) {
+          const { token, cookies } = await getCsrfToken(app);
           const response = await request(app)
             .put('/api/settings/change-password')
+            .set('Cookie', cookies)
+            .set('x-csrf-token', token)
             .set('Authorization', `Bearer ${authToken}`)
             .send({
               currentPassword: strongPassword,
@@ -265,8 +293,11 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should accept password at exactly minimum length (8 chars)', async () => {
         const exactMinPassword = 'Aa1!aaaa'; // Exactly 8 characters
 
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -287,8 +318,11 @@ describe('Settings Routes - Password Change Validation', () => {
 
     describe('should require authentication', () => {
       it('should return 401 when no token is provided', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             currentPassword: strongPassword,
             newPassword: 'NewStr0ng!Pass',
@@ -301,8 +335,11 @@ describe('Settings Routes - Password Change Validation', () => {
       });
 
       it('should return 401 when invalid token is provided', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', 'Bearer invalid_token')
           .send({
             currentPassword: strongPassword,
@@ -317,8 +354,11 @@ describe('Settings Routes - Password Change Validation', () => {
 
     describe('should validate current password', () => {
       it('should reject when current password is incorrect', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: 'WrongP@ss1',
@@ -334,8 +374,11 @@ describe('Settings Routes - Password Change Validation', () => {
 
     describe('should validate password confirmation', () => {
       it('should reject when password confirmation does not match', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -362,8 +405,11 @@ describe('Settings Routes - Password Change Validation', () => {
         // Password missing multiple requirements
         const veryWeakPassword = 'weak';
 
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,
@@ -386,8 +432,11 @@ describe('Settings Routes - Password Change Validation', () => {
       });
 
       it('should validate newPassword is required', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/settings/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             currentPassword: strongPassword,

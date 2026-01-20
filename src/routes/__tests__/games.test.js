@@ -5,6 +5,7 @@ const app = require('../../server');
 const { Game, User, Team } = require('../../models');
 const { sequelize } = require('../../config/database');
 const jwt = require('jsonwebtoken');
+const { getCsrfToken } = require('../../test/helpers');
 
 describe('games routes basic structure', () => {
   it('router has standard HTTP methods', () => {
@@ -553,6 +554,8 @@ describe('Games List Sorting API', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
+    });
+
     describe('Search functionality', () => {
       beforeEach(async () => {
         // Create test games with different data
@@ -749,8 +752,11 @@ describe('Games List Sorting API', () => {
         notes: 'Test game'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/games')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(gameData)
         .expect(201);
@@ -767,8 +773,11 @@ describe('Games List Sorting API', () => {
         home_away: 'home'
       };
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/games')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send(gameData)
         .expect(400);
@@ -791,6 +800,11 @@ describe('Games List Sorting API', () => {
 
       const response = await request(app)
         .get(`/api/games/byId/${game.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.opponent).toBe('Specific Opponent');
     });
 
     it('should only return games for user\'s team', async () => {
@@ -814,7 +828,7 @@ describe('Games List Sorting API', () => {
         team_id: otherTeam.id
       });
 
-      await Game.create({
+      const otherGame = await Game.create({
         opponent: 'Other Opponent',
         game_date: new Date('2024-05-01'),
         home_away: 'home',
@@ -826,8 +840,32 @@ describe('Games List Sorting API', () => {
         created_by: otherUser.id
       });
 
+      // Should not be able to access other team's game
+      const response = await request(app)
+        .get(`/api/games/byId/${otherGame.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('DELETE /api/games/byId/:id', () => {
+    it('should delete a game', async () => {
+      const game = await Game.create({
+        opponent: 'Game To Delete',
+        game_date: new Date('2024-07-01'),
+        home_away: 'home',
+        location: 'Test Location',
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/games/byId/${game.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -840,4 +878,3 @@ describe('Games List Sorting API', () => {
     });
   });
 });
-}); // Close 'Games List Sorting API' describe block

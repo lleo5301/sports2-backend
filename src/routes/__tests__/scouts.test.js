@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../../server');
 const { sequelize, User, Team, Scout } = require('../../models');
 const jwt = require('jsonwebtoken');
+const { getCsrfToken } = require('../../test/helpers');
 
 describe('Scouts API - Complete CRUD Tests', () => {
   let authToken;
@@ -744,8 +745,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
   describe('POST /api/scouts', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           first_name: 'Mike',
           last_name: 'Johnson',
@@ -758,8 +762,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should create a scout with required fields only', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -779,8 +786,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should create a scout with all fields', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -807,8 +817,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should auto-assign team_id from authenticated user', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -826,8 +839,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should auto-assign created_by from authenticated user', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -845,8 +861,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should require first_name', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           last_name: 'Johnson',
@@ -860,8 +879,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should require last_name', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -875,8 +897,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should require organization_name', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -890,8 +915,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should require position', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -905,8 +933,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should accept position: Area Scout', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -921,8 +952,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should accept position: Cross Checker', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -937,8 +971,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should accept position: National Cross Checker', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -953,8 +990,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should accept position: Scouting Director', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -969,8 +1009,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should reject invalid position', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -985,8 +1028,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should validate email format', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1002,9 +1048,12 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should validate first_name max length (100 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const longName = 'A'.repeat(101);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: longName,
@@ -1019,9 +1068,12 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should validate last_name max length (100 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const longName = 'A'.repeat(101);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1036,9 +1088,12 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should validate organization_name max length (200 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const longOrgName = 'A'.repeat(201);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1053,9 +1108,12 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should validate phone max length (20 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const longPhone = '1'.repeat(21);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1071,9 +1129,12 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should validate email max length (255 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const longEmail = 'a'.repeat(250) + '@test.com';
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1089,9 +1150,12 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should validate coverage_area max length (500 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const longCoverage = 'A'.repeat(501);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1107,9 +1171,12 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should validate specialization max length (200 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const longSpecialization = 'A'.repeat(201);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1125,8 +1192,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should validate last_contact_date ISO8601 format', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1142,8 +1212,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should validate next_contact_date ISO8601 format', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1159,8 +1232,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should include Creator information in response', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/scouts')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1180,8 +1256,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
   describe('PUT /api/scouts/:id', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/scouts/123')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({ first_name: 'Updated' })
         .expect(401);
 
@@ -1199,8 +1278,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Michael'
@@ -1223,8 +1305,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Michael',
@@ -1258,8 +1343,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ status: 'inactive' })
         .expect(200);
@@ -1279,8 +1367,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ position: 'Invalid Position' })
         .expect(400);
@@ -1300,8 +1391,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ status: 'invalid_status' })
         .expect(400);
@@ -1321,8 +1415,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ email: 'invalid-email' })
         .expect(400);
@@ -1332,8 +1429,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 for non-existent scout', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/scouts/999999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ first_name: 'Updated' })
         .expect(404);
@@ -1353,8 +1453,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ first_name: 'Updated' })
         .expect(404);
@@ -1374,8 +1477,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ first_name: 'Michael' })
         .expect(200);
@@ -1390,8 +1496,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
   describe('DELETE /api/scouts/:id', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/scouts/123')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1408,8 +1517,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1428,8 +1540,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       await request(app)
         .delete(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1439,8 +1554,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 for non-existent scout', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/scouts/999999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -1459,8 +1577,11 @@ describe('Scouts API - Complete CRUD Tests', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/scouts/${scout.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 

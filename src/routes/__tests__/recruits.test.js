@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../../server');
 const { sequelize, User, Team, Player, PreferenceList, Permission } = require('../../models');
 const jwt = require('jsonwebtoken');
+const { getCsrfToken } = require('../../test/helpers');
 
 describe('Recruits API - Complete CRUD Tests', () => {
   let authToken;
@@ -1166,8 +1167,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
   describe('POST /api/recruits/preference-lists', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           player_id: 1,
           list_type: 'hs_pref_list'
@@ -1189,8 +1193,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1225,8 +1232,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1255,8 +1265,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
     });
 
     it('should require player_id', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           list_type: 'hs_pref_list'
@@ -1279,8 +1292,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id
@@ -1303,8 +1319,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1328,8 +1347,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1354,8 +1376,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1380,8 +1405,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1406,8 +1434,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1432,8 +1463,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1447,8 +1481,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 if player not found', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: 99999,
@@ -1472,8 +1509,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: otherTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: otherPlayer.id,
@@ -1507,8 +1547,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       // Try to create duplicate
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1542,8 +1585,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       // Add to different list type - should succeed
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1567,8 +1613,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1595,8 +1644,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         team_id: testTeam.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/recruits/preference-lists')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           player_id: player.id,
@@ -1614,8 +1666,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
   describe('PUT /api/recruits/preference-lists/:id', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/recruits/preference-lists/123')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           priority: 2
         })
@@ -1645,8 +1700,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           priority: 2,
@@ -1686,8 +1744,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           priority: 2,
@@ -1735,8 +1796,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           status: 'committed'
@@ -1768,8 +1832,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           status: 'signed'
@@ -1801,8 +1868,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           status: 'lost'
@@ -1833,8 +1903,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           status: 'INVALID'
@@ -1865,8 +1938,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           interest_level: 'INVALID'
@@ -1897,8 +1973,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           priority: 1000
@@ -1929,8 +2008,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           scholarship_amount: -5000
@@ -1942,8 +2024,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 if preference list entry not found', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/recruits/preference-lists/99999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           priority: 2
@@ -1974,8 +2059,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${otherPref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           priority: 2
@@ -2006,8 +2094,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           priority: 2
@@ -2024,8 +2115,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
   describe('DELETE /api/recruits/preference-lists/:id', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/recruits/preference-lists/123')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -2051,8 +2145,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2086,8 +2183,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const prefId = pref.id;
 
+      const { token, cookies } = await getCsrfToken(app);
       await request(app)
         .delete(`/api/recruits/preference-lists/${prefId}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2116,8 +2216,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       await request(app)
         .delete(`/api/recruits/preference-lists/${pref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2128,8 +2231,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 if preference list entry not found', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/recruits/preference-lists/99999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -2157,8 +2263,11 @@ describe('Recruits API - Complete CRUD Tests', () => {
         added_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/recruits/preference-lists/${otherPref.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 

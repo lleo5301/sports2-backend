@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../../server');
 const { sequelize, User, Team, HighSchoolCoach } = require('../../models');
 const jwt = require('jsonwebtoken');
+const { getCsrfToken } = require('../../test/helpers');
 
 describe('High School Coaches API - Complete CRUD Tests', () => {
   let authToken;
@@ -925,8 +926,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
 
   describe('POST /api/high-school-coaches', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           first_name: 'Test',
           last_name: 'Coach',
@@ -939,8 +943,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should create a high school coach with required fields only', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'John',
@@ -964,8 +971,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should create a high school coach with all fields', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1011,8 +1021,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should auto-assign team_id from authenticated user', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1030,8 +1043,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should auto-assign created_by from authenticated user', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1049,8 +1065,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should include Creator information in response', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1067,8 +1086,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should require first_name', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           last_name: 'Smith',
@@ -1082,8 +1104,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should require last_name', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'John',
@@ -1097,8 +1122,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should require school_name', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'John',
@@ -1112,8 +1140,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should require position', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'John',
@@ -1127,8 +1158,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate position enum (Head Coach)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1143,8 +1177,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate position enum (Assistant Coach)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1159,8 +1196,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate position enum (JV Coach)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1175,8 +1215,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate position enum (Freshman Coach)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1191,8 +1234,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate position enum (Pitching Coach)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1207,8 +1253,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate position enum (Hitting Coach)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1223,8 +1272,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should reject invalid position values', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1239,8 +1291,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate school_classification enum (1A)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1256,8 +1311,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate school_classification enum (6A)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1273,8 +1331,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate school_classification enum (Private)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1290,8 +1351,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should reject invalid school_classification values', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1307,8 +1371,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate relationship_type enum (Recruiting Contact)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1324,8 +1391,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate relationship_type enum (Former Player)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1341,8 +1411,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate relationship_type enum (Coaching Connection)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1358,8 +1431,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate relationship_type enum (Tournament Contact)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1375,8 +1451,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate relationship_type enum (Camp Contact)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1392,8 +1471,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate relationship_type enum (Other)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1409,8 +1491,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should reject invalid relationship_type values', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1426,8 +1511,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate email format', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1443,8 +1531,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate years_coaching range (0-50)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1460,8 +1551,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate players_sent_count is non-negative', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1477,8 +1571,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate first_name max length (100 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'a'.repeat(101),
@@ -1493,8 +1590,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate last_name max length (100 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1509,8 +1609,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate school_name max length (200 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1525,8 +1628,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate school_district max length (200 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1542,8 +1648,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate phone max length (20 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1559,8 +1668,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate email max length (255 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1576,8 +1688,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate city max length (100 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1593,8 +1708,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate state max length (50 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1610,8 +1728,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate region max length (100 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1627,8 +1748,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate conference max length (100 chars)', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1644,8 +1768,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate last_contact_date ISO8601 format', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1661,8 +1788,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should validate next_contact_date ISO8601 format', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/high-school-coaches')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Test',
@@ -1680,8 +1810,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
 
   describe('PUT /api/high-school-coaches/:id', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/high-school-coaches/123')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({ first_name: 'Updated' })
         .expect(401);
 
@@ -1699,8 +1832,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           last_contact_date: '2024-01-15',
@@ -1733,8 +1869,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           first_name: 'Mike',
@@ -1797,8 +1936,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ status: 'inactive' })
         .expect(200);
@@ -1822,8 +1964,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ position: 'Invalid Position' })
         .expect(400);
@@ -1843,8 +1988,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ status: 'invalid' })
         .expect(400);
@@ -1864,8 +2012,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ school_classification: '7A' })
         .expect(400);
@@ -1885,8 +2036,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ relationship_type: 'Invalid Type' })
         .expect(400);
@@ -1906,8 +2060,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ email: 'invalid-email' })
         .expect(400);
@@ -1927,8 +2084,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ years_coaching: 60 })
         .expect(400);
@@ -1938,8 +2098,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 for non-existent high school coach', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/high-school-coaches/99999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ first_name: 'Updated' })
         .expect(404);
@@ -1959,8 +2122,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${otherCoach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ first_name: 'Hacked' })
         .expect(404);
@@ -1984,8 +2150,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ notes: 'Updated notes' })
         .expect(200);
@@ -1998,8 +2167,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
 
   describe('DELETE /api/high-school-coaches/:id', () => {
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/high-school-coaches/123')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -2016,8 +2188,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2040,8 +2215,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       await request(app)
         .delete(`/api/high-school-coaches/${coach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2051,8 +2229,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     });
 
     it('should return 404 for non-existent high school coach', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete('/api/high-school-coaches/99999')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -2071,8 +2252,11 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
         created_by: otherUser.id
       });
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .delete(`/api/high-school-coaches/${otherCoach.id}`)
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 

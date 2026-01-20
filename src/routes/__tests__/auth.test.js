@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../../server');
 const { sequelize, User, Team } = require('../../models');
 const jwt = require('jsonwebtoken');
+const { getCsrfToken } = require('../../test/helpers');
 
 describe('Auth Routes - Password Validation', () => {
   let testTeam;
@@ -81,8 +82,11 @@ describe('Auth Routes - Password Validation', () => {
 
     describe('should reject weak passwords', () => {
       it('should reject password that is too short', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/auth/register')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             ...validUserData,
             password: weakPasswords.tooShort
@@ -102,8 +106,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should reject password without uppercase letter', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/auth/register')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             ...validUserData,
             password: weakPasswords.noUppercase
@@ -123,8 +130,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should reject password without lowercase letter', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/auth/register')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             ...validUserData,
             password: weakPasswords.noLowercase
@@ -144,8 +154,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should reject password without digit', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/auth/register')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             ...validUserData,
             password: weakPasswords.noDigit
@@ -165,8 +178,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should reject password without special character', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/auth/register')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             ...validUserData,
             password: weakPasswords.noSpecialChar
@@ -186,8 +202,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should reject commonly used weak password "123456"', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/auth/register')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             ...validUserData,
             password: weakPasswords.commonWeak
@@ -199,8 +218,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should reject commonly used weak password "password"', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/auth/register')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             ...validUserData,
             password: weakPasswords.anotherCommon
@@ -214,8 +236,11 @@ describe('Auth Routes - Password Validation', () => {
 
     describe('should accept strong passwords', () => {
       it('should accept password meeting all requirements', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/auth/register')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             ...validUserData,
             password: strongPassword
@@ -228,9 +253,9 @@ describe('Auth Routes - Password Validation', () => {
         // Token should NOT be in response body (now in httpOnly cookie)
         expect(response.body.data).not.toHaveProperty('token');
         // Verify JWT cookie is set
-        const cookies = response.headers['set-cookie'];
-        expect(cookies).toBeDefined();
-        const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
+        const responseCookies = response.headers['set-cookie'];
+        expect(responseCookies).toBeDefined();
+        const tokenCookie = responseCookies.find(cookie => cookie.startsWith('token='));
         expect(tokenCookie).toBeDefined();
         expect(tokenCookie).toContain('HttpOnly');
       });
@@ -250,8 +275,11 @@ describe('Auth Routes - Password Validation', () => {
           // Clean up before each attempt
           await User.destroy({ where: { email: validUserData.email } });
 
+          const { token, cookies } = await getCsrfToken(app);
           const response = await request(app)
             .post('/api/auth/register')
+            .set('Cookie', cookies)
+            .set('x-csrf-token', token)
             .send({
               ...validUserData,
               password
@@ -265,8 +293,11 @@ describe('Auth Routes - Password Validation', () => {
       it('should accept password at exactly minimum length (8 chars)', async () => {
         const exactMinPassword = 'Aa1!aaaa'; // Exactly 8 characters
 
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/auth/register')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             ...validUserData,
             password: exactMinPassword
@@ -281,8 +312,11 @@ describe('Auth Routes - Password Validation', () => {
   describe('PUT /api/auth/change-password - Password Validation', () => {
     describe('should reject weak new passwords', () => {
       it('should reject new password that is too short', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/auth/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             current_password: strongPassword,
@@ -303,8 +337,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should reject new password without uppercase letter', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/auth/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             current_password: strongPassword,
@@ -325,8 +362,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should reject new password without lowercase letter', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/auth/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             current_password: strongPassword,
@@ -347,8 +387,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should reject new password without digit', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/auth/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             current_password: strongPassword,
@@ -369,8 +412,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should reject new password without special character', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/auth/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             current_password: strongPassword,
@@ -395,8 +441,11 @@ describe('Auth Routes - Password Validation', () => {
       it('should accept new password meeting all requirements', async () => {
         const newStrongPassword = 'NewStr0ng!Pass';
 
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/auth/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             current_password: strongPassword,
@@ -417,8 +466,11 @@ describe('Auth Routes - Password Validation', () => {
 
     describe('should require authentication', () => {
       it('should return 401 when no token is provided', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/auth/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .send({
             current_password: strongPassword,
             new_password: 'NewStr0ng!Pass'
@@ -430,8 +482,11 @@ describe('Auth Routes - Password Validation', () => {
       });
 
       it('should return 401 when invalid token is provided', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/auth/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', 'Bearer invalid_token')
           .send({
             current_password: strongPassword,
@@ -445,8 +500,11 @@ describe('Auth Routes - Password Validation', () => {
 
     describe('should validate current password', () => {
       it('should reject when current password is incorrect', async () => {
+        const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .put('/api/auth/change-password')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             current_password: 'WrongP@ss1',
@@ -465,8 +523,11 @@ describe('Auth Routes - Password Validation', () => {
       // Password missing multiple requirements
       const veryWeakPassword = 'weak';
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/register')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           email: 'auth-test-multiple-errors@example.com',
           first_name: 'Test',
@@ -492,8 +553,11 @@ describe('Auth Routes - Password Validation', () => {
 
   describe('POST /api/auth/login - Cookie-Based Authentication', () => {
     it('should set JWT token as httpOnly cookie on successful login', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/login')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           email: testUser.email,
           password: strongPassword
@@ -507,17 +571,20 @@ describe('Auth Routes - Password Validation', () => {
       expect(response.body.data).not.toHaveProperty('token');
 
       // Verify JWT cookie is set
-      const cookies = response.headers['set-cookie'];
-      expect(cookies).toBeDefined();
-      const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
+      const responseCookies = response.headers['set-cookie'];
+      expect(responseCookies).toBeDefined();
+      const tokenCookie = responseCookies.find(cookie => cookie.startsWith('token='));
       expect(tokenCookie).toBeDefined();
       expect(tokenCookie).toContain('HttpOnly');
       expect(tokenCookie).toContain('Path=/');
     });
 
     it('should include team information in login response', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/login')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           email: testUser.email,
           password: strongPassword
@@ -531,8 +598,11 @@ describe('Auth Routes - Password Validation', () => {
     });
 
     it('should reject login with invalid credentials', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/login')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           email: testUser.email,
           password: 'WrongPassword123!'
@@ -543,16 +613,19 @@ describe('Auth Routes - Password Validation', () => {
       expect(response.body.error).toBe('Invalid credentials');
 
       // No cookie should be set on failed login
-      const cookies = response.headers['set-cookie'];
-      if (cookies) {
-        const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
+      const responseCookies = response.headers['set-cookie'];
+      if (responseCookies) {
+        const tokenCookie = responseCookies.find(cookie => cookie.startsWith('token='));
         expect(tokenCookie).toBeUndefined();
       }
     });
 
     it('should reject login with non-existent email', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/login')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           email: 'nonexistent@example.com',
           password: strongPassword
@@ -566,43 +639,52 @@ describe('Auth Routes - Password Validation', () => {
 
   describe('POST /api/auth/logout - Cookie Clearing', () => {
     it('should clear JWT token cookie on logout', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/logout')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBeDefined();
 
       // Verify cookies are cleared
-      const cookies = response.headers['set-cookie'];
-      expect(cookies).toBeDefined();
+      const responseCookies = response.headers['set-cookie'];
+      expect(responseCookies).toBeDefined();
 
       // Check that token cookie is cleared (value should be empty or expired)
-      const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
+      const tokenCookie = responseCookies.find(cookie => cookie.startsWith('token='));
       expect(tokenCookie).toBeDefined();
       // Cleared cookies have empty value or very old expiry
       expect(tokenCookie).toMatch(/token=;|expires=Thu, 01 Jan 1970/);
     });
 
     it('should clear CSRF token cookie on logout', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/logout')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .expect(200);
 
       expect(response.body.success).toBe(true);
 
-      const cookies = response.headers['set-cookie'];
-      expect(cookies).toBeDefined();
+      const responseCookies = response.headers['set-cookie'];
+      expect(responseCookies).toBeDefined();
 
       // Check that CSRF cookie is cleared
-      const csrfCookie = cookies.find(cookie => cookie.includes('csrf-token'));
+      const csrfCookie = responseCookies.find(cookie => cookie.includes('csrf-token'));
       expect(csrfCookie).toBeDefined();
     });
 
     it('should allow logout even without authentication', async () => {
       // Logout should work even if user is not authenticated
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/logout')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -614,8 +696,11 @@ describe('Auth Routes - Password Validation', () => {
 
     beforeAll(async () => {
       // Login to get cookies for protected route tests
+      const { token, cookies } = await getCsrfToken(app);
       const loginResponse = await request(app)
         .post('/api/auth/login')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .send({
           email: testUser.email,
           password: strongPassword
@@ -659,9 +744,11 @@ describe('Auth Routes - Password Validation', () => {
     it('should change password with cookie authentication', async () => {
       const newPassword = 'NewStr0ng!Pass2';
 
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/auth/change-password')
-        .set('Cookie', loginCookies)
+        .set('Cookie', [...loginCookies, ...cookies])
+        .set('x-csrf-token', token)
         .send({
           current_password: strongPassword,
           new_password: newPassword
@@ -672,9 +759,11 @@ describe('Auth Routes - Password Validation', () => {
       expect(response.body.message).toContain('Password changed successfully');
 
       // Change password back for other tests
+      const { token: token2, cookies: cookies2 } = await getCsrfToken(app);
       await request(app)
         .put('/api/auth/change-password')
-        .set('Cookie', loginCookies)
+        .set('Cookie', [...loginCookies, ...cookies2])
+        .set('x-csrf-token', token2)
         .send({
           current_password: newPassword,
           new_password: strongPassword
@@ -747,8 +836,11 @@ describe('Auth Routes - Token Revocation', () => {
       expect(preLogoutResponse.body.success).toBe(true);
 
       // Logout
+      const { token, cookies } = await getCsrfToken(app);
       const logoutResponse = await request(app)
         .post('/api/auth/logout')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -766,8 +858,11 @@ describe('Auth Routes - Token Revocation', () => {
     });
 
     it('should require authentication', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/logout')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -775,8 +870,11 @@ describe('Auth Routes - Token Revocation', () => {
     });
 
     it('should handle logout with invalid token', async () => {
+      const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/logout')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', token)
         .set('Authorization', 'Bearer invalid_token')
         .expect(401);
 
@@ -844,8 +942,11 @@ describe('Auth Routes - Token Revocation', () => {
       expect(preRevoke2.body.success).toBe(true);
 
       // Revoke all sessions without keeping current
+      const { token: csrfToken, cookies } = await getCsrfToken(app);
       const revokeResponse = await request(app)
         .post('/api/auth/revoke-all-sessions')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${token1}`)
         .send({ keepCurrent: false })
         .expect(200);
@@ -881,8 +982,11 @@ describe('Auth Routes - Token Revocation', () => {
         .expect(200);
 
       // Revoke all sessions while keeping current
+      const { token: csrfToken, cookies } = await getCsrfToken(app);
       const revokeResponse = await request(app)
         .post('/api/auth/revoke-all-sessions')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${token1}`)
         .send({ keepCurrent: true })
         .expect(200);
@@ -916,8 +1020,11 @@ describe('Auth Routes - Token Revocation', () => {
     });
 
     it('should require authentication', async () => {
+      const { token: csrfToken, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .post('/api/auth/revoke-all-sessions')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', csrfToken)
         .send({ keepCurrent: false })
         .expect(401);
 
@@ -927,8 +1034,11 @@ describe('Auth Routes - Token Revocation', () => {
 
     it('should default to keepCurrent=false when not specified', async () => {
       // Revoke without specifying keepCurrent
+      const { token: csrfToken, cookies } = await getCsrfToken(app);
       const revokeResponse = await request(app)
         .post('/api/auth/revoke-all-sessions')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${token1}`)
         .send({})
         .expect(200);
@@ -979,8 +1089,11 @@ describe('Auth Routes - Token Revocation', () => {
     it('should return a new token after password change', async () => {
       const newPassword = 'NewStr0ng!Pass';
 
+      const { token: csrfToken, cookies } = await getCsrfToken(app);
       const response = await request(app)
         .put('/api/auth/change-password')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${oldToken}`)
         .send({
           current_password: strongPassword,
@@ -1006,8 +1119,11 @@ describe('Auth Routes - Token Revocation', () => {
         .expect(200);
 
       // Change password
+      const { token: csrfToken, cookies } = await getCsrfToken(app);
       const changeResponse = await request(app)
         .put('/api/auth/change-password')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${oldToken}`)
         .send({
           current_password: strongPassword,
@@ -1060,8 +1176,11 @@ describe('Auth Routes - Token Revocation', () => {
         .expect(200);
 
       // Change password using first token
+      const { token: csrfToken, cookies } = await getCsrfToken(app);
       const changeResponse = await request(app)
         .put('/api/auth/change-password')
+        .set('Cookie', cookies)
+        .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${oldToken}`)
         .send({
           current_password: strongPassword,
