@@ -1,0 +1,9 @@
+{
+  "workspaceId": "<your-workspace-id>",
+  "defaultEnvironment": "development",
+  "gitBranchToEnvironmentMapping": {
+    "main": "production",
+    "staging": "staging",
+    "develop": "development"
+  }
+}
