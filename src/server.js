@@ -168,10 +168,11 @@ const startServer = async () => {
     logger.info('✅ Database connection established successfully.');
 
     // Sync database (in development and staging)
-    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'staging') {
-      await sequelize.sync({ alter: true });
-      logger.info('✅ Database synchronized.');
-    }
+    // Note: Disabled alter sync due to migration conflicts - use migrations instead
+    // if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'staging') {
+    //   await sequelize.sync({ alter: true });
+    //   logger.info('✅ Database synchronized.');
+    // }
 
     app.listen(PORT, () => {
       logger.info(`🚀 Server running on port ${PORT}`);

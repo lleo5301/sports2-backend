@@ -2,29 +2,63 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    // Helper function to check if column exists
+    const columnExists = async (tableName, columnName) => {
+      try {
+        const [results] = await queryInterface.sequelize.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = $1 AND column_name = $2
+        `, {
+          bind: [tableName, columnName],
+          type: queryInterface.sequelize.QueryTypes.SELECT
+        });
+        return results && results.length > 0;
+      } catch (error) {
+        // If table doesn't exist, column doesn't exist
+        return false;
+      }
+    };
     // Guard each alteration to avoid errors on reset
-    const usersTable = await queryInterface.describeTable('users');
-    if (!usersTable.oauth_provider) {
-      await queryInterface.addColumn('users', 'oauth_provider', {
-        type: Sequelize.ENUM('google', 'apple', 'local'),
-        allowNull: false,
-        defaultValue: 'local'
-      });
+    try {
+      if (!(await columnExists('users', 'oauth_provider'))) {
+        await queryInterface.addColumn('users', 'oauth_provider', {
+          type: Sequelize.ENUM('google', 'apple', 'local'),
+          allowNull: false,
+          defaultValue: 'local'
+        });
+      }
+    } catch (error) {
+      if (!error.message.includes('already exists')) {
+        throw error;
+      }
     }
 
-    if (!usersTable.oauth_id) {
-      await queryInterface.addColumn('users', 'oauth_id', {
-        type: Sequelize.STRING,
-        allowNull: true,
-        unique: true
-      });
+    try {
+      if (!(await columnExists('users', 'oauth_id'))) {
+        await queryInterface.addColumn('users', 'oauth_id', {
+          type: Sequelize.STRING,
+          allowNull: true,
+          unique: true
+        });
+      }
+    } catch (error) {
+      if (!error.message.includes('already exists')) {
+        throw error;
+      }
     }
 
-    if (!usersTable.avatar_url) {
-      await queryInterface.addColumn('users', 'avatar_url', {
-        type: Sequelize.STRING,
-        allowNull: true
-      });
+    try {
+      if (!(await columnExists('users', 'avatar_url'))) {
+        await queryInterface.addColumn('users', 'avatar_url', {
+          type: Sequelize.STRING,
+          allowNull: true
+        });
+      }
+    } catch (error) {
+      if (!error.message.includes('already exists')) {
+        throw error;
+      }
     }
 
     // Make password nullable for OAuth users

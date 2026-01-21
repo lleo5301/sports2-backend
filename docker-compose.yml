@@ -1,8 +1,6 @@
 # Standalone development environment for sports2-backend
 # This allows backend development independent of other services
 
-version: '3.8'
-
 services:
   backend:
     build:

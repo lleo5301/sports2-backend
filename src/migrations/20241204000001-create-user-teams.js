@@ -51,14 +51,39 @@ module.exports = {
     });
 
     // Add unique constraint to prevent duplicate user-team associations
-    await queryInterface.addIndex('user_teams', ['user_id', 'team_id'], {
-      unique: true,
-      name: 'user_teams_user_team_unique'
-    });
+    // Check if index already exists before creating
+    const [indexes] = await queryInterface.sequelize.query(`
+      SELECT indexname FROM pg_indexes 
+      WHERE tablename = 'user_teams' AND indexname = 'user_teams_user_team_unique'
+    `);
+    
+    if (indexes.length === 0) {
+      await queryInterface.addIndex('user_teams', ['user_id', 'team_id'], {
+        unique: true,
+        name: 'user_teams_user_team_unique'
+      });
+    }
 
-    // Add index for faster lookups
-    await queryInterface.addIndex('user_teams', ['user_id']);
-    await queryInterface.addIndex('user_teams', ['team_id']);
+    // Add index for faster lookups (check if exists first)
+    const [userIndexes] = await queryInterface.sequelize.query(`
+      SELECT indexname FROM pg_indexes 
+      WHERE tablename = 'user_teams' AND indexname = 'user_teams_user_id'
+    `);
+    if (userIndexes.length === 0) {
+      await queryInterface.addIndex('user_teams', ['user_id'], {
+        name: 'user_teams_user_id'
+      });
+    }
+
+    const [teamIndexes] = await queryInterface.sequelize.query(`
+      SELECT indexname FROM pg_indexes 
+      WHERE tablename = 'user_teams' AND indexname = 'user_teams_team_id'
+    `);
+    if (teamIndexes.length === 0) {
+      await queryInterface.addIndex('user_teams', ['team_id'], {
+        name: 'user_teams_team_id'
+      });
+    }
 
     // Migrate existing user-team relationships from users.team_id to user_teams table
     await queryInterface.sequelize.query(`

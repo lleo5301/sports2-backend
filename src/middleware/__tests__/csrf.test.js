@@ -5,6 +5,12 @@ const {
   invalidCsrfTokenError
 } = require('../csrf');
 
+// Helper to get the cookie name based on environment (matches csrf.js logic)
+const getCookieName = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return isProduction ? '__Host-psifi.x-csrf-token' : 'psifi.x-csrf-token';
+};
+
 describe('CSRF middleware', () => {
   const next = jest.fn();
   const res = () => {
@@ -183,13 +189,14 @@ describe('CSRF middleware', () => {
       const cookieValue = cookieCall[1];
 
       // Now make a POST request with the valid token
+      const cookieName = getCookieName();
       const postReq = {
         method: 'POST',
         headers: {
           'x-csrf-token': token
         },
         cookies: {
-          '__Host-psifi.x-csrf-token': cookieValue
+          [cookieName]: cookieValue
         }
       };
       const postResponse = res();
@@ -245,7 +252,7 @@ describe('CSRF middleware', () => {
   });
 
   describe('CSRF configuration', () => {
-    it('cookie name uses __Host- prefix for security', () => {
+    it('cookie name matches expected format for current environment', () => {
       const req = {
         cookies: {}
       };
@@ -255,8 +262,14 @@ describe('CSRF middleware', () => {
 
       const cookieCall = response.cookie.mock.calls[0];
       const cookieName = cookieCall[0];
+      const expectedCookieName = getCookieName();
 
-      expect(cookieName).toContain('__Host-');
+      expect(cookieName).toBe(expectedCookieName);
+      
+      // In production, cookie name should have __Host- prefix
+      if (process.env.NODE_ENV === 'production') {
+        expect(cookieName).toContain('__Host-');
+      }
     });
 
     it('cookie is httpOnly to prevent XSS', () => {
@@ -339,7 +352,7 @@ describe('CSRF middleware', () => {
           'x-csrf-token': token
         },
         cookies: {
-          '__Host-psifi.x-csrf-token': cookieValue
+          [getCookieName()]: cookieValue
         }
       };
       const validResponse = res();

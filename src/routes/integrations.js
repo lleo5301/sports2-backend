@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { Team } = require('../models');
-const auth = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 const encryptionService = require('../services/encryptionService');
 const prestoSportsService = require('../services/prestoSportsService');
 const prestoSyncService = require('../services/prestoSyncService');
@@ -40,7 +40,7 @@ const checkIntegrationPermission = async (req, res, next) => {
 };
 
 // Get PrestoSports integration status
-router.get('/presto/status', auth, async (req, res) => {
+router.get('/presto/status', protect, async (req, res) => {
   try {
     const team = await Team.findByPk(req.user.team_id);
     if (!team) {
@@ -72,7 +72,7 @@ router.get('/presto/status', auth, async (req, res) => {
 
 // Configure PrestoSports credentials
 router.post('/presto/configure',
-  auth,
+  protect,
   checkIntegrationPermission,
   [
     body('username').notEmpty().withMessage('Username is required'),
@@ -124,7 +124,7 @@ router.post('/presto/configure',
 
 // Test PrestoSports connection
 router.post('/presto/test',
-  auth,
+  protect,
   [
     body('username').notEmpty().withMessage('Username is required'),
     body('password').notEmpty().withMessage('Password is required')
@@ -161,7 +161,7 @@ router.post('/presto/test',
 );
 
 // Disconnect PrestoSports
-router.delete('/presto/disconnect', auth, checkIntegrationPermission, async (req, res) => {
+router.delete('/presto/disconnect', protect, checkIntegrationPermission, async (req, res) => {
   try {
     const team = await Team.findByPk(req.user.team_id);
     await team.update({
@@ -185,7 +185,7 @@ router.delete('/presto/disconnect', auth, checkIntegrationPermission, async (req
 });
 
 // Get available seasons
-router.get('/presto/seasons', auth, async (req, res) => {
+router.get('/presto/seasons', protect, async (req, res) => {
   try {
     const token = await prestoSyncService.getToken(req.user.team_id);
     const response = await prestoSportsService.getSeasons(token);
@@ -204,7 +204,7 @@ router.get('/presto/seasons', auth, async (req, res) => {
 });
 
 // Get teams for a season
-router.get('/presto/seasons/:seasonId/teams', auth, async (req, res) => {
+router.get('/presto/seasons/:seasonId/teams', protect, async (req, res) => {
   try {
     const token = await prestoSyncService.getToken(req.user.team_id);
     const response = await prestoSportsService.getSeasonTeams(token, req.params.seasonId);
@@ -223,7 +223,7 @@ router.get('/presto/seasons/:seasonId/teams', auth, async (req, res) => {
 });
 
 // Get user's accessible teams
-router.get('/presto/teams', auth, async (req, res) => {
+router.get('/presto/teams', protect, async (req, res) => {
   try {
     const token = await prestoSyncService.getToken(req.user.team_id);
     const response = await prestoSportsService.getUserTeams(token);
@@ -242,7 +242,7 @@ router.get('/presto/teams', auth, async (req, res) => {
 });
 
 // Update PrestoSports team/season selection
-router.put('/presto/settings', auth, checkIntegrationPermission,
+router.put('/presto/settings', protect, checkIntegrationPermission,
   [
     body('prestoTeamId').notEmpty().withMessage('PrestoSports team ID is required'),
     body('prestoSeasonId').notEmpty().withMessage('PrestoSports season ID is required')
@@ -273,7 +273,7 @@ router.put('/presto/settings', auth, checkIntegrationPermission,
 );
 
 // Sync schedule
-router.post('/presto/sync/schedule', auth, checkIntegrationPermission, async (req, res) => {
+router.post('/presto/sync/schedule', protect, checkIntegrationPermission, async (req, res) => {
   try {
     const results = await prestoSyncService.syncSchedule(req.user.team_id, req.user.id);
 
@@ -292,7 +292,7 @@ router.post('/presto/sync/schedule', auth, checkIntegrationPermission, async (re
 });
 
 // Sync roster
-router.post('/presto/sync/roster', auth, checkIntegrationPermission, async (req, res) => {
+router.post('/presto/sync/roster', protect, checkIntegrationPermission, async (req, res) => {
   try {
     const results = await prestoSyncService.syncRoster(req.user.team_id, req.user.id);
 
@@ -311,7 +311,7 @@ router.post('/presto/sync/roster', auth, checkIntegrationPermission, async (req,
 });
 
 // Sync stats
-router.post('/presto/sync/stats', auth, checkIntegrationPermission, async (req, res) => {
+router.post('/presto/sync/stats', protect, checkIntegrationPermission, async (req, res) => {
   try {
     const results = await prestoSyncService.syncStats(req.user.team_id, req.user.id);
 
@@ -330,7 +330,7 @@ router.post('/presto/sync/stats', auth, checkIntegrationPermission, async (req, 
 });
 
 // Sync all
-router.post('/presto/sync/all', auth, checkIntegrationPermission, async (req, res) => {
+router.post('/presto/sync/all', protect, checkIntegrationPermission, async (req, res) => {
   try {
     const results = await prestoSyncService.syncAll(req.user.team_id, req.user.id);
 

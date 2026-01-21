@@ -2,116 +2,184 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    // Add PrestoSports fields to teams table
-    await queryInterface.addColumn('teams', 'presto_credentials', {
-      type: Sequelize.TEXT,
-      allowNull: true,
-      comment: 'Encrypted PrestoSports API credentials and settings'
-    });
+    // Helper function to check if column exists
+    const columnExists = async (tableName, columnName) => {
+      const [results] = await queryInterface.sequelize.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = '${tableName}' AND column_name = '${columnName}'
+      `);
+      return results.length > 0;
+    };
 
-    await queryInterface.addColumn('teams', 'presto_team_id', {
-      type: Sequelize.STRING,
-      allowNull: true,
-      comment: 'PrestoSports team ID for this team'
-    });
+    // Add PrestoSports fields to teams table (check if exists first)
+    if (!(await columnExists('teams', 'presto_credentials'))) {
+      await queryInterface.addColumn('teams', 'presto_credentials', {
+        type: Sequelize.TEXT,
+        allowNull: true,
+        comment: 'Encrypted PrestoSports API credentials and settings'
+      });
+    }
 
-    await queryInterface.addColumn('teams', 'presto_season_id', {
-      type: Sequelize.STRING,
-      allowNull: true,
-      comment: 'PrestoSports season ID currently syncing'
-    });
+    if (!(await columnExists('teams', 'presto_team_id'))) {
+      await queryInterface.addColumn('teams', 'presto_team_id', {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'PrestoSports team ID for this team'
+      });
+    }
 
-    await queryInterface.addColumn('teams', 'presto_last_sync_at', {
-      type: Sequelize.DATE,
-      allowNull: true,
-      comment: 'Last successful sync with PrestoSports'
-    });
+    if (!(await columnExists('teams', 'presto_season_id'))) {
+      await queryInterface.addColumn('teams', 'presto_season_id', {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'PrestoSports season ID currently syncing'
+      });
+    }
 
-    // Add sync metadata fields to games table
-    await queryInterface.addColumn('games', 'external_id', {
-      type: Sequelize.STRING(100),
-      allowNull: true,
-      unique: true,
-      comment: 'PrestoSports event ID'
-    });
+    if (!(await columnExists('teams', 'presto_last_sync_at'))) {
+      await queryInterface.addColumn('teams', 'presto_last_sync_at', {
+        type: Sequelize.DATE,
+        allowNull: true,
+        comment: 'Last successful sync with PrestoSports'
+      });
+    }
 
-    await queryInterface.addColumn('games', 'source_system', {
-      type: Sequelize.ENUM('manual', 'presto'),
-      defaultValue: 'manual',
-      comment: 'Source of this game record'
-    });
+    // Add sync metadata fields to games table (check if exists first)
+    if (!(await columnExists('games', 'external_id'))) {
+      await queryInterface.addColumn('games', 'external_id', {
+        type: Sequelize.STRING(100),
+        allowNull: true,
+        unique: true,
+        comment: 'PrestoSports event ID'
+      });
+    }
 
-    await queryInterface.addColumn('games', 'last_synced_at', {
-      type: Sequelize.DATE,
-      allowNull: true,
-      comment: 'Last sync from PrestoSports'
-    });
+    if (!(await columnExists('games', 'source_system'))) {
+      await queryInterface.addColumn('games', 'source_system', {
+        type: Sequelize.ENUM('manual', 'presto'),
+        defaultValue: 'manual',
+        comment: 'Source of this game record'
+      });
+    }
 
-    await queryInterface.addColumn('games', 'game_time', {
-      type: Sequelize.TIME,
-      allowNull: true,
-      comment: 'Game start time'
-    });
+    if (!(await columnExists('games', 'last_synced_at'))) {
+      await queryInterface.addColumn('games', 'last_synced_at', {
+        type: Sequelize.DATE,
+        allowNull: true,
+        comment: 'Last sync from PrestoSports'
+      });
+    }
 
-    await queryInterface.addColumn('games', 'game_status', {
-      type: Sequelize.ENUM('scheduled', 'completed', 'cancelled', 'postponed'),
-      defaultValue: 'scheduled',
-      comment: 'Game status'
-    });
+    if (!(await columnExists('games', 'game_time'))) {
+      await queryInterface.addColumn('games', 'game_time', {
+        type: Sequelize.TIME,
+        allowNull: true,
+        comment: 'Game start time'
+      });
+    }
 
-    // Add indexes to games
-    await queryInterface.addIndex('games', ['external_id'], {
-      unique: true,
-      name: 'games_external_id_unique'
-    });
+    if (!(await columnExists('games', 'game_status'))) {
+      await queryInterface.addColumn('games', 'game_status', {
+        type: Sequelize.ENUM('scheduled', 'completed', 'cancelled', 'postponed'),
+        defaultValue: 'scheduled',
+        comment: 'Game status'
+      });
+    }
 
-    await queryInterface.addIndex('games', ['source_system'], {
-      name: 'games_source_system_idx'
-    });
+    // Add indexes to games (check if exists first)
+    const [gamesExternalIndex] = await queryInterface.sequelize.query(`
+      SELECT indexname FROM pg_indexes 
+      WHERE tablename = 'games' AND indexname = 'games_external_id_unique'
+    `);
+    if (gamesExternalIndex.length === 0) {
+      await queryInterface.addIndex('games', ['external_id'], {
+        unique: true,
+        name: 'games_external_id_unique'
+      });
+    }
 
-    // Add sync metadata fields to players table
-    await queryInterface.addColumn('players', 'external_id', {
-      type: Sequelize.STRING(100),
-      allowNull: true,
-      unique: true,
-      comment: 'PrestoSports player ID'
-    });
+    const [gamesSourceIndex] = await queryInterface.sequelize.query(`
+      SELECT indexname FROM pg_indexes 
+      WHERE tablename = 'games' AND indexname = 'games_source_system_idx'
+    `);
+    if (gamesSourceIndex.length === 0) {
+      await queryInterface.addIndex('games', ['source_system'], {
+        name: 'games_source_system_idx'
+      });
+    }
 
-    await queryInterface.addColumn('players', 'source_system', {
-      type: Sequelize.ENUM('manual', 'presto'),
-      defaultValue: 'manual',
-      comment: 'Source of this player record'
-    });
+    // Add sync metadata fields to players table (check if exists first)
+    if (!(await columnExists('players', 'external_id'))) {
+      await queryInterface.addColumn('players', 'external_id', {
+        type: Sequelize.STRING(100),
+        allowNull: true,
+        unique: true,
+        comment: 'PrestoSports player ID'
+      });
+    }
 
-    await queryInterface.addColumn('players', 'last_synced_at', {
-      type: Sequelize.DATE,
-      allowNull: true,
-      comment: 'Last sync from PrestoSports'
-    });
+    if (!(await columnExists('players', 'source_system'))) {
+      await queryInterface.addColumn('players', 'source_system', {
+        type: Sequelize.ENUM('manual', 'presto'),
+        defaultValue: 'manual',
+        comment: 'Source of this player record'
+      });
+    }
 
-    await queryInterface.addColumn('players', 'jersey_number', {
-      type: Sequelize.INTEGER,
-      allowNull: true,
-      comment: 'Player jersey number'
-    });
+    if (!(await columnExists('players', 'last_synced_at'))) {
+      await queryInterface.addColumn('players', 'last_synced_at', {
+        type: Sequelize.DATE,
+        allowNull: true,
+        comment: 'Last sync from PrestoSports'
+      });
+    }
 
-    await queryInterface.addColumn('players', 'class_year', {
-      type: Sequelize.ENUM('FR', 'SO', 'JR', 'SR', 'GR'),
-      allowNull: true,
-      comment: 'Academic class year'
-    });
+    if (!(await columnExists('players', 'jersey_number'))) {
+      await queryInterface.addColumn('players', 'jersey_number', {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        comment: 'Player jersey number'
+      });
+    }
 
-    // Add indexes to players
-    await queryInterface.addIndex('players', ['external_id'], {
-      unique: true,
-      name: 'players_external_id_unique'
-    });
+    if (!(await columnExists('players', 'class_year'))) {
+      await queryInterface.addColumn('players', 'class_year', {
+        type: Sequelize.ENUM('FR', 'SO', 'JR', 'SR', 'GR'),
+        allowNull: true,
+        comment: 'Academic class year'
+      });
+    }
 
-    await queryInterface.addIndex('players', ['source_system'], {
-      name: 'players_source_system_idx'
-    });
+    // Add indexes to players (check if exists first)
+    const [playersExternalIndex] = await queryInterface.sequelize.query(`
+      SELECT indexname FROM pg_indexes 
+      WHERE tablename = 'players' AND indexname = 'players_external_id_unique'
+    `);
+    if (playersExternalIndex.length === 0) {
+      await queryInterface.addIndex('players', ['external_id'], {
+        unique: true,
+        name: 'players_external_id_unique'
+      });
+    }
 
-    // Create game_statistics table
+    const [playersSourceIndex] = await queryInterface.sequelize.query(`
+      SELECT indexname FROM pg_indexes 
+      WHERE tablename = 'players' AND indexname = 'players_source_system_idx'
+    `);
+    if (playersSourceIndex.length === 0) {
+      await queryInterface.addIndex('players', ['source_system'], {
+        name: 'players_source_system_idx'
+      });
+    }
+
+    // Create game_statistics table (check if exists first)
+    const [tables] = await queryInterface.sequelize.query(`
+      SELECT table_name FROM information_schema.tables 
+      WHERE table_name = 'game_statistics'
+    `);
+    
+    if (tables.length === 0) {
     await queryInterface.createTable('game_statistics', {
       id: {
         type: Sequelize.INTEGER,
@@ -341,31 +409,68 @@ module.exports = {
       }
     });
 
-    // Add indexes to game_statistics
-    await queryInterface.addIndex('game_statistics', ['game_id'], {
-      name: 'game_statistics_game_id_idx'
-    });
+      // Add indexes to game_statistics (check if exists first)
+      const [gameStatsGameIndex] = await queryInterface.sequelize.query(`
+        SELECT indexname FROM pg_indexes 
+        WHERE tablename = 'game_statistics' AND indexname = 'game_statistics_game_id_idx'
+      `);
+      if (gameStatsGameIndex.length === 0) {
+        await queryInterface.addIndex('game_statistics', ['game_id'], {
+          name: 'game_statistics_game_id_idx'
+        });
+      }
 
-    await queryInterface.addIndex('game_statistics', ['player_id'], {
-      name: 'game_statistics_player_id_idx'
-    });
+      const [gameStatsPlayerIndex] = await queryInterface.sequelize.query(`
+        SELECT indexname FROM pg_indexes 
+        WHERE tablename = 'game_statistics' AND indexname = 'game_statistics_player_id_idx'
+      `);
+      if (gameStatsPlayerIndex.length === 0) {
+        await queryInterface.addIndex('game_statistics', ['player_id'], {
+          name: 'game_statistics_player_id_idx'
+        });
+      }
 
-    await queryInterface.addIndex('game_statistics', ['team_id'], {
-      name: 'game_statistics_team_id_idx'
-    });
+      const [gameStatsTeamIndex] = await queryInterface.sequelize.query(`
+        SELECT indexname FROM pg_indexes 
+        WHERE tablename = 'game_statistics' AND indexname = 'game_statistics_team_id_idx'
+      `);
+      if (gameStatsTeamIndex.length === 0) {
+        await queryInterface.addIndex('game_statistics', ['team_id'], {
+          name: 'game_statistics_team_id_idx'
+        });
+      }
 
-    await queryInterface.addIndex('game_statistics', ['game_id', 'player_id'], {
-      unique: true,
-      name: 'game_statistics_game_player_unique'
-    });
+      const [gameStatsUniqueIndex] = await queryInterface.sequelize.query(`
+        SELECT indexname FROM pg_indexes 
+        WHERE tablename = 'game_statistics' AND indexname = 'game_statistics_game_player_unique'
+      `);
+      if (gameStatsUniqueIndex.length === 0) {
+        await queryInterface.addIndex('game_statistics', ['game_id', 'player_id'], {
+          unique: true,
+          name: 'game_statistics_game_player_unique'
+        });
+      }
 
-    await queryInterface.addIndex('game_statistics', ['external_id'], {
-      name: 'game_statistics_external_id_idx'
-    });
+      const [gameStatsExternalIndex] = await queryInterface.sequelize.query(`
+        SELECT indexname FROM pg_indexes 
+        WHERE tablename = 'game_statistics' AND indexname = 'game_statistics_external_id_idx'
+      `);
+      if (gameStatsExternalIndex.length === 0) {
+        await queryInterface.addIndex('game_statistics', ['external_id'], {
+          name: 'game_statistics_external_id_idx'
+        });
+      }
 
-    await queryInterface.addIndex('game_statistics', ['source_system'], {
-      name: 'game_statistics_source_system_idx'
-    });
+      const [gameStatsSourceIndex] = await queryInterface.sequelize.query(`
+        SELECT indexname FROM pg_indexes 
+        WHERE tablename = 'game_statistics' AND indexname = 'game_statistics_source_system_idx'
+      `);
+      if (gameStatsSourceIndex.length === 0) {
+        await queryInterface.addIndex('game_statistics', ['source_system'], {
+          name: 'game_statistics_source_system_idx'
+        });
+      }
+    }
   },
 
   down: async (queryInterface, Sequelize) => {
