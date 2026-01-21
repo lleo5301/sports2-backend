@@ -1,0 +1,441 @@
+openapi: 3.0.0
+info:
+  title: Sports2 API
+  description: REST API for the Sports2 collegiate baseball scouting and team management platform
+  version: 1.0.0
+  contact:
+    name: Sports2 Team
+
+servers:
+  - url: https://api.theprogram1814.com
+    description: Production server
+  - url: https://staging-api.theprogram1814.com
+    description: Staging server
+  - url: http://localhost:5000
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /api/auth/csrf-token:
+    get:
+      summary: Get CSRF token
+      security: []
+      responses:
+        '200':
+          description: CSRF token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  /api/auth/login:
+    post:
+      summary: User login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /api/auth/register:
+    post:
+      summary: User registration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - firstName
+                - lastName
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+      responses:
+        '201':
+          description: Registration successful
+        '400':
+          description: Validation error
+
+  /api/auth/logout:
+    post:
+      summary: User logout
+      responses:
+        '200':
+          description: Logout successful
+
+  /api/auth/profile:
+    get:
+      summary: Get current user profile
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /api/players:
+    get:
+      summary: List players
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of players
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  players:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Player'
+                  total:
+                    type: integer
+    post:
+      summary: Create player
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerInput'
+      responses:
+        '201':
+          description: Player created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+
+  /api/players/{id}:
+    get:
+      summary: Get player by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Player details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '404':
+          description: Player not found
+    put:
+      summary: Update player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerInput'
+      responses:
+        '200':
+          description: Player updated
+    delete:
+      summary: Delete player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Player deleted
+
+  /api/teams:
+    get:
+      summary: List teams
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+    post:
+      summary: Create team
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamInput'
+      responses:
+        '201':
+          description: Team created
+
+  /api/teams/{id}:
+    get:
+      summary: Get team by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Team details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+    put:
+      summary: Update team
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamInput'
+      responses:
+        '200':
+          description: Team updated
+
+  /api/reports/scouting:
+    get:
+      summary: List scouting reports
+      responses:
+        '200':
+          description: List of scouting reports
+    post:
+      summary: Create scouting report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoutingReportInput'
+      responses:
+        '201':
+          description: Scouting report created
+
+  /api/reports/daily:
+    get:
+      summary: List daily reports
+      responses:
+        '200':
+          description: List of daily reports
+    post:
+      summary: Create daily report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailyReportInput'
+      responses:
+        '201':
+          description: Daily report created
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [head_coach, assistant_coach, scout]
+        teamId:
+          type: integer
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        position:
+          type: string
+        school:
+          type: string
+        graduationYear:
+          type: integer
+        status:
+          type: string
+
+    PlayerInput:
+      type: object
+      required:
+        - firstName
+        - lastName
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        position:
+          type: string
+        school:
+          type: string
+        graduationYear:
+          type: integer
+
+    Team:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        programName:
+          type: string
+        conference:
+          type: string
+        division:
+          type: string
+
+    TeamInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        programName:
+          type: string
+        conference:
+          type: string
+        division:
+          type: string
+
+    ScoutingReportInput:
+      type: object
+      required:
+        - playerId
+      properties:
+        playerId:
+          type: integer
+        overallGrade:
+          type: string
+        notes:
+          type: string
+
+    DailyReportInput:
+      type: object
+      required:
+        - reportDate
+        - reportType
+      properties:
+        reportDate:
+          type: string
+          format: date
+        reportType:
+          type: string
+        title:
+          type: string
+        activities:
+          type: string
