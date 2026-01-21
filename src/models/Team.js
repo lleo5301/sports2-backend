@@ -79,6 +79,27 @@ const Team = sequelize.define('Team', {
   subscription_expires: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  // PrestoSports integration credentials (encrypted)
+  presto_credentials: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Encrypted PrestoSports API credentials and settings'
+  },
+  presto_team_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'PrestoSports team ID for this team'
+  },
+  presto_season_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'PrestoSports season ID currently syncing'
+  },
+  presto_last_sync_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Last successful sync with PrestoSports'
   }
 }, {
   tableName: 'teams'
