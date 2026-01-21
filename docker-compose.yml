@@ -56,7 +56,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
-      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+      # Note: seed.sql is NOT auto-loaded because tables don't exist yet
+      # Run seeding after backend starts: docker compose exec backend npm run db:seed
+      - ./database/seed.sql:/seed.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d sports2"]
       interval: 10s
