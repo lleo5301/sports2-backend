@@ -97,7 +97,7 @@ describe('Players List Sorting API', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/players/stats/summary')
+        .get('/api/v1/players/stats/summary')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -106,7 +106,7 @@ describe('Players List Sorting API', () => {
 
     it('should return correct data structure with all 4 fields', async () => {
       const response = await request(app)
-        .get('/api/players/stats/summary')
+        .get('/api/v1/players/stats/summary')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -123,7 +123,7 @@ describe('Players List Sorting API', () => {
 
     it('should handle empty data gracefully (return 0s, not errors)', async () => {
       const response = await request(app)
-        .get('/api/players/stats/summary')
+        .get('/api/v1/players/stats/summary')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -191,7 +191,7 @@ describe('Players List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/players/stats/summary')
+        .get('/api/v1/players/stats/summary')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -249,7 +249,7 @@ describe('Players List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/players/stats/summary')
+        .get('/api/v1/players/stats/summary')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -298,7 +298,7 @@ describe('Players List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/players/stats/summary')
+        .get('/api/v1/players/stats/summary')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 

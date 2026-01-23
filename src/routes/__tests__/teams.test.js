@@ -116,7 +116,7 @@ describe('Teams API - Core Operations', () => {
   describe('GET /api/teams', () => {
     it('should return list of all teams without authentication', async () => {
       const response = await request(app)
-        .get('/api/teams')
+        .get('/api/v1/teams')
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -136,7 +136,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return teams sorted alphabetically by name', async () => {
       const response = await request(app)
-        .get('/api/teams')
+        .get('/api/v1/teams')
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -147,7 +147,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return limited attributes (no sensitive data)', async () => {
       const response = await request(app)
-        .get('/api/teams')
+        .get('/api/v1/teams')
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -179,7 +179,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -204,7 +204,7 @@ describe('Teams API - Core Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({ name: 'Test Team' })
@@ -216,7 +216,7 @@ describe('Teams API - Core Operations', () => {
     it('should require team_management permission', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -230,7 +230,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate required name field', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -244,7 +244,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate name length (1-100 characters)', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -258,7 +258,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate division values', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -275,7 +275,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate state length (2 characters)', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -292,7 +292,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate primary_color hex format', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -309,7 +309,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate secondary_color hex format', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -326,7 +326,7 @@ describe('Teams API - Core Operations', () => {
     it('should prevent duplicate team names', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -340,7 +340,7 @@ describe('Teams API - Core Operations', () => {
     it('should create team with only required fields', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams')
+        .post('/api/v1/teams')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -358,7 +358,7 @@ describe('Teams API - Core Operations', () => {
   describe('GET /api/teams/me', () => {
     it('should return current user\'s team', async () => {
       const response = await request(app)
-        .get('/api/teams/me')
+        .get('/api/v1/teams/me')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -374,7 +374,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/teams/me')
+        .get('/api/v1/teams/me')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -393,7 +393,7 @@ describe('Teams API - Core Operations', () => {
       const noTeamToken = jwt.sign({ id: noTeamUser.id }, process.env.JWT_SECRET || 'test_secret');
 
       const response = await request(app)
-        .get('/api/teams/me')
+        .get('/api/v1/teams/me')
         .set('Authorization', `Bearer ${noTeamToken}`)
         .expect(400);
 
@@ -429,7 +429,7 @@ describe('Teams API - Core Operations', () => {
       await tempTeam.destroy();
 
       const response = await request(app)
-        .get('/api/teams/me')
+        .get('/api/v1/teams/me')
         .set('Authorization', `Bearer ${tempToken}`)
         .expect(404);
 
@@ -451,7 +451,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/me')
+        .put('/api/v1/teams/me')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -481,7 +481,7 @@ describe('Teams API - Core Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/me')
+        .put('/api/v1/teams/me')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({ name: 'Updated Name' })
@@ -493,7 +493,7 @@ describe('Teams API - Core Operations', () => {
     it('should require team_settings permission', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/me')
+        .put('/api/v1/teams/me')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${otherAuthToken}`)
@@ -507,7 +507,7 @@ describe('Teams API - Core Operations', () => {
     it('should allow partial updates', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/me')
+        .put('/api/v1/teams/me')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -526,7 +526,7 @@ describe('Teams API - Core Operations', () => {
     it('should update team colors', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/me')
+        .put('/api/v1/teams/me')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -570,7 +570,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/me')
+        .put('/api/v1/teams/me')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${invalidToken}`)
@@ -589,7 +589,7 @@ describe('Teams API - Core Operations', () => {
   describe('GET /api/teams/byId/:id', () => {
     it('should return team by ID with users', async () => {
       const response = await request(app)
-        .get(`/api/teams/byId/${testTeam.id}`)
+        .get(`/api/v1/teams/byId/${testTeam.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -611,7 +611,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get(`/api/teams/byId/${testTeam.id}`)
+        .get(`/api/v1/teams/byId/${testTeam.id}`)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -619,7 +619,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return 404 for non-existent team', async () => {
       const response = await request(app)
-        .get('/api/teams/byId/99999')
+        .get('/api/v1/teams/byId/99999')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -629,7 +629,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should allow accessing other teams (no isolation)', async () => {
       const response = await request(app)
-        .get(`/api/teams/byId/${otherTeam.id}`)
+        .get(`/api/v1/teams/byId/${otherTeam.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -642,7 +642,7 @@ describe('Teams API - Core Operations', () => {
   describe('GET /api/teams/:id', () => {
     it('should return team by ID with users', async () => {
       const response = await request(app)
-        .get(`/api/teams/${testTeam.id}`)
+        .get(`/api/v1/teams/${testTeam.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -655,7 +655,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get(`/api/teams/${testTeam.id}`)
+        .get(`/api/v1/teams/${testTeam.id}`)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -663,7 +663,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return 400 for invalid ID format', async () => {
       const response = await request(app)
-        .get('/api/teams/invalid-id')
+        .get('/api/v1/teams/invalid-id')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -673,7 +673,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return 404 for non-existent team', async () => {
       const response = await request(app)
-        .get('/api/teams/99999')
+        .get('/api/v1/teams/99999')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -683,7 +683,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should include user details in response', async () => {
       const response = await request(app)
-        .get(`/api/teams/${testTeam.id}`)
+        .get(`/api/v1/teams/${testTeam.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -701,7 +701,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should allow accessing other teams (no isolation)', async () => {
       const response = await request(app)
-        .get(`/api/teams/${otherTeam.id}`)
+        .get(`/api/v1/teams/${otherTeam.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -749,7 +749,7 @@ describe('Teams API - Core Operations', () => {
     it('should upload a team logo with head_coach role', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/logo')
+        .post('/api/v1/teams/logo')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -777,7 +777,7 @@ describe('Teams API - Core Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/logo')
+        .post('/api/v1/teams/logo')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .attach('logo', testImagePath)
@@ -789,7 +789,7 @@ describe('Teams API - Core Operations', () => {
     it('should require head_coach or super_admin role', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/logo')
+        .post('/api/v1/teams/logo')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -803,7 +803,7 @@ describe('Teams API - Core Operations', () => {
     it('should return error if no logo file provided', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/logo')
+        .post('/api/v1/teams/logo')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -817,7 +817,7 @@ describe('Teams API - Core Operations', () => {
       // First upload
       const { token: token1, cookies: cookies1 } = await getCsrfToken(app);
       const response1 = await request(app)
-        .post('/api/teams/logo')
+        .post('/api/v1/teams/logo')
         .set('Cookie', cookies1)
         .set('x-csrf-token', token1)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -830,7 +830,7 @@ describe('Teams API - Core Operations', () => {
       // Second upload (should replace first)
       const { token: token2, cookies: cookies2 } = await getCsrfToken(app);
       const response2 = await request(app)
-        .post('/api/teams/logo')
+        .post('/api/v1/teams/logo')
         .set('Cookie', cookies2)
         .set('x-csrf-token', token2)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -869,7 +869,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/logo')
+        .post('/api/v1/teams/logo')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${noTeamToken}`)
@@ -921,7 +921,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/teams/logo')
+        .delete('/api/v1/teams/logo')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -941,7 +941,7 @@ describe('Teams API - Core Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/teams/logo')
+        .delete('/api/v1/teams/logo')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -952,7 +952,7 @@ describe('Teams API - Core Operations', () => {
     it('should require head_coach or super_admin role', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/teams/logo')
+        .delete('/api/v1/teams/logo')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -968,7 +968,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/teams/logo')
+        .delete('/api/v1/teams/logo')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -993,7 +993,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/teams/logo')
+        .delete('/api/v1/teams/logo')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${noTeamToken}`)
@@ -1016,7 +1016,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/branding')
+        .put('/api/v1/teams/branding')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1043,7 +1043,7 @@ describe('Teams API - Core Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/branding')
+        .put('/api/v1/teams/branding')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({ primary_color: '#FF5733' })
@@ -1055,7 +1055,7 @@ describe('Teams API - Core Operations', () => {
     it('should require head_coach or super_admin role', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/branding')
+        .put('/api/v1/teams/branding')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1069,7 +1069,7 @@ describe('Teams API - Core Operations', () => {
     it('should allow updating only primary color', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/branding')
+        .put('/api/v1/teams/branding')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1087,7 +1087,7 @@ describe('Teams API - Core Operations', () => {
     it('should allow updating only secondary color', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/branding')
+        .put('/api/v1/teams/branding')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1105,7 +1105,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate primary color hex format', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/branding')
+        .put('/api/v1/teams/branding')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1119,7 +1119,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate secondary color hex format', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/branding')
+        .put('/api/v1/teams/branding')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1145,7 +1145,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/branding')
+        .put('/api/v1/teams/branding')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${noTeamToken}`)
@@ -1170,7 +1170,7 @@ describe('Teams API - Core Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/teams/branding')
+        .get('/api/v1/teams/branding')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1191,7 +1191,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/teams/branding')
+        .get('/api/v1/teams/branding')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1206,7 +1206,7 @@ describe('Teams API - Core Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/teams/branding')
+        .get('/api/v1/teams/branding')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1236,7 +1236,7 @@ describe('Teams API - Core Operations', () => {
       const noTeamToken = jwt.sign({ id: noTeamUser.id }, process.env.JWT_SECRET || 'test_secret');
 
       const response = await request(app)
-        .get('/api/teams/branding')
+        .get('/api/v1/teams/branding')
         .set('Authorization', `Bearer ${noTeamToken}`)
         .expect(404);
 
@@ -1300,7 +1300,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return recent past schedule events', async () => {
       const response = await request(app)
-        .get('/api/teams/recent-schedules')
+        .get('/api/v1/teams/recent-schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1319,7 +1319,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/teams/recent-schedules')
+        .get('/api/v1/teams/recent-schedules')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1327,7 +1327,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should respect limit parameter', async () => {
       const response = await request(app)
-        .get('/api/teams/recent-schedules?limit=2')
+        .get('/api/v1/teams/recent-schedules?limit=2')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1337,7 +1337,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should only return events from user\'s team', async () => {
       const response = await request(app)
-        .get('/api/teams/recent-schedules')
+        .get('/api/v1/teams/recent-schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1348,7 +1348,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return events in descending date order (most recent first)', async () => {
       const response = await request(app)
-        .get('/api/teams/recent-schedules')
+        .get('/api/v1/teams/recent-schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1365,7 +1365,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should use default limit of 5 when not specified', async () => {
       const response = await request(app)
-        .get('/api/teams/recent-schedules')
+        .get('/api/v1/teams/recent-schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1426,7 +1426,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return upcoming schedule events', async () => {
       const response = await request(app)
-        .get('/api/teams/upcoming-schedules')
+        .get('/api/v1/teams/upcoming-schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1445,7 +1445,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/teams/upcoming-schedules')
+        .get('/api/v1/teams/upcoming-schedules')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1453,7 +1453,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should respect limit parameter', async () => {
       const response = await request(app)
-        .get('/api/teams/upcoming-schedules?limit=2')
+        .get('/api/v1/teams/upcoming-schedules?limit=2')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1463,7 +1463,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should only return events from user\'s team', async () => {
       const response = await request(app)
-        .get('/api/teams/upcoming-schedules')
+        .get('/api/v1/teams/upcoming-schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1474,7 +1474,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return events in ascending date order (soonest first)', async () => {
       const response = await request(app)
-        .get('/api/teams/upcoming-schedules')
+        .get('/api/v1/teams/upcoming-schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1491,7 +1491,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should use default limit of 5 when not specified', async () => {
       const response = await request(app)
-        .get('/api/teams/upcoming-schedules')
+        .get('/api/v1/teams/upcoming-schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1503,7 +1503,7 @@ describe('Teams API - Core Operations', () => {
   describe('GET /api/teams/users', () => {
     it('should return list of users in the team', async () => {
       const response = await request(app)
-        .get('/api/teams/users')
+        .get('/api/v1/teams/users')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1523,7 +1523,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/teams/users')
+        .get('/api/v1/teams/users')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1531,7 +1531,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should only return users from the authenticated user\'s team', async () => {
       const response = await request(app)
-        .get('/api/teams/users')
+        .get('/api/v1/teams/users')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1549,7 +1549,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return users sorted alphabetically by name', async () => {
       const response = await request(app)
-        .get('/api/teams/users')
+        .get('/api/v1/teams/users')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1572,7 +1572,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should not include password in response', async () => {
       const response = await request(app)
-        .get('/api/teams/users')
+        .get('/api/v1/teams/users')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1587,7 +1587,7 @@ describe('Teams API - Core Operations', () => {
   describe('GET /api/teams/permissions', () => {
     it('should return list of team permissions', async () => {
       const response = await request(app)
-        .get('/api/teams/permissions')
+        .get('/api/v1/teams/permissions')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1606,7 +1606,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/teams/permissions')
+        .get('/api/v1/teams/permissions')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1614,7 +1614,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should only return permissions from the authenticated user\'s team', async () => {
       const response = await request(app)
-        .get('/api/teams/permissions')
+        .get('/api/v1/teams/permissions')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1628,7 +1628,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should include user details with each permission', async () => {
       const response = await request(app)
-        .get('/api/teams/permissions')
+        .get('/api/v1/teams/permissions')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1646,7 +1646,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return permissions in descending order by creation date', async () => {
       const response = await request(app)
-        .get('/api/teams/permissions')
+        .get('/api/v1/teams/permissions')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1685,7 +1685,7 @@ describe('Teams API - Core Operations', () => {
     it('should grant a permission to a user', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/permissions')
+        .post('/api/v1/teams/permissions')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1717,7 +1717,7 @@ describe('Teams API - Core Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/permissions')
+        .post('/api/v1/teams/permissions')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -1732,7 +1732,7 @@ describe('Teams API - Core Operations', () => {
     it('should require user_management permission', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/permissions')
+        .post('/api/v1/teams/permissions')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1749,7 +1749,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate user_id is required', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/permissions')
+        .post('/api/v1/teams/permissions')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1765,7 +1765,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate permission_type is required', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/permissions')
+        .post('/api/v1/teams/permissions')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1781,7 +1781,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate permission_type is valid', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/permissions')
+        .post('/api/v1/teams/permissions')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1798,7 +1798,7 @@ describe('Teams API - Core Operations', () => {
     it('should return 404 if user not found in team', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/permissions')
+        .post('/api/v1/teams/permissions')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1823,7 +1823,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/permissions')
+        .post('/api/v1/teams/permissions')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1848,7 +1848,7 @@ describe('Teams API - Core Operations', () => {
     it('should enforce team isolation (cannot grant permissions to other teams)', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/teams/permissions')
+        .post('/api/v1/teams/permissions')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1887,7 +1887,7 @@ describe('Teams API - Core Operations', () => {
     it('should update a permission', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/teams/permissions/${testPermission.id}`)
+        .put(`/api/v1/teams/permissions/${testPermission.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1911,7 +1911,7 @@ describe('Teams API - Core Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/teams/permissions/${testPermission.id}`)
+        .put(`/api/v1/teams/permissions/${testPermission.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({ is_granted: false })
@@ -1923,7 +1923,7 @@ describe('Teams API - Core Operations', () => {
     it('should require user_management permission', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/teams/permissions/${testPermission.id}`)
+        .put(`/api/v1/teams/permissions/${testPermission.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1937,7 +1937,7 @@ describe('Teams API - Core Operations', () => {
     it('should return 404 if permission not found', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/teams/permissions/99999')
+        .put('/api/v1/teams/permissions/99999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1959,7 +1959,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/teams/permissions/${otherPermission.id}`)
+        .put(`/api/v1/teams/permissions/${otherPermission.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -1976,7 +1976,7 @@ describe('Teams API - Core Operations', () => {
     it('should allow partial updates', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/teams/permissions/${testPermission.id}`)
+        .put(`/api/v1/teams/permissions/${testPermission.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -2014,7 +2014,7 @@ describe('Teams API - Core Operations', () => {
     it('should delete a permission', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/teams/permissions/${testPermission.id}`)
+        .delete(`/api/v1/teams/permissions/${testPermission.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -2031,7 +2031,7 @@ describe('Teams API - Core Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/teams/permissions/${testPermission.id}`)
+        .delete(`/api/v1/teams/permissions/${testPermission.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -2042,7 +2042,7 @@ describe('Teams API - Core Operations', () => {
     it('should require user_management permission', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/teams/permissions/${testPermission.id}`)
+        .delete(`/api/v1/teams/permissions/${testPermission.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2055,7 +2055,7 @@ describe('Teams API - Core Operations', () => {
     it('should return 404 if permission not found', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/teams/permissions/99999')
+        .delete('/api/v1/teams/permissions/99999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -2068,7 +2068,7 @@ describe('Teams API - Core Operations', () => {
     it('should validate permission ID is a positive integer', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/teams/permissions/invalid')
+        .delete('/api/v1/teams/permissions/invalid')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -2089,7 +2089,7 @@ describe('Teams API - Core Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/teams/permissions/${otherPermission.id}`)
+        .delete(`/api/v1/teams/permissions/${otherPermission.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
@@ -2140,7 +2140,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return team statistics', async () => {
       const response = await request(app)
-        .get('/api/teams/stats')
+        .get('/api/v1/teams/stats')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2160,7 +2160,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/teams/stats')
+        .get('/api/v1/teams/stats')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -2168,7 +2168,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should calculate win rate correctly', async () => {
       const response = await request(app)
-        .get('/api/teams/stats')
+        .get('/api/v1/teams/stats')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2184,7 +2184,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should calculate player retention rate correctly', async () => {
       const response = await request(app)
-        .get('/api/teams/stats')
+        .get('/api/v1/teams/stats')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2201,13 +2201,13 @@ describe('Teams API - Core Operations', () => {
     it('should only include data from authenticated user\'s team', async () => {
       // Get stats for test team
       const response1 = await request(app)
-        .get('/api/teams/stats')
+        .get('/api/v1/teams/stats')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       // Get stats for other team
       const response2 = await request(app)
-        .get('/api/teams/stats')
+        .get('/api/v1/teams/stats')
         .set('Authorization', `Bearer ${otherAuthToken}`)
         .expect(200);
 
@@ -2290,7 +2290,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return team roster organized by position', async () => {
       const response = await request(app)
-        .get('/api/teams/roster')
+        .get('/api/v1/teams/roster')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2306,7 +2306,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/teams/roster')
+        .get('/api/v1/teams/roster')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -2314,7 +2314,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should only include active players', async () => {
       const response = await request(app)
-        .get('/api/teams/roster')
+        .get('/api/v1/teams/roster')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2336,7 +2336,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should correctly categorize players by position', async () => {
       const response = await request(app)
-        .get('/api/teams/roster')
+        .get('/api/v1/teams/roster')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2370,7 +2370,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should include player details in roster', async () => {
       const response = await request(app)
-        .get('/api/teams/roster')
+        .get('/api/v1/teams/roster')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2388,7 +2388,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should return correct total player count', async () => {
       const response = await request(app)
-        .get('/api/teams/roster')
+        .get('/api/v1/teams/roster')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2406,7 +2406,7 @@ describe('Teams API - Core Operations', () => {
 
     it('should only include players from authenticated user\'s team', async () => {
       const response = await request(app)
-        .get('/api/teams/roster')
+        .get('/api/v1/teams/roster')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 

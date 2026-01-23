@@ -176,7 +176,7 @@ describe('Vendors List Sorting API', () => {
   describe('GET /api/vendors', () => {
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/vendors')
+        .get('/api/v1/vendors')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -184,7 +184,7 @@ describe('Vendors List Sorting API', () => {
 
     it('should return empty array when no vendors exist', async () => {
       const response = await request(app)
-        .get('/api/vendors')
+        .get('/api/v1/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -212,7 +212,7 @@ describe('Vendors List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/vendors')
+        .get('/api/v1/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -241,7 +241,7 @@ describe('Vendors List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/vendors')
+        .get('/api/v1/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -269,7 +269,7 @@ describe('Vendors List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/vendors?vendor_type=Equipment')
+        .get('/api/v1/vendors?vendor_type=Equipment')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -297,7 +297,7 @@ describe('Vendors List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/vendors?status=inactive')
+        .get('/api/v1/vendors?status=inactive')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -325,7 +325,7 @@ describe('Vendors List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/vendors')
+        .get('/api/v1/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -353,7 +353,7 @@ describe('Vendors List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/vendors?search=Sports')
+        .get('/api/v1/vendors?search=Sports')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -383,7 +383,7 @@ describe('Vendors List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/vendors?search=John')
+        .get('/api/v1/vendors?search=John')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -405,7 +405,7 @@ describe('Vendors List Sorting API', () => {
       }
 
       const response = await request(app)
-        .get('/api/vendors?page=1&limit=3')
+        .get('/api/v1/vendors?page=1&limit=3')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -427,7 +427,7 @@ describe('Vendors List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/vendors')
+        .get('/api/v1/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -459,7 +459,7 @@ describe('Vendors List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get('/api/vendors')
+        .get('/api/v1/vendors')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -477,7 +477,7 @@ describe('Vendors List Sorting API', () => {
   describe('GET /api/vendors - Sorting by company_name', () => {
     it('should sort by company_name ASC', async () => {
       const response = await request(app)
-        .get('/api/vendors?orderBy=company_name&sortDirection=ASC')
+        .get('/api/v1/vendors?orderBy=company_name&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -488,7 +488,7 @@ describe('Vendors List Sorting API', () => {
 
     it('should sort by company_name DESC', async () => {
       const response = await request(app)
-        .get('/api/vendors?orderBy=company_name&sortDirection=DESC')
+        .get('/api/v1/vendors?orderBy=company_name&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -499,7 +499,7 @@ describe('Vendors List Sorting API', () => {
 
     it('should handle case-insensitive sortDirection for company_name', async () => {
       const response = await request(app)
-        .get('/api/vendors?orderBy=company_name&sortDirection=asc')
+        .get('/api/v1/vendors?orderBy=company_name&sortDirection=asc')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -512,7 +512,7 @@ describe('Vendors List Sorting API', () => {
   describe('GET /api/vendors - Sorting by contact_person', () => {
     it('should sort by contact_person ASC', async () => {
       const response = await request(app)
-        .get('/api/vendors?orderBy=contact_person&sortDirection=ASC')
+        .get('/api/v1/vendors?orderBy=contact_person&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -523,7 +523,7 @@ describe('Vendors List Sorting API', () => {
 
     it('should sort by contact_person DESC', async () => {
       const response = await request(app)
-        .get('/api/vendors?orderBy=contact_person&sortDirection=DESC')
+        .get('/api/v1/vendors?orderBy=contact_person&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -536,7 +536,7 @@ describe('Vendors List Sorting API', () => {
   describe('GET /api/vendors - Sorting by vendor_type', () => {
     it('should sort by vendor_type ASC', async () => {
       const response = await request(app)
-        .get('/api/vendors?orderBy=vendor_type&sortDirection=ASC')
+        .get('/api/v1/vendors?orderBy=vendor_type&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -544,7 +544,7 @@ describe('Vendors List Sorting API', () => {
       const types = response.body.data.map(v => v.vendor_type);
       it('should sort by contract_value ASC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=contract_value&sortDirection=ASC')
+          .get('/api/v1/vendors?orderBy=contract_value&sortDirection=ASC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -557,7 +557,7 @@ describe('Vendors List Sorting API', () => {
 
       it('should sort by contract_value DESC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=contract_value&sortDirection=DESC')
+          .get('/api/v1/vendors?orderBy=contract_value&sortDirection=DESC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -572,7 +572,7 @@ describe('Vendors List Sorting API', () => {
     describe('GET /api/vendors - Sorting by contract_start_date', () => {
       it('should sort by contract_start_date ASC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=contract_start_date&sortDirection=ASC')
+          .get('/api/v1/vendors?orderBy=contract_start_date&sortDirection=ASC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -585,7 +585,7 @@ describe('Vendors List Sorting API', () => {
 
       it('should sort by contract_start_date DESC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=contract_start_date&sortDirection=DESC')
+          .get('/api/v1/vendors?orderBy=contract_start_date&sortDirection=DESC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -600,7 +600,7 @@ describe('Vendors List Sorting API', () => {
     describe('GET /api/vendors - Sorting by contract_end_date', () => {
       it('should sort by contract_end_date ASC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=contract_end_date&sortDirection=ASC')
+          .get('/api/v1/vendors?orderBy=contract_end_date&sortDirection=ASC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -613,7 +613,7 @@ describe('Vendors List Sorting API', () => {
 
       it('should sort by contract_end_date DESC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=contract_end_date&sortDirection=DESC')
+          .get('/api/v1/vendors?orderBy=contract_end_date&sortDirection=DESC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -628,7 +628,7 @@ describe('Vendors List Sorting API', () => {
     describe('GET /api/vendors - Sorting by last_contact_date', () => {
       it('should sort by last_contact_date ASC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=last_contact_date&sortDirection=ASC')
+          .get('/api/v1/vendors?orderBy=last_contact_date&sortDirection=ASC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -641,7 +641,7 @@ describe('Vendors List Sorting API', () => {
 
       it('should sort by last_contact_date DESC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=last_contact_date&sortDirection=DESC')
+          .get('/api/v1/vendors?orderBy=last_contact_date&sortDirection=DESC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -656,7 +656,7 @@ describe('Vendors List Sorting API', () => {
     describe('GET /api/vendors - Sorting by next_contact_date', () => {
       it('should sort by next_contact_date ASC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=next_contact_date&sortDirection=ASC')
+          .get('/api/v1/vendors?orderBy=next_contact_date&sortDirection=ASC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -669,7 +669,7 @@ describe('Vendors List Sorting API', () => {
 
       it('should sort by next_contact_date DESC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=next_contact_date&sortDirection=DESC')
+          .get('/api/v1/vendors?orderBy=next_contact_date&sortDirection=DESC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -684,7 +684,7 @@ describe('Vendors List Sorting API', () => {
     describe('GET /api/vendors - Sorting by status', () => {
       it('should sort by status ASC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=status&sortDirection=ASC')
+          .get('/api/v1/vendors?orderBy=status&sortDirection=ASC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -709,7 +709,7 @@ describe('Vendors List Sorting API', () => {
 
       it('should sort by status DESC', async () => {
         const response = await request(app)
-          .get('/api/vendors?orderBy=status&sortDirection=DESC')
+          .get('/api/v1/vendors?orderBy=status&sortDirection=DESC')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -721,7 +721,7 @@ describe('Vendors List Sorting API', () => {
 
       it('should reject invalid vendor_type filter', async () => {
         const response = await request(app)
-          .get('/api/vendors?vendor_type=InvalidType')
+          .get('/api/v1/vendors?vendor_type=InvalidType')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(400);
 
@@ -731,7 +731,7 @@ describe('Vendors List Sorting API', () => {
 
       it('should reject invalid status filter', async () => {
         const response = await request(app)
-          .get('/api/vendors?status=invalid-status')
+          .get('/api/v1/vendors?status=invalid-status')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(400);
 
@@ -743,7 +743,7 @@ describe('Vendors List Sorting API', () => {
     describe('GET /api/vendors/:id', () => {
       it('should require authentication', async () => {
         const response = await request(app)
-          .get('/api/vendors/1')
+          .get('/api/v1/vendors/1')
           .expect(401);
 
         expect(response.body.success).toBe(false);
@@ -766,7 +766,7 @@ describe('Vendors List Sorting API', () => {
         });
 
         const response = await request(app)
-          .get(`/api/vendors/${vendor.id}`)
+          .get(`/api/v1/vendors/${vendor.id}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -787,7 +787,7 @@ describe('Vendors List Sorting API', () => {
         });
 
         const response = await request(app)
-          .get(`/api/vendors/${vendor.id}`)
+          .get(`/api/v1/vendors/${vendor.id}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -799,7 +799,7 @@ describe('Vendors List Sorting API', () => {
 
       it('should return 404 for non-existent vendor', async () => {
         const response = await request(app)
-          .get('/api/vendors/99999')
+          .get('/api/v1/vendors/99999')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(404);
 
@@ -817,7 +817,7 @@ describe('Vendors List Sorting API', () => {
         });
 
         const response = await request(app)
-          .get(`/api/vendors/${vendor.id}`)
+          .get(`/api/v1/vendors/${vendor.id}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(404);
 
@@ -830,7 +830,7 @@ describe('Vendors List Sorting API', () => {
       it('should require authentication', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -845,7 +845,7 @@ describe('Vendors List Sorting API', () => {
       it('should create vendor with required fields only', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -865,7 +865,7 @@ describe('Vendors List Sorting API', () => {
       it('should create vendor with all fields', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -895,7 +895,7 @@ describe('Vendors List Sorting API', () => {
       it('should validate required company_name', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -911,7 +911,7 @@ describe('Vendors List Sorting API', () => {
       it('should validate required vendor_type', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -927,7 +927,7 @@ describe('Vendors List Sorting API', () => {
       it('should validate vendor_type enum values', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -947,7 +947,7 @@ describe('Vendors List Sorting API', () => {
         for (const type of vendorTypes) {
           const { token, cookies } = await getCsrfToken(app);
           const response = await request(app)
-            .post('/api/vendors')
+            .post('/api/v1/vendors')
             .set('Cookie', cookies)
             .set('x-csrf-token', token)
             .set('Authorization', `Bearer ${authToken}`)
@@ -965,7 +965,7 @@ describe('Vendors List Sorting API', () => {
       it('should validate email format', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -983,7 +983,7 @@ describe('Vendors List Sorting API', () => {
       it('should validate website URL format', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1001,7 +1001,7 @@ describe('Vendors List Sorting API', () => {
       it('should validate company_name max length (200 chars)', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1018,7 +1018,7 @@ describe('Vendors List Sorting API', () => {
       it('should validate contact_person max length (100 chars)', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1036,7 +1036,7 @@ describe('Vendors List Sorting API', () => {
       it('should validate phone max length (20 chars)', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1054,7 +1054,7 @@ describe('Vendors List Sorting API', () => {
       it('should validate contract_start_date ISO8601 format', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1072,7 +1072,7 @@ describe('Vendors List Sorting API', () => {
       it('should validate contract_end_date ISO8601 format', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1090,7 +1090,7 @@ describe('Vendors List Sorting API', () => {
       it('should auto-assign team_id from authenticated user', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1107,7 +1107,7 @@ describe('Vendors List Sorting API', () => {
       it('should auto-assign created_by from authenticated user', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1124,7 +1124,7 @@ describe('Vendors List Sorting API', () => {
       it('should include creator information in response', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/vendors')
+          .post('/api/v1/vendors')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1145,7 +1145,7 @@ describe('Vendors List Sorting API', () => {
       it('should require authentication', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/vendors/1')
+          .put('/api/v1/vendors/1')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({ company_name: 'Updated' })
@@ -1165,7 +1165,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/vendors/${vendor.id}`)
+          .put(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1190,7 +1190,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/vendors/${vendor.id}`)
+          .put(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1226,7 +1226,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/vendors/${vendor.id}`)
+          .put(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1250,7 +1250,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/vendors/${vendor.id}`)
+          .put(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1274,7 +1274,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/vendors/${vendor.id}`)
+          .put(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1298,7 +1298,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/vendors/${vendor.id}`)
+          .put(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1322,7 +1322,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/vendors/${vendor.id}`)
+          .put(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1338,7 +1338,7 @@ describe('Vendors List Sorting API', () => {
       it('should return 404 for non-existent vendor', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/vendors/99999')
+          .put('/api/v1/vendors/99999')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1362,7 +1362,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/vendors/${vendor.id}`)
+          .put(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1390,7 +1390,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         await request(app)
-          .put(`/api/vendors/${vendor.id}`)
+          .put(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1415,7 +1415,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/vendors/${vendor.id}`)
+          .put(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1434,7 +1434,7 @@ describe('Vendors List Sorting API', () => {
       it('should require authentication', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete('/api/vendors/1')
+          .delete('/api/v1/vendors/1')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .expect(401);
@@ -1453,7 +1453,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete(`/api/vendors/${vendor.id}`)
+          .delete(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1474,7 +1474,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         await request(app)
-          .delete(`/api/vendors/${vendor.id}`)
+          .delete(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1488,7 +1488,7 @@ describe('Vendors List Sorting API', () => {
       it('should return 404 for non-existent vendor', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete('/api/vendors/99999')
+          .delete('/api/v1/vendors/99999')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1509,7 +1509,7 @@ describe('Vendors List Sorting API', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete(`/api/vendors/${vendor.id}`)
+          .delete(`/api/v1/vendors/${vendor.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)

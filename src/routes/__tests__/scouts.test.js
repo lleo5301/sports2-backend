@@ -74,7 +74,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
   describe('GET /api/scouts', () => {
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/scouts')
+        .get('/api/v1/scouts')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -82,7 +82,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
     it('should return empty array when no scouts exist', async () => {
       const response = await request(app)
-        .get('/api/scouts')
+        .get('/api/v1/scouts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -122,7 +122,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts')
+        .get('/api/v1/scouts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -155,7 +155,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts')
+        .get('/api/v1/scouts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -189,7 +189,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts')
+        .get('/api/v1/scouts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -222,7 +222,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts')
+        .get('/api/v1/scouts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -253,7 +253,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?status=inactive')
+        .get('/api/v1/scouts?status=inactive')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -284,7 +284,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?position=Area Scout')
+        .get('/api/v1/scouts?position=Area Scout')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -315,7 +315,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?position=Cross Checker')
+        .get('/api/v1/scouts?position=Cross Checker')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -346,7 +346,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?position=National Cross Checker')
+        .get('/api/v1/scouts?position=National Cross Checker')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -377,7 +377,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?position=Scouting Director')
+        .get('/api/v1/scouts?position=Scouting Director')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -408,7 +408,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?search=Mike')
+        .get('/api/v1/scouts?search=Mike')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -439,7 +439,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?search=Williams')
+        .get('/api/v1/scouts?search=Williams')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -470,7 +470,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?search=Braves')
+        .get('/api/v1/scouts?search=Braves')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -503,7 +503,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?search=mjohnson')
+        .get('/api/v1/scouts?search=mjohnson')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -536,7 +536,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?search=Georgia')
+        .get('/api/v1/scouts?search=Georgia')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -569,7 +569,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts?search=Pitching')
+        .get('/api/v1/scouts?search=Pitching')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -593,7 +593,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       }
 
       const response = await request(app)
-        .get('/api/scouts?page=1&limit=2')
+        .get('/api/v1/scouts?page=1&limit=2')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -609,7 +609,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
     it('should reject invalid status value', async () => {
       const response = await request(app)
-        .get('/api/scouts?status=invalid')
+        .get('/api/v1/scouts?status=invalid')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -619,7 +619,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
     it('should reject invalid position value', async () => {
       const response = await request(app)
-        .get('/api/scouts?position=InvalidPosition')
+        .get('/api/v1/scouts?position=InvalidPosition')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -639,7 +639,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/scouts')
+        .get('/api/v1/scouts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -654,7 +654,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
   describe('GET /api/scouts/:id', () => {
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/scouts/123')
+        .get('/api/v1/scouts/123')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -677,7 +677,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get(`/api/scouts/${scout.id}`)
+        .get(`/api/v1/scouts/${scout.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -691,7 +691,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
     it('should return 404 for non-existent scout', async () => {
       const response = await request(app)
-        .get('/api/scouts/999999')
+        .get('/api/v1/scouts/999999')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -711,7 +711,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get(`/api/scouts/${scout.id}`)
+        .get(`/api/v1/scouts/${scout.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -731,7 +731,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get(`/api/scouts/${scout.id}`)
+        .get(`/api/v1/scouts/${scout.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -747,7 +747,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -764,7 +764,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should create a scout with required fields only', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -788,7 +788,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should create a scout with all fields', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -819,7 +819,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should auto-assign team_id from authenticated user', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -841,7 +841,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should auto-assign created_by from authenticated user', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -863,7 +863,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should require first_name', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -881,7 +881,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should require last_name', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -899,7 +899,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should require organization_name', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -917,7 +917,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should require position', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -935,7 +935,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should accept position: Area Scout', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -954,7 +954,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should accept position: Cross Checker', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -973,7 +973,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should accept position: National Cross Checker', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -992,7 +992,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should accept position: Scouting Director', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1011,7 +1011,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should reject invalid position', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1030,7 +1030,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should validate email format', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1051,7 +1051,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       const { token, cookies } = await getCsrfToken(app);
       const longName = 'A'.repeat(101);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1071,7 +1071,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       const { token, cookies } = await getCsrfToken(app);
       const longName = 'A'.repeat(101);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1091,7 +1091,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       const { token, cookies } = await getCsrfToken(app);
       const longOrgName = 'A'.repeat(201);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1111,7 +1111,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       const { token, cookies } = await getCsrfToken(app);
       const longPhone = '1'.repeat(21);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1132,7 +1132,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       const { token, cookies } = await getCsrfToken(app);
       const longEmail = 'a'.repeat(250) + '@test.com';
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1153,7 +1153,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       const { token, cookies } = await getCsrfToken(app);
       const longCoverage = 'A'.repeat(501);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1174,7 +1174,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
       const { token, cookies } = await getCsrfToken(app);
       const longSpecialization = 'A'.repeat(201);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1194,7 +1194,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should validate last_contact_date ISO8601 format', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1214,7 +1214,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should validate next_contact_date ISO8601 format', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1234,7 +1234,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should include Creator information in response', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/scouts')
+        .post('/api/v1/scouts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1258,7 +1258,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/scouts/123')
+        .put('/api/v1/scouts/123')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({ first_name: 'Updated' })
@@ -1280,7 +1280,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/scouts/${scout.id}`)
+        .put(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1307,7 +1307,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/scouts/${scout.id}`)
+        .put(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1345,7 +1345,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/scouts/${scout.id}`)
+        .put(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1369,7 +1369,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/scouts/${scout.id}`)
+        .put(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1393,7 +1393,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/scouts/${scout.id}`)
+        .put(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1417,7 +1417,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/scouts/${scout.id}`)
+        .put(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1431,7 +1431,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should return 404 for non-existent scout', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/scouts/999999')
+        .put('/api/v1/scouts/999999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1455,7 +1455,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/scouts/${scout.id}`)
+        .put(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1479,7 +1479,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/scouts/${scout.id}`)
+        .put(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1498,7 +1498,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/scouts/123')
+        .delete('/api/v1/scouts/123')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -1519,7 +1519,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/scouts/${scout.id}`)
+        .delete(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1542,7 +1542,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .delete(`/api/scouts/${scout.id}`)
+        .delete(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1556,7 +1556,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
     it('should return 404 for non-existent scout', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/scouts/999999')
+        .delete('/api/v1/scouts/999999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1579,7 +1579,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/scouts/${scout.id}`)
+        .delete(`/api/v1/scouts/${scout.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)

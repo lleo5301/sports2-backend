@@ -93,7 +93,7 @@ describe('Auth Routes - Account Lockout', () => {
       // First failed attempt
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -113,7 +113,7 @@ describe('Auth Routes - Account Lockout', () => {
       for (let i = 0; i < 3; i++) {
         const { token, cookies } = await getCsrfToken(app);
         await request(app)
-          .post('/api/auth/login')
+          .post('/api/v1/auth/login')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -132,7 +132,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Successful login
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -155,7 +155,7 @@ describe('Auth Routes - Account Lockout', () => {
       for (let i = 0; i < maxAttempts; i++) {
         const { token, cookies } = await getCsrfToken(app);
         await request(app)
-          .post('/api/auth/login')
+          .post('/api/v1/auth/login')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -180,7 +180,7 @@ describe('Auth Routes - Account Lockout', () => {
       for (let i = 0; i < maxAttempts; i++) {
         const { token, cookies } = await getCsrfToken(app);
         await request(app)
-          .post('/api/auth/login')
+          .post('/api/v1/auth/login')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -214,7 +214,7 @@ describe('Auth Routes - Account Lockout', () => {
     it('should return 423 Locked status when account is locked', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -230,7 +230,7 @@ describe('Auth Routes - Account Lockout', () => {
     it('should include remaining lockout time in response', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -247,7 +247,7 @@ describe('Auth Routes - Account Lockout', () => {
     it('should include appropriate error message in locked response', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -263,7 +263,7 @@ describe('Auth Routes - Account Lockout', () => {
     it('should block login even with correct password when locked', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -291,7 +291,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Attempt login with valid credentials
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -317,7 +317,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Successful login
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -345,7 +345,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Successful login
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -370,7 +370,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Successful login resets counter
       const { token: token1, cookies: cookies1 } = await getCsrfToken(app);
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies1)
         .set('x-csrf-token', token1)
         .send({
@@ -382,7 +382,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Verify we can make failed attempts again from 0
       const { token: token2, cookies: cookies2 } = await getCsrfToken(app);
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies2)
         .set('x-csrf-token', token2)
         .send({
@@ -409,7 +409,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Verify testUser is locked
       const { token: token1, cookies: cookies1 } = await getCsrfToken(app);
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies1)
         .set('x-csrf-token', token1)
         .send({
@@ -421,7 +421,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Verify testUser2 can still login
       const { token: token2, cookies: cookies2 } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies2)
         .set('x-csrf-token', token2)
         .send({
@@ -439,7 +439,7 @@ describe('Auth Routes - Account Lockout', () => {
       for (let i = 0; i < 2; i++) {
         const { token, cookies } = await getCsrfToken(app);
         await request(app)
-          .post('/api/auth/login')
+          .post('/api/v1/auth/login')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -453,7 +453,7 @@ describe('Auth Routes - Account Lockout', () => {
       for (let i = 0; i < 3; i++) {
         const { token, cookies } = await getCsrfToken(app);
         await request(app)
-          .post('/api/auth/login')
+          .post('/api/v1/auth/login')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -487,7 +487,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Admin unlocks the account
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/auth/admin/unlock/${testUser.id}`)
+        .post(`/api/v1/auth/admin/unlock/${testUser.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -507,7 +507,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Admin unlocks the account
       const { token: token1, cookies: cookies1 } = await getCsrfToken(app);
       await request(app)
-        .post(`/api/auth/admin/unlock/${testUser.id}`)
+        .post(`/api/v1/auth/admin/unlock/${testUser.id}`)
         .set('Cookie', cookies1)
         .set('x-csrf-token', token1)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -516,7 +516,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Verify user can login immediately
       const { token: token2, cookies: cookies2 } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies2)
         .set('x-csrf-token', token2)
         .send({
@@ -532,7 +532,7 @@ describe('Auth Routes - Account Lockout', () => {
     it('should return details about unlocked account state', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/auth/admin/unlock/${testUser.id}`)
+        .post(`/api/v1/auth/admin/unlock/${testUser.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -550,7 +550,7 @@ describe('Auth Routes - Account Lockout', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/auth/admin/unlock/${testUser.id}`)
+        .post(`/api/v1/auth/admin/unlock/${testUser.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${userToken}`)
@@ -563,7 +563,7 @@ describe('Auth Routes - Account Lockout', () => {
     it('should return 404 for non-existent user unlock', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/admin/unlock/99999')
+        .post('/api/v1/auth/admin/unlock/99999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -576,7 +576,7 @@ describe('Auth Routes - Account Lockout', () => {
     it('should require authentication for unlock endpoint', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/auth/admin/unlock/${testUser.id}`)
+        .post(`/api/v1/auth/admin/unlock/${testUser.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -597,7 +597,7 @@ describe('Auth Routes - Account Lockout', () => {
       });
 
       const response = await request(app)
-        .get(`/api/auth/admin/lockout-status/${testUser.id}`)
+        .get(`/api/v1/auth/admin/lockout-status/${testUser.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -610,7 +610,7 @@ describe('Auth Routes - Account Lockout', () => {
 
     it('should return lockout status for unlocked account', async () => {
       const response = await request(app)
-        .get(`/api/auth/admin/lockout-status/${testUser.id}`)
+        .get(`/api/v1/auth/admin/lockout-status/${testUser.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -625,7 +625,7 @@ describe('Auth Routes - Account Lockout', () => {
       const userToken = jwt.sign({ id: testUser2.id }, process.env.JWT_SECRET || 'test_secret');
 
       const response = await request(app)
-        .get(`/api/auth/admin/lockout-status/${testUser.id}`)
+        .get(`/api/v1/auth/admin/lockout-status/${testUser.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403);
 
@@ -634,7 +634,7 @@ describe('Auth Routes - Account Lockout', () => {
 
     it('should return 404 for non-existent user status', async () => {
       const response = await request(app)
-        .get('/api/auth/admin/lockout-status/99999')
+        .get('/api/v1/auth/admin/lockout-status/99999')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
 
@@ -654,7 +654,7 @@ describe('Auth Routes - Account Lockout', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -671,7 +671,7 @@ describe('Auth Routes - Account Lockout', () => {
     it('should not increment counter for non-existent user', async () => {
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -697,7 +697,7 @@ describe('Auth Routes - Account Lockout', () => {
       // Even with correct password, should return locked status
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({

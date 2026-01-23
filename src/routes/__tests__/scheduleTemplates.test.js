@@ -51,7 +51,7 @@ describe('Schedule Templates API', () => {
   describe('GET /api/schedule-templates', () => {
     it('should return empty array when no templates exist', async () => {
       const response = await request(app)
-        .get('/api/schedule-templates')
+        .get('/api/v1/schedule-templates')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -87,7 +87,7 @@ describe('Schedule Templates API', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedule-templates')
+        .get('/api/v1/schedule-templates')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -102,7 +102,7 @@ describe('Schedule Templates API', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/schedule-templates')
+        .get('/api/v1/schedule-templates')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -127,7 +127,7 @@ describe('Schedule Templates API', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedule-templates?search=baseball')
+        .get('/api/v1/schedule-templates?search=baseball')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -156,7 +156,7 @@ describe('Schedule Templates API', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedule-templates')
+        .post('/api/v1/schedule-templates')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -178,7 +178,7 @@ describe('Schedule Templates API', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedule-templates')
+        .post('/api/v1/schedule-templates')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -208,7 +208,7 @@ describe('Schedule Templates API', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedule-templates')
+        .post('/api/v1/schedule-templates')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -237,7 +237,7 @@ describe('Schedule Templates API', () => {
       });
 
       const response = await request(app)
-        .get(`/api/schedule-templates/${template.id}`)
+        .get(`/api/v1/schedule-templates/${template.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -248,7 +248,7 @@ describe('Schedule Templates API', () => {
 
     it('should return 404 for non-existent template', async () => {
       const response = await request(app)
-        .get('/api/schedule-templates/99999')
+        .get('/api/v1/schedule-templates/99999')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -274,7 +274,7 @@ describe('Schedule Templates API', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/schedule-templates/${template.id}`)
+        .put(`/api/v1/schedule-templates/${template.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -298,7 +298,7 @@ describe('Schedule Templates API', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedule-templates/${template.id}`)
+        .delete(`/api/v1/schedule-templates/${template.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -339,7 +339,7 @@ describe('Schedule Templates API', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedule-templates/${originalTemplate.id}/duplicate`)
+        .post(`/api/v1/schedule-templates/${originalTemplate.id}/duplicate`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)

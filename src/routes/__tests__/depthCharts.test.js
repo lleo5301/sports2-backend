@@ -140,7 +140,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
   describe('GET /api/depth-charts', () => {
     it('should return empty array when no depth charts exist', async () => {
       const response = await request(app)
-        .get('/api/depth-charts')
+        .get('/api/v1/depth-charts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -170,7 +170,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/depth-charts')
+        .get('/api/v1/depth-charts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -198,7 +198,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/depth-charts')
+        .get('/api/v1/depth-charts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -227,7 +227,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/depth-charts')
+        .get('/api/v1/depth-charts')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -241,7 +241,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/depth-charts')
+        .get('/api/v1/depth-charts')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -250,7 +250,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
     it('should reject invalid token', async () => {
       const response = await request(app)
-        .get('/api/depth-charts')
+        .get('/api/v1/depth-charts')
         .set('Authorization', 'Bearer invalid_token')
         .expect(401);
 
@@ -275,7 +275,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
     it('should return a specific depth chart by ID', async () => {
       const response = await request(app)
-        .get(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .get(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -288,7 +288,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
     it('should return 404 for non-existent depth chart', async () => {
       const response = await request(app)
-        .get('/api/depth-charts/byId/99999')
+        .get('/api/v1/depth-charts/byId/99999')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -305,7 +305,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get(`/api/depth-charts/byId/${otherTeamChart.id}`)
+        .get(`/api/v1/depth-charts/byId/${otherTeamChart.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -322,7 +322,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get(`/api/depth-charts/byId/${deletedChart.id}`)
+        .get(`/api/v1/depth-charts/byId/${deletedChart.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -332,7 +332,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .get(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -351,7 +351,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should create a new depth chart with valid data', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -370,7 +370,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should create depth chart with minimal required fields', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -384,7 +384,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should reject empty name', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -405,7 +405,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should reject name that is too long (>100 characters)', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -419,7 +419,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should reject description that is too long (>1000 characters)', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -436,7 +436,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should reject invalid is_default type', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -453,7 +453,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should reject invalid effective_date format', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -470,7 +470,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should accept valid effective_date in ISO8601 format', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -497,7 +497,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       // Create a new default chart
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -518,7 +518,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send(validDepthChartData)
@@ -543,7 +543,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/depth-charts')
+        .post('/api/v1/depth-charts')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${noPermToken}`)
@@ -582,7 +582,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .put(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -600,7 +600,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       // First update
       const { token: token1, cookies: cookies1 } = await getCsrfToken(app);
       await request(app)
-        .put(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .put(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies1)
         .set('x-csrf-token', token1)
         .set('Authorization', `Bearer ${authToken}`)
@@ -610,7 +610,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       // Second update
       const { token: token2, cookies: cookies2 } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .put(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies2)
         .set('x-csrf-token', token2)
         .set('Authorization', `Bearer ${authToken}`)
@@ -624,7 +624,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should return 404 for non-existent depth chart', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/depth-charts/byId/99999')
+        .put('/api/v1/depth-charts/byId/99999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -645,7 +645,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/depth-charts/byId/${otherTeamChart.id}`)
+        .put(`/api/v1/depth-charts/byId/${otherTeamChart.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -673,7 +673,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       // Update testDepthChart to be the new default
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .put(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -691,7 +691,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should reject invalid ID parameter', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/depth-charts/byId/invalid')
+        .put('/api/v1/depth-charts/byId/invalid')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -705,7 +705,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should reject invalid name (too long)', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .put(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -719,7 +719,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .put(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({ name: 'Updated Name' })
@@ -744,7 +744,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .put(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${noPermToken}`)
@@ -775,7 +775,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should soft-delete a depth chart', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .delete(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -793,7 +793,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should return 404 for non-existent depth chart', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/depth-charts/byId/99999')
+        .delete('/api/v1/depth-charts/byId/99999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -813,7 +813,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/depth-charts/byId/${otherTeamChart.id}`)
+        .delete(`/api/v1/depth-charts/byId/${otherTeamChart.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -831,7 +831,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       // First delete
       const { token: token1, cookies: cookies1 } = await getCsrfToken(app);
       await request(app)
-        .delete(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .delete(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies1)
         .set('x-csrf-token', token1)
         .set('Authorization', `Bearer ${authToken}`)
@@ -840,7 +840,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       // Try to delete again
       const { token: token2, cookies: cookies2 } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .delete(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies2)
         .set('x-csrf-token', token2)
         .set('Authorization', `Bearer ${authToken}`)
@@ -853,7 +853,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should reject invalid ID parameter', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/depth-charts/byId/invalid')
+        .delete('/api/v1/depth-charts/byId/invalid')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -866,7 +866,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .delete(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -890,7 +890,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/depth-charts/byId/${testDepthChart.id}`)
+        .delete(`/api/v1/depth-charts/byId/${testDepthChart.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${noPermToken}`)
@@ -931,7 +931,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should create a new position with all fields', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -953,7 +953,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should create a position with minimal required fields', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -971,7 +971,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject empty position_code', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -995,7 +995,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject position_code that is too long (>10 characters)', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1012,7 +1012,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject empty position_name', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1036,7 +1036,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject position_name that is too long (>50 characters)', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1053,7 +1053,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject invalid color format (not hex)', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1071,7 +1071,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject invalid color format (incomplete hex)', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1089,7 +1089,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should accept valid hex color in uppercase', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1107,7 +1107,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should accept valid hex color in lowercase', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1125,7 +1125,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject negative sort_order', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1143,7 +1143,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should accept zero as sort_order', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1161,7 +1161,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject zero or negative max_players', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1179,7 +1179,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject description that is too long (>500 characters)', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1197,7 +1197,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should return 404 for non-existent depth chart', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/depth-charts/99999/positions')
+          .post('/api/v1/depth-charts/99999/positions')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1218,7 +1218,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${otherTeamChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${otherTeamChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1232,7 +1232,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject invalid depth chart ID parameter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/depth-charts/invalid/positions')
+          .post('/api/v1/depth-charts/invalid/positions')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1246,7 +1246,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should require authentication', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send(validPositionData)
@@ -1271,7 +1271,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${noPermToken}`)
@@ -1314,7 +1314,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/depth-charts/positions/${testPosition.id}`)
+          .put(`/api/v1/depth-charts/positions/${testPosition.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1334,7 +1334,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should update only specific fields', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/depth-charts/positions/${testPosition.id}`)
+          .put(`/api/v1/depth-charts/positions/${testPosition.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1354,7 +1354,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should return 404 for non-existent position', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/depth-charts/positions/99999')
+          .put('/api/v1/depth-charts/positions/99999')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1385,7 +1385,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/depth-charts/positions/${otherPosition.id}`)
+          .put(`/api/v1/depth-charts/positions/${otherPosition.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1406,7 +1406,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject invalid position ID parameter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/depth-charts/positions/invalid')
+          .put('/api/v1/depth-charts/positions/invalid')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1423,7 +1423,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject invalid color format', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/depth-charts/positions/${testPosition.id}`)
+          .put(`/api/v1/depth-charts/positions/${testPosition.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1441,7 +1441,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should require authentication', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/depth-charts/positions/${testPosition.id}`)
+          .put(`/api/v1/depth-charts/positions/${testPosition.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -1469,7 +1469,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/depth-charts/positions/${testPosition.id}`)
+          .put(`/api/v1/depth-charts/positions/${testPosition.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${noPermToken}`)
@@ -1502,7 +1502,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should soft-delete a position', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete(`/api/depth-charts/positions/${testPosition.id}`)
+          .delete(`/api/v1/depth-charts/positions/${testPosition.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1520,7 +1520,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should return 404 for non-existent position', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete('/api/depth-charts/positions/99999')
+          .delete('/api/v1/depth-charts/positions/99999')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1547,7 +1547,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete(`/api/depth-charts/positions/${otherPosition.id}`)
+          .delete(`/api/v1/depth-charts/positions/${otherPosition.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1564,7 +1564,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject invalid position ID parameter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete('/api/depth-charts/positions/invalid')
+          .delete('/api/v1/depth-charts/positions/invalid')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1577,7 +1577,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should require authentication', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete(`/api/depth-charts/positions/${testPosition.id}`)
+          .delete(`/api/v1/depth-charts/positions/${testPosition.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .expect(401);
@@ -1601,7 +1601,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete(`/api/depth-charts/positions/${testPosition.id}`)
+          .delete(`/api/v1/depth-charts/positions/${testPosition.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${noPermToken}`)
@@ -1620,7 +1620,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         // Create positions with different sort orders
         const { token: token1, cookies: cookies1 } = await getCsrfToken(app);
         const pos1 = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies1)
           .set('x-csrf-token', token1)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1633,7 +1633,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token: token2, cookies: cookies2 } = await getCsrfToken(app);
         const pos2 = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies2)
           .set('x-csrf-token', token2)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1646,7 +1646,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token: token3, cookies: cookies3 } = await getCsrfToken(app);
         const pos3 = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/positions`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/positions`)
           .set('Cookie', cookies3)
           .set('x-csrf-token', token3)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1673,7 +1673,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put(`/api/depth-charts/positions/${position.id}`)
+          .put(`/api/v1/depth-charts/positions/${position.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1743,7 +1743,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should assign a player to a position', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1765,7 +1765,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should assign a player with minimal fields', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1782,7 +1782,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject missing player_id', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1798,7 +1798,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject invalid player_id', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1815,7 +1815,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject missing depth_order', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1831,7 +1831,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject depth_order less than 1', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1848,7 +1848,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject notes that are too long (>500 characters)', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1866,7 +1866,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should return 404 for non-existent position', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/depth-charts/positions/99999/players')
+          .post('/api/v1/depth-charts/positions/99999/players')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1883,7 +1883,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should return 404 for non-existent player', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1914,7 +1914,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${otherPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${otherPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1941,7 +1941,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1959,7 +1959,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         // First assignment
         const { token: token1, cookies: cookies1 } = await getCsrfToken(app);
         await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies1)
           .set('x-csrf-token', token1)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1972,7 +1972,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         // Try to assign again to same position
         const { token: token2, cookies: cookies2 } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies2)
           .set('x-csrf-token', token2)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1989,7 +1989,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject invalid position ID parameter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/depth-charts/positions/invalid/players')
+          .post('/api/v1/depth-charts/positions/invalid/players')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2006,7 +2006,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should require authentication', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -2033,7 +2033,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/positions/${testPosition.id}/players`)
+          .post(`/api/v1/depth-charts/positions/${testPosition.id}/players`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${noPermToken}`)
@@ -2068,7 +2068,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should remove a player assignment', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete(`/api/depth-charts/players/${testAssignment.id}`)
+          .delete(`/api/v1/depth-charts/players/${testAssignment.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2085,7 +2085,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should return 404 for non-existent assignment', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete('/api/depth-charts/players/99999')
+          .delete('/api/v1/depth-charts/players/99999')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2131,7 +2131,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete(`/api/depth-charts/players/${otherAssignment.id}`)
+          .delete(`/api/v1/depth-charts/players/${otherAssignment.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2147,7 +2147,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject invalid assignment ID parameter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete('/api/depth-charts/players/invalid')
+          .delete('/api/v1/depth-charts/players/invalid')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2160,7 +2160,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should require authentication', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete(`/api/depth-charts/players/${testAssignment.id}`)
+          .delete(`/api/v1/depth-charts/players/${testAssignment.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .expect(401);
@@ -2183,7 +2183,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .delete(`/api/depth-charts/players/${testAssignment.id}`)
+          .delete(`/api/v1/depth-charts/players/${testAssignment.id}`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${noPermToken}`)
@@ -2281,7 +2281,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     describe('GET /api/depth-charts/:id/available-players', () => {
       it('should return available players (not assigned to this chart)', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/available-players`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/available-players`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -2306,7 +2306,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         });
 
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/available-players`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/available-players`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -2335,7 +2335,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         });
 
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/available-players`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/available-players`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -2345,7 +2345,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should return 404 for non-existent depth chart', async () => {
         const response = await request(app)
-          .get('/api/depth-charts/99999/available-players')
+          .get('/api/v1/depth-charts/99999/available-players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(404);
 
@@ -2362,7 +2362,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         });
 
         const response = await request(app)
-          .get(`/api/depth-charts/${otherTeamChart.id}/available-players`)
+          .get(`/api/v1/depth-charts/${otherTeamChart.id}/available-players`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(404);
 
@@ -2372,7 +2372,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should reject invalid depth chart ID parameter', async () => {
         const response = await request(app)
-          .get('/api/depth-charts/invalid/available-players')
+          .get('/api/v1/depth-charts/invalid/available-players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(400);
 
@@ -2382,7 +2382,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should require authentication', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/available-players`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/available-players`)
           .expect(401);
 
         expect(response.body.success).toBe(false);
@@ -2402,7 +2402,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         const noPermToken = jwt.sign({ id: noPermUser.id }, process.env.JWT_SECRET || 'test_secret');
 
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/available-players`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/available-players`)
           .set('Authorization', `Bearer ${noPermToken}`)
           .expect(403);
 
@@ -2416,7 +2416,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     describe('GET /api/depth-charts/:id/recommended-players/:positionId', () => {
       it('should return recommended players with scores', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -2434,7 +2434,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should rank pitcher with exact position match higher', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -2450,7 +2450,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should include performance metrics in scoring', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -2478,7 +2478,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         }
 
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -2488,7 +2488,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should return 404 for non-existent depth chart', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/99999/recommended-players/${testPosition.id}`)
+          .get(`/api/v1/depth-charts/99999/recommended-players/${testPosition.id}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(404);
 
@@ -2498,7 +2498,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should return 404 for non-existent position', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/99999`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/recommended-players/99999`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(404);
 
@@ -2522,7 +2522,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         });
 
         const response = await request(app)
-          .get(`/api/depth-charts/${otherTeamChart.id}/recommended-players/${otherPosition.id}`)
+          .get(`/api/v1/depth-charts/${otherTeamChart.id}/recommended-players/${otherPosition.id}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(404);
 
@@ -2532,7 +2532,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should reject invalid depth chart ID parameter', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/invalid/recommended-players/${testPosition.id}`)
+          .get(`/api/v1/depth-charts/invalid/recommended-players/${testPosition.id}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(400);
 
@@ -2542,7 +2542,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should reject invalid position ID parameter', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/invalid`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/recommended-players/invalid`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(400);
 
@@ -2552,7 +2552,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should require authentication', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
           .expect(401);
 
         expect(response.body.success).toBe(false);
@@ -2572,7 +2572,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         const noPermToken = jwt.sign({ id: noPermUser.id }, process.env.JWT_SECRET || 'test_secret');
 
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/recommended-players/${testPosition.id}`)
           .set('Authorization', `Bearer ${noPermToken}`)
           .expect(403);
 
@@ -2616,7 +2616,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should duplicate a depth chart with positions', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/duplicate`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/duplicate`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2662,7 +2662,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/duplicate`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/duplicate`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2700,7 +2700,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/duplicate`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/duplicate`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2718,7 +2718,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should return 404 for non-existent depth chart', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/depth-charts/99999/duplicate')
+          .post('/api/v1/depth-charts/99999/duplicate')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2738,7 +2738,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${otherTeamChart.id}/duplicate`)
+          .post(`/api/v1/depth-charts/${otherTeamChart.id}/duplicate`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2751,7 +2751,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should reject invalid depth chart ID parameter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/depth-charts/invalid/duplicate')
+          .post('/api/v1/depth-charts/invalid/duplicate')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2764,7 +2764,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
       it('should require authentication', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/duplicate`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/duplicate`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .expect(401);
@@ -2787,7 +2787,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/depth-charts/${testDepthChart.id}/duplicate`)
+          .post(`/api/v1/depth-charts/${testDepthChart.id}/duplicate`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${noPermToken}`)
@@ -2803,7 +2803,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     describe('GET /api/depth-charts/:id/history', () => {
       it('should return basic history for a depth chart', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/history`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/history`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -2822,7 +2822,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         await testDepthChart.update({ is_active: false });
 
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/history`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/history`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -2832,7 +2832,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should return 404 for non-existent depth chart', async () => {
         const response = await request(app)
-          .get('/api/depth-charts/99999/history')
+          .get('/api/v1/depth-charts/99999/history')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(404);
 
@@ -2849,7 +2849,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         });
 
         const response = await request(app)
-          .get(`/api/depth-charts/${otherTeamChart.id}/history`)
+          .get(`/api/v1/depth-charts/${otherTeamChart.id}/history`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(404);
 
@@ -2859,7 +2859,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should reject invalid depth chart ID parameter', async () => {
         const response = await request(app)
-          .get('/api/depth-charts/invalid/history')
+          .get('/api/v1/depth-charts/invalid/history')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(400);
 
@@ -2869,7 +2869,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
       it('should require authentication', async () => {
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/history`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/history`)
           .expect(401);
 
         expect(response.body.success).toBe(false);
@@ -2889,7 +2889,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
         const noPermToken = jwt.sign({ id: noPermUser.id }, process.env.JWT_SECRET || 'test_secret');
 
         const response = await request(app)
-          .get(`/api/depth-charts/${testDepthChart.id}/history`)
+          .get(`/api/v1/depth-charts/${testDepthChart.id}/history`)
           .set('Authorization', `Bearer ${noPermToken}`)
           .expect(403);
 

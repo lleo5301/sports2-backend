@@ -78,7 +78,7 @@ describe('Schedules API - Core CRUD Operations', () => {
   describe('GET /api/schedules', () => {
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/schedules')
+        .get('/api/v1/schedules')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -86,7 +86,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
     it('should return empty array when no schedules exist', async () => {
       const response = await request(app)
-        .get('/api/schedules')
+        .get('/api/v1/schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -118,7 +118,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules')
+        .get('/api/v1/schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -141,7 +141,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules')
+        .get('/api/v1/schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -168,7 +168,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules?date=2024-03-15')
+        .get('/api/v1/schedules?date=2024-03-15')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -190,7 +190,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       }
 
       const response = await request(app)
-        .get('/api/schedules?page=1&limit=10')
+        .get('/api/v1/schedules?page=1&limit=10')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -199,7 +199,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       expect(response.body.pagination.pages).toBe(2);
 
       const response2 = await request(app)
-        .get('/api/schedules?page=2&limit=10')
+        .get('/api/v1/schedules?page=2&limit=10')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -226,7 +226,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules')
+        .get('/api/v1/schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -245,7 +245,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules')
+        .get('/api/v1/schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -275,7 +275,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules')
+        .get('/api/v1/schedules')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -287,7 +287,7 @@ describe('Schedules API - Core CRUD Operations', () => {
   describe('GET /api/schedules/stats', () => {
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/schedules/stats')
+        .get('/api/v1/schedules/stats')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -295,7 +295,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
     it('should return statistics with zero values when no activities exist', async () => {
       const response = await request(app)
-        .get('/api/schedules/stats')
+        .get('/api/v1/schedules/stats')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -337,7 +337,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules/stats')
+        .get('/api/v1/schedules/stats')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -394,7 +394,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules/stats')
+        .get('/api/v1/schedules/stats')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -426,7 +426,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules/stats')
+        .get('/api/v1/schedules/stats')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -446,7 +446,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get(`/api/schedules/byId/${schedule.id}`)
+        .get(`/api/v1/schedules/byId/${schedule.id}`)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -482,7 +482,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get(`/api/schedules/byId/${schedule.id}`)
+        .get(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -507,7 +507,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get(`/api/schedules/byId/${schedule.id}`)
+        .get(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -521,7 +521,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       const fakeId = '00000000-0000-0000-0000-000000000000';
 
       const response = await request(app)
-        .get(`/api/schedules/byId/${fakeId}`)
+        .get(`/api/v1/schedules/byId/${fakeId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -539,7 +539,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get(`/api/schedules/byId/${schedule.id}`)
+        .get(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -557,7 +557,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get(`/api/schedules/byId/${schedule.id}`)
+        .get(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -589,7 +589,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get(`/api/schedules/byId/${schedule.id}`)
+        .get(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -602,7 +602,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -619,7 +619,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should create schedule with minimal required fields', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -644,7 +644,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should create schedule with all fields', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -663,7 +663,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should create schedule with nested sections and activities', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -719,7 +719,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should validate required team_name field', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -736,7 +736,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should validate required program_name field', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -753,7 +753,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should validate required date field', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -770,7 +770,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should validate date format', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -788,7 +788,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should validate sections must be an array', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -806,7 +806,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should auto-assign team_id from authenticated user', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -824,7 +824,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should auto-assign created_by from authenticated user', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -842,7 +842,7 @@ describe('Schedules API - Core CRUD Operations', () => {
     it('should include Creator and Team in response', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/schedules')
+        .post('/api/v1/schedules')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -874,7 +874,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/schedules/byId/${schedule.id}`)
+        .put(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -901,7 +901,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/schedules/byId/${schedule.id}`)
+        .put(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -947,7 +947,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/schedules/byId/${schedule.id}`)
+        .put(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -985,7 +985,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/schedules/byId/${fakeId}`)
+        .put(`/api/v1/schedules/byId/${fakeId}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1012,7 +1012,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/schedules/byId/${schedule.id}`)
+        .put(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1043,7 +1043,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/schedules/byId/${schedule.id}`)
+        .put(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1069,7 +1069,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/schedules/byId/${schedule.id}`)
+        .put(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1098,7 +1098,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/byId/${schedule.id}`)
+        .delete(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -1118,7 +1118,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/byId/${schedule.id}`)
+        .delete(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1161,7 +1161,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .delete(`/api/schedules/byId/${schedule.id}`)
+        .delete(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1179,7 +1179,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/byId/${fakeId}`)
+        .delete(`/api/v1/schedules/byId/${fakeId}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1200,7 +1200,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/byId/${schedule.id}`)
+        .delete(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1225,7 +1225,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/byId/${schedule.id}`)
+        .delete(`/api/v1/schedules/byId/${schedule.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1248,7 +1248,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/${schedule.id}/sections`)
+        .post(`/api/v1/schedules/${schedule.id}/sections`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -1272,7 +1272,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/${schedule.id}/sections`)
+        .post(`/api/v1/schedules/${schedule.id}/sections`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1309,7 +1309,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/${schedule.id}/sections`)
+        .post(`/api/v1/schedules/${schedule.id}/sections`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1334,7 +1334,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/${schedule.id}/sections`)
+        .post(`/api/v1/schedules/${schedule.id}/sections`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1359,7 +1359,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/${schedule.id}/sections`)
+        .post(`/api/v1/schedules/${schedule.id}/sections`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1376,7 +1376,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/${fakeId}/sections`)
+        .post(`/api/v1/schedules/${fakeId}/sections`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1401,7 +1401,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/${schedule.id}/sections`)
+        .post(`/api/v1/schedules/${schedule.id}/sections`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1432,7 +1432,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       for (const type of validTypes) {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post(`/api/schedules/${schedule.id}/sections`)
+          .post(`/api/v1/schedules/${schedule.id}/sections`)
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -1467,7 +1467,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/sections/${section.id}/activities`)
+        .post(`/api/v1/schedules/sections/${section.id}/activities`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -1498,7 +1498,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/sections/${section.id}/activities`)
+        .post(`/api/v1/schedules/sections/${section.id}/activities`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1535,7 +1535,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/sections/${section.id}/activities`)
+        .post(`/api/v1/schedules/sections/${section.id}/activities`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1581,7 +1581,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/sections/${section.id}/activities`)
+        .post(`/api/v1/schedules/sections/${section.id}/activities`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1613,7 +1613,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/sections/${section.id}/activities`)
+        .post(`/api/v1/schedules/sections/${section.id}/activities`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1644,7 +1644,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/sections/${section.id}/activities`)
+        .post(`/api/v1/schedules/sections/${section.id}/activities`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1661,7 +1661,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/sections/${fakeId}/activities`)
+        .post(`/api/v1/schedules/sections/${fakeId}/activities`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1693,7 +1693,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post(`/api/schedules/sections/${section.id}/activities`)
+        .post(`/api/v1/schedules/sections/${section.id}/activities`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1727,7 +1727,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/sections/${section.id}`)
+        .delete(`/api/v1/schedules/sections/${section.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -1754,7 +1754,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/sections/${section.id}`)
+        .delete(`/api/v1/schedules/sections/${section.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1800,7 +1800,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .delete(`/api/schedules/sections/${section.id}`)
+        .delete(`/api/v1/schedules/sections/${section.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1818,7 +1818,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/sections/${fakeId}`)
+        .delete(`/api/v1/schedules/sections/${fakeId}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1846,7 +1846,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/sections/${section.id}`)
+        .delete(`/api/v1/schedules/sections/${section.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1887,7 +1887,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/activities/${activity.id}`)
+        .delete(`/api/v1/schedules/activities/${activity.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -1921,7 +1921,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/activities/${activity.id}`)
+        .delete(`/api/v1/schedules/activities/${activity.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1960,7 +1960,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .delete(`/api/schedules/activities/${activity.id}`)
+        .delete(`/api/v1/schedules/activities/${activity.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1976,7 +1976,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/activities/${fakeId}`)
+        .delete(`/api/v1/schedules/activities/${fakeId}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2011,7 +2011,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/schedules/activities/${activity.id}`)
+        .delete(`/api/v1/schedules/activities/${activity.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2028,7 +2028,7 @@ describe('Schedules API - Core CRUD Operations', () => {
   describe('GET /api/schedules/export-pdf', () => {
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/schedules/export-pdf')
+        .get('/api/v1/schedules/export-pdf')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -2063,7 +2063,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules/export-pdf')
+        .get('/api/v1/schedules/export-pdf')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2099,7 +2099,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules/export-pdf')
+        .get('/api/v1/schedules/export-pdf')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2127,7 +2127,7 @@ describe('Schedules API - Core CRUD Operations', () => {
       });
 
       const response = await request(app)
-        .get('/api/schedules/export-pdf')
+        .get('/api/v1/schedules/export-pdf')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2138,7 +2138,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
     it('should handle empty schedules', async () => {
       const response = await request(app)
-        .get('/api/schedules/export-pdf')
+        .get('/api/v1/schedules/export-pdf')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 

@@ -132,7 +132,7 @@ describe('Reports API - Custom Reports CRUD', () => {
   describe('GET /api/reports', () => {
     it('should return empty array when no reports exist', async () => {
       const response = await request(app)
-        .get('/api/reports')
+        .get('/api/v1/reports')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -162,7 +162,7 @@ describe('Reports API - Custom Reports CRUD', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports')
+        .get('/api/v1/reports')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -192,7 +192,7 @@ describe('Reports API - Custom Reports CRUD', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports')
+        .get('/api/v1/reports')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -211,7 +211,7 @@ describe('Reports API - Custom Reports CRUD', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports')
+        .get('/api/v1/reports')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -241,7 +241,7 @@ describe('Reports API - Custom Reports CRUD', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports')
+        .get('/api/v1/reports')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -253,7 +253,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/reports')
+        .get('/api/v1/reports')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -272,7 +272,7 @@ describe('Reports API - Custom Reports CRUD', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/byId/${report.id}`)
+        .get(`/api/v1/reports/byId/${report.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -293,7 +293,7 @@ describe('Reports API - Custom Reports CRUD', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/byId/${report.id}`)
+        .get(`/api/v1/reports/byId/${report.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -306,7 +306,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
     it('should return 404 for non-existent report', async () => {
       const response = await request(app)
-        .get('/api/reports/byId/999999')
+        .get('/api/v1/reports/byId/999999')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -323,7 +323,7 @@ describe('Reports API - Custom Reports CRUD', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/byId/${otherTeamReport.id}`)
+        .get(`/api/v1/reports/byId/${otherTeamReport.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -340,7 +340,7 @@ describe('Reports API - Custom Reports CRUD', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/byId/${report.id}`)
+        .get(`/api/v1/reports/byId/${report.id}`)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -355,7 +355,7 @@ describe('Reports API - Custom Reports CRUD', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/byId/${report.id}`)
+        .get(`/api/v1/reports/byId/${report.id}`)
         .set('Authorization', `Bearer ${userWithoutPermissionsToken}`)
         .expect(403);
 
@@ -378,7 +378,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -411,7 +411,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -434,7 +434,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -452,7 +452,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -470,7 +470,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -489,7 +489,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -509,7 +509,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -528,7 +528,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -556,7 +556,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/reports')
+          .post('/api/v1/reports')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -577,7 +577,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -597,7 +597,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -617,7 +617,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -637,7 +637,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -656,7 +656,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send(reportData)
@@ -673,7 +673,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${userWithoutPermissionsToken}`)
@@ -692,7 +692,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -711,7 +711,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports')
+        .post('/api/v1/reports')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -742,7 +742,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -778,7 +778,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -806,7 +806,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -831,7 +831,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -856,7 +856,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -881,7 +881,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -906,7 +906,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -931,7 +931,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -957,7 +957,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -975,7 +975,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/reports/byId/999999')
+        .put('/api/v1/reports/byId/999999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1000,7 +1000,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${otherTeamReport.id}`)
+        .put(`/api/v1/reports/byId/${otherTeamReport.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1029,7 +1029,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send(updateData)
@@ -1052,7 +1052,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/byId/${report.id}`)
+        .put(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${userWithoutPermissionsToken}`)
@@ -1075,7 +1075,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/reports/byId/${report.id}`)
+        .delete(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1092,7 +1092,7 @@ describe('Reports API - Custom Reports CRUD', () => {
     it('should return 404 for non-existent report', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/reports/byId/999999')
+        .delete('/api/v1/reports/byId/999999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1112,7 +1112,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/reports/byId/${otherTeamReport.id}`)
+        .delete(`/api/v1/reports/byId/${otherTeamReport.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1137,7 +1137,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/reports/byId/${report.id}`)
+        .delete(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -1159,7 +1159,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/reports/byId/${report.id}`)
+        .delete(`/api/v1/reports/byId/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${userWithoutPermissionsToken}`)
@@ -1274,7 +1274,7 @@ describe('Reports API - Scouting Reports', () => {
   describe('GET /api/reports/scouting', () => {
     it('should return empty array when no scouting reports exist', async () => {
       const response = await request(app)
-        .get('/api/reports/scouting')
+        .get('/api/v1/reports/scouting')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1308,7 +1308,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports/scouting')
+        .get('/api/v1/reports/scouting')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1337,7 +1337,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports/scouting')
+        .get('/api/v1/reports/scouting')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1359,7 +1359,7 @@ describe('Reports API - Scouting Reports', () => {
       }
 
       const response = await request(app)
-        .get('/api/reports/scouting?page=2&limit=10')
+        .get('/api/v1/reports/scouting?page=2&limit=10')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1387,7 +1387,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/scouting?player_id=${testPlayer.id}`)
+        .get(`/api/v1/reports/scouting?player_id=${testPlayer.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1420,7 +1420,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports/scouting?start_date=2024-01-15&end_date=2024-01-31')
+        .get('/api/v1/reports/scouting?start_date=2024-01-15&end_date=2024-01-31')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1447,7 +1447,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports/scouting')
+        .get('/api/v1/reports/scouting')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1465,7 +1465,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports/scouting')
+        .get('/api/v1/reports/scouting')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1481,7 +1481,7 @@ describe('Reports API - Scouting Reports', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/reports/scouting')
+        .get('/api/v1/reports/scouting')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1503,7 +1503,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/scouting')
+        .post('/api/v1/reports/scouting')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1534,7 +1534,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/scouting')
+        .post('/api/v1/reports/scouting')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1555,7 +1555,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/scouting')
+        .post('/api/v1/reports/scouting')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1577,7 +1577,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/scouting')
+        .post('/api/v1/reports/scouting')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1597,7 +1597,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/scouting')
+        .post('/api/v1/reports/scouting')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1617,7 +1617,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/scouting')
+        .post('/api/v1/reports/scouting')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1642,7 +1642,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/scouting')
+        .post('/api/v1/reports/scouting')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send(reportData)
@@ -1665,7 +1665,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/scouting/${report.id}`)
+        .get(`/api/v1/reports/scouting/${report.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1686,7 +1686,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/scouting/${report.id}`)
+        .get(`/api/v1/reports/scouting/${report.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1708,7 +1708,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/scouting/${report.id}`)
+        .get(`/api/v1/reports/scouting/${report.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1721,7 +1721,7 @@ describe('Reports API - Scouting Reports', () => {
 
     it('should return 404 for non-existent report', async () => {
       const response = await request(app)
-        .get('/api/reports/scouting/999999')
+        .get('/api/v1/reports/scouting/999999')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -1738,7 +1738,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/scouting/${otherTeamReport.id}`)
+        .get(`/api/v1/reports/scouting/${otherTeamReport.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -1755,7 +1755,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/scouting/${report.id}`)
+        .get(`/api/v1/reports/scouting/${report.id}`)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -1781,7 +1781,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/scouting/${report.id}`)
+        .put(`/api/v1/reports/scouting/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1816,7 +1816,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/scouting/${report.id}`)
+        .put(`/api/v1/reports/scouting/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1843,7 +1843,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/scouting/${report.id}`)
+        .put(`/api/v1/reports/scouting/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1869,7 +1869,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/scouting/${report.id}`)
+        .put(`/api/v1/reports/scouting/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1887,7 +1887,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/reports/scouting/999999')
+        .put('/api/v1/reports/scouting/999999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1912,7 +1912,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/scouting/${otherTeamReport.id}`)
+        .put(`/api/v1/reports/scouting/${otherTeamReport.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1941,7 +1941,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/scouting/${report.id}`)
+        .put(`/api/v1/reports/scouting/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1969,7 +1969,7 @@ describe('Reports API - Scouting Reports', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/reports/scouting/${report.id}`)
+        .put(`/api/v1/reports/scouting/${report.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send(updateData)
@@ -1994,7 +1994,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/custom/${report.id}`)
+        .get(`/api/v1/reports/custom/${report.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2015,7 +2015,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/custom/${report.id}`)
+        .get(`/api/v1/reports/custom/${report.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2029,7 +2029,7 @@ describe('Reports API - Scouting Reports', () => {
 
     it('should return 404 for non-existent report', async () => {
       const response = await request(app)
-        .get('/api/reports/custom/999999')
+        .get('/api/v1/reports/custom/999999')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -2046,7 +2046,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/custom/${otherTeamReport.id}`)
+        .get(`/api/v1/reports/custom/${otherTeamReport.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -2063,7 +2063,7 @@ describe('Reports API - Scouting Reports', () => {
       });
 
       const response = await request(app)
-        .get(`/api/reports/custom/${report.id}`)
+        .get(`/api/v1/reports/custom/${report.id}`)
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -2211,7 +2211,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
   describe('GET /api/reports/player-performance', () => {
     it('should return player performance data for authenticated user team', async () => {
       const response = await request(app)
-        .get('/api/reports/player-performance')
+        .get('/api/v1/reports/player-performance')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2226,7 +2226,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should return players sorted alphabetically by name', async () => {
       const response = await request(app)
-        .get('/api/reports/player-performance')
+        .get('/api/v1/reports/player-performance')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2239,7 +2239,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should include performance statistics in response', async () => {
       const response = await request(app)
-        .get('/api/reports/player-performance')
+        .get('/api/v1/reports/player-performance')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2257,7 +2257,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should filter by position', async () => {
       const response = await request(app)
-        .get('/api/reports/player-performance?position=C')
+        .get('/api/v1/reports/player-performance?position=C')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2270,7 +2270,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should filter by date range', async () => {
       const response = await request(app)
-        .get('/api/reports/player-performance?start_date=2024-01-01&end_date=2024-12-31')
+        .get('/api/v1/reports/player-performance?start_date=2024-01-01&end_date=2024-12-31')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2282,7 +2282,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should only return team players (team isolation)', async () => {
       const response = await request(app)
-        .get('/api/reports/player-performance')
+        .get('/api/v1/reports/player-performance')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2307,7 +2307,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       const noTeamToken = jwt.sign({ id: userWithoutTeam.id }, process.env.JWT_SECRET || 'test_secret');
 
       const response = await request(app)
-        .get('/api/reports/player-performance')
+        .get('/api/v1/reports/player-performance')
         .set('Authorization', `Bearer ${noTeamToken}`)
         .expect(400);
 
@@ -2320,7 +2320,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/reports/player-performance')
+        .get('/api/v1/reports/player-performance')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -2330,7 +2330,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
   describe('GET /api/reports/team-statistics', () => {
     it('should return team statistics for authenticated user team', async () => {
       const response = await request(app)
-        .get('/api/reports/team-statistics')
+        .get('/api/v1/reports/team-statistics')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2348,7 +2348,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should calculate team batting average correctly', async () => {
       const response = await request(app)
-        .get('/api/reports/team-statistics')
+        .get('/api/v1/reports/team-statistics')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2359,7 +2359,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should calculate team ERA correctly', async () => {
       const response = await request(app)
-        .get('/api/reports/team-statistics')
+        .get('/api/v1/reports/team-statistics')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2370,7 +2370,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should calculate win/loss record correctly', async () => {
       const response = await request(app)
-        .get('/api/reports/team-statistics')
+        .get('/api/v1/reports/team-statistics')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2406,7 +2406,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       await invalidTeam.destroy();
 
       const response = await request(app)
-        .get('/api/reports/team-statistics')
+        .get('/api/v1/reports/team-statistics')
         .set('Authorization', `Bearer ${tempToken}`)
         .expect(404);
 
@@ -2419,7 +2419,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/reports/team-statistics')
+        .get('/api/v1/reports/team-statistics')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -2444,7 +2444,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports/scouting-analysis')
+        .get('/api/v1/reports/scouting-analysis')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2474,7 +2474,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports/scouting-analysis')
+        .get('/api/v1/reports/scouting-analysis')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2507,7 +2507,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports/scouting-analysis')
+        .get('/api/v1/reports/scouting-analysis')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2529,7 +2529,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       }
 
       const response = await request(app)
-        .get('/api/reports/scouting-analysis')
+        .get('/api/v1/reports/scouting-analysis')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2561,7 +2561,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports/scouting-analysis?start_date=2024-01-15&end_date=2024-01-31')
+        .get('/api/v1/reports/scouting-analysis?start_date=2024-01-15&end_date=2024-01-31')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2596,7 +2596,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       });
 
       const response = await request(app)
-        .get('/api/reports/scouting-analysis')
+        .get('/api/v1/reports/scouting-analysis')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2610,7 +2610,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/reports/scouting-analysis')
+        .get('/api/v1/reports/scouting-analysis')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -2618,7 +2618,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should require reports_view permission', async () => {
       const response = await request(app)
-        .get('/api/reports/scouting-analysis')
+        .get('/api/v1/reports/scouting-analysis')
         .set('Authorization', `Bearer ${userWithoutPermissionsToken}`)
         .expect(403);
 
@@ -2630,7 +2630,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
   describe('GET /api/reports/recruitment-pipeline', () => {
     it('should return recruitment pipeline data', async () => {
       const response = await request(app)
-        .get('/api/reports/recruitment-pipeline')
+        .get('/api/v1/reports/recruitment-pipeline')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2643,7 +2643,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should return mock pipeline stages', async () => {
       const response = await request(app)
-        .get('/api/reports/recruitment-pipeline')
+        .get('/api/v1/reports/recruitment-pipeline')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2660,7 +2660,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should include player counts and grades for each stage', async () => {
       const response = await request(app)
-        .get('/api/reports/recruitment-pipeline')
+        .get('/api/v1/reports/recruitment-pipeline')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2674,7 +2674,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should include filters in response', async () => {
       const response = await request(app)
-        .get('/api/reports/recruitment-pipeline?year=2024')
+        .get('/api/v1/reports/recruitment-pipeline?year=2024')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -2685,7 +2685,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/reports/recruitment-pipeline')
+        .get('/api/v1/reports/recruitment-pipeline')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -2702,7 +2702,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/generate-pdf')
+        .post('/api/v1/reports/generate-pdf')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2724,7 +2724,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/reports/generate-pdf')
+          .post('/api/v1/reports/generate-pdf')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2743,7 +2743,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/generate-pdf')
+        .post('/api/v1/reports/generate-pdf')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2761,7 +2761,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/generate-pdf')
+        .post('/api/v1/reports/generate-pdf')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send(requestData)
@@ -2781,7 +2781,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/export-excel')
+        .post('/api/v1/reports/export-excel')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2803,7 +2803,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/reports/export-excel')
+          .post('/api/v1/reports/export-excel')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -2822,7 +2822,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/export-excel')
+        .post('/api/v1/reports/export-excel')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2840,7 +2840,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/reports/export-excel')
+        .post('/api/v1/reports/export-excel')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send(requestData)

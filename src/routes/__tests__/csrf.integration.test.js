@@ -54,7 +54,7 @@ describe('CSRF Protection - Integration Tests', () => {
   describe('GET /api/auth/csrf-token - CSRF Token Endpoint', () => {
     it('should return a valid CSRF token', async () => {
       const response = await request(app)
-        .get('/api/auth/csrf-token')
+        .get('/api/v1/auth/csrf-token')
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -65,7 +65,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
     it('should set CSRF cookie when generating token', async () => {
       const response = await request(app)
-        .get('/api/auth/csrf-token')
+        .get('/api/v1/auth/csrf-token')
         .expect(200);
 
       const cookies = response.headers['set-cookie'];
@@ -79,11 +79,11 @@ describe('CSRF Protection - Integration Tests', () => {
 
     it('should generate different tokens on subsequent calls', async () => {
       const response1 = await request(app)
-        .get('/api/auth/csrf-token')
+        .get('/api/v1/auth/csrf-token')
         .expect(200);
 
       const response2 = await request(app)
-        .get('/api/auth/csrf-token')
+        .get('/api/v1/auth/csrf-token')
         .expect(200);
 
       expect(response1.body.token).not.toBe(response2.body.token);
@@ -92,7 +92,7 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should not require CSRF token for GET request', async () => {
       // GET requests should work without CSRF token
       const response = await request(app)
-        .get('/api/auth/csrf-token')
+        .get('/api/v1/auth/csrf-token')
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -102,7 +102,7 @@ describe('CSRF Protection - Integration Tests', () => {
   describe('POST Requests - CSRF Protection', () => {
     it('should reject POST /api/auth/register without CSRF token', async () => {
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email: 'csrf-test-register@example.com',
           first_name: 'Test',
@@ -118,7 +118,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
     it('should reject POST /api/auth/login without CSRF token', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: testUser.email,
           password: testPassword
@@ -131,7 +131,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
     it('should reject POST /api/auth/logout without CSRF token', async () => {
       const response = await request(app)
-        .post('/api/auth/logout')
+        .post('/api/v1/auth/logout')
         .expect(403);
 
       expect(response.body.success).toBe(false);
@@ -141,7 +141,7 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should accept POST /api/auth/register with valid CSRF token', async () => {
       // First, get a valid CSRF token
       const csrfResponse = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       const csrfToken = csrfResponse.body.token;
       const csrfCookies = csrfResponse.headers['set-cookie'];
@@ -153,7 +153,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
       // Now make the POST request with CSRF token
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .set('Cookie', csrfCookies)
         .set('x-csrf-token', csrfToken)
         .send({
@@ -178,14 +178,14 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should accept POST /api/auth/login with valid CSRF token', async () => {
       // Get CSRF token
       const csrfResponse = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       const csrfToken = csrfResponse.body.token;
       const csrfCookies = csrfResponse.headers['set-cookie'];
 
       // Login with CSRF token
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', csrfCookies)
         .set('x-csrf-token', csrfToken)
         .send({
@@ -207,14 +207,14 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should accept POST /api/auth/logout with valid CSRF token', async () => {
       // Get CSRF token
       const csrfResponse = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       const csrfToken = csrfResponse.body.token;
       const csrfCookies = csrfResponse.headers['set-cookie'];
 
       // Logout with CSRF token
       const response = await request(app)
-        .post('/api/auth/logout')
+        .post('/api/v1/auth/logout')
         .set('Cookie', csrfCookies)
         .set('x-csrf-token', csrfToken)
         .expect(200);
@@ -225,7 +225,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
     it('should reject POST request with invalid CSRF token', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('x-csrf-token', 'invalid-token-12345')
         .send({
           email: testUser.email,
@@ -240,13 +240,13 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should reject POST request with CSRF token but no cookie', async () => {
       // Get CSRF token (but don't use the cookie)
       const csrfResponse = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       const csrfToken = csrfResponse.body.token;
 
       // Make request with token header but without cookie
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('x-csrf-token', csrfToken)
         .send({
           email: testUser.email,
@@ -261,18 +261,18 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should reject POST request with mismatched CSRF token and cookie', async () => {
       // Get first CSRF token
       const csrfResponse1 = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       // Get second CSRF token
       const csrfResponse2 = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       // Use token from first response with cookie from second response (mismatch)
       const token1 = csrfResponse1.body.token;
       const cookies2 = csrfResponse2.headers['set-cookie'];
 
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies2)
         .set('x-csrf-token', token1)
         .send({
@@ -290,7 +290,7 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should allow GET /api/auth/me without CSRF token (but requires auth)', async () => {
       // This test verifies CSRF isn't required for GET, but auth is still required
       const response = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .expect(401); // Unauthorized because no auth token, not 403 CSRF error
 
       expect(response.body.success).toBe(false);
@@ -302,13 +302,13 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should allow authenticated GET request without CSRF token', async () => {
       // Login to get auth cookie (with CSRF token for the POST)
       const csrfResponse = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       const csrfToken = csrfResponse.body.token;
       const csrfCookies = csrfResponse.headers['set-cookie'];
 
       const loginResponse = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', csrfCookies)
         .set('x-csrf-token', csrfToken)
         .send({
@@ -320,7 +320,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
       // Now GET request with auth cookie but no CSRF token should work
       const response = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Cookie', authCookies)
         .expect(200);
 
@@ -333,10 +333,10 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should reject PUT /api/auth/change-password without CSRF token', async () => {
       // First login to get auth cookie
       const csrfResponse = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       const loginResponse = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', csrfResponse.headers['set-cookie'])
         .set('x-csrf-token', csrfResponse.body.token)
         .send({
@@ -348,7 +348,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
       // Try to change password without CSRF token
       const response = await request(app)
-        .put('/api/auth/change-password')
+        .put('/api/v1/auth/change-password')
         .set('Cookie', authCookies)
         .send({
           current_password: testPassword,
@@ -363,14 +363,14 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should accept PUT /api/auth/change-password with valid CSRF token', async () => {
       // Get CSRF token
       const csrfResponse = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       const csrfToken = csrfResponse.body.token;
       const csrfCookies = csrfResponse.headers['set-cookie'];
 
       // Login with CSRF token
       const loginResponse = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', csrfCookies)
         .set('x-csrf-token', csrfToken)
         .send({
@@ -382,7 +382,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
       // Get new CSRF token for the PUT request
       const csrfResponse2 = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       const csrfToken2 = csrfResponse2.body.token;
       const csrfCookies2 = csrfResponse2.headers['set-cookie'];
@@ -394,7 +394,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
       // Change password with CSRF token
       const response = await request(app)
-        .put('/api/auth/change-password')
+        .put('/api/v1/auth/change-password')
         .set('Cookie', allCookies)
         .set('x-csrf-token', csrfToken2)
         .send({
@@ -407,10 +407,10 @@ describe('CSRF Protection - Integration Tests', () => {
 
       // Change password back for other tests
       const csrfResponse3 = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       await request(app)
-        .put('/api/auth/change-password')
+        .put('/api/v1/auth/change-password')
         .set('Cookie', [...authCookies, ...csrfResponse3.headers['set-cookie']])
         .set('x-csrf-token', csrfResponse3.body.token)
         .send({
@@ -424,10 +424,10 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should maintain separate CSRF tokens for different sessions', async () => {
       // Get two separate CSRF tokens
       const response1 = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       const response2 = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       // Tokens should be different
       expect(response1.body.token).not.toBe(response2.body.token);
@@ -442,7 +442,7 @@ describe('CSRF Protection - Integration Tests', () => {
       });
 
       const registerResponse = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .set('Cookie', cookies1)
         .set('x-csrf-token', token1)
         .send({
@@ -465,14 +465,14 @@ describe('CSRF Protection - Integration Tests', () => {
     it('should allow reusing same CSRF token multiple times', async () => {
       // Get CSRF token once
       const csrfResponse = await request(app)
-        .get('/api/auth/csrf-token');
+        .get('/api/v1/auth/csrf-token');
 
       const csrfToken = csrfResponse.body.token;
       const csrfCookies = csrfResponse.headers['set-cookie'];
 
       // Use the same token for multiple requests
       const response1 = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', csrfCookies)
         .set('x-csrf-token', csrfToken)
         .send({
@@ -484,7 +484,7 @@ describe('CSRF Protection - Integration Tests', () => {
       expect(response1.body.success).toBe(true);
 
       const response2 = await request(app)
-        .post('/api/auth/logout')
+        .post('/api/v1/auth/logout')
         .set('Cookie', csrfCookies)
         .set('x-csrf-token', csrfToken)
         .expect(200);
@@ -496,7 +496,7 @@ describe('CSRF Protection - Integration Tests', () => {
   describe('Error Response Format', () => {
     it('should return consistent error format for CSRF violations', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: testUser.email,
           password: testPassword
@@ -512,7 +512,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
     it('should use 403 status code for CSRF violations', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('x-csrf-token', 'invalid-token')
         .send({
           email: testUser.email,

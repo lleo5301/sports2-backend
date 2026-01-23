@@ -77,7 +77,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
   describe('GET /api/recruits', () => {
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/recruits')
+        .get('/api/v1/recruits')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -85,7 +85,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
     it('should return empty array when no recruits exist', async () => {
       const response = await request(app)
-        .get('/api/recruits')
+        .get('/api/v1/recruits')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -146,7 +146,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits')
+        .get('/api/v1/recruits')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -182,7 +182,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits')
+        .get('/api/v1/recruits')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -207,7 +207,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       }
 
       const response = await request(app)
-        .get('/api/recruits?page=1&limit=2')
+        .get('/api/v1/recruits?page=1&limit=2')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -245,7 +245,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits?school_type=HS')
+        .get('/api/v1/recruits?school_type=HS')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -279,7 +279,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits?school_type=COLL')
+        .get('/api/v1/recruits?school_type=COLL')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -313,7 +313,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits?position=SS')
+        .get('/api/v1/recruits?position=SS')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -347,7 +347,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits?search=mich')
+        .get('/api/v1/recruits?search=mich')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -380,7 +380,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits?search=john')
+        .get('/api/v1/recruits?search=john')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -413,7 +413,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits?search=lincoln')
+        .get('/api/v1/recruits?search=lincoln')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -446,7 +446,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits?search=hous')
+        .get('/api/v1/recruits?search=hous')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -479,7 +479,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits?search=CA')
+        .get('/api/v1/recruits?search=CA')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -511,7 +511,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits')
+        .get('/api/v1/recruits')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -526,7 +526,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
     it('should validate invalid school_type', async () => {
       const response = await request(app)
-        .get('/api/recruits?school_type=INVALID')
+        .get('/api/v1/recruits?school_type=INVALID')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -536,7 +536,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
     it('should validate invalid position', async () => {
       const response = await request(app)
-        .get('/api/recruits?position=INVALID')
+        .get('/api/v1/recruits?position=INVALID')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -571,7 +571,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits')
+        .get('/api/v1/recruits')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -585,7 +585,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
   describe('GET /api/recruits/preference-lists', () => {
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/recruits/preference-lists')
+        .get('/api/v1/recruits/preference-lists')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -593,7 +593,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
     it('should return empty array when no preference lists exist', async () => {
       const response = await request(app)
-        .get('/api/recruits/preference-lists')
+        .get('/api/v1/recruits/preference-lists')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -631,7 +631,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits/preference-lists')
+        .get('/api/v1/recruits/preference-lists')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -688,7 +688,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits/preference-lists')
+        .get('/api/v1/recruits/preference-lists')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -756,7 +756,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits/preference-lists?page=1&limit=2')
+        .get('/api/v1/recruits/preference-lists?page=1&limit=2')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -810,7 +810,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits/preference-lists?list_type=new_players')
+        .get('/api/v1/recruits/preference-lists?list_type=new_players')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -860,7 +860,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits/preference-lists?list_type=overall_pref_list')
+        .get('/api/v1/recruits/preference-lists?list_type=overall_pref_list')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -910,7 +910,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits/preference-lists?list_type=hs_pref_list')
+        .get('/api/v1/recruits/preference-lists?list_type=hs_pref_list')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -960,7 +960,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits/preference-lists?list_type=college_transfers')
+        .get('/api/v1/recruits/preference-lists?list_type=college_transfers')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1012,7 +1012,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits/preference-lists?status=active')
+        .get('/api/v1/recruits/preference-lists?status=active')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1064,7 +1064,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits/preference-lists?status=committed')
+        .get('/api/v1/recruits/preference-lists?status=committed')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1133,7 +1133,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       });
 
       const response = await request(app)
-        .get('/api/recruits/preference-lists')
+        .get('/api/v1/recruits/preference-lists')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -1146,7 +1146,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
     it('should validate invalid list_type', async () => {
       const response = await request(app)
-        .get('/api/recruits/preference-lists?list_type=INVALID')
+        .get('/api/v1/recruits/preference-lists?list_type=INVALID')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -1156,7 +1156,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
     it('should validate invalid status', async () => {
       const response = await request(app)
-        .get('/api/recruits/preference-lists?status=INVALID')
+        .get('/api/v1/recruits/preference-lists?status=INVALID')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -1169,7 +1169,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -1195,7 +1195,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1234,7 +1234,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1267,7 +1267,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
     it('should require player_id', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1294,7 +1294,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1321,7 +1321,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1349,7 +1349,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1378,7 +1378,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1407,7 +1407,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1436,7 +1436,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1465,7 +1465,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1483,7 +1483,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
     it('should return 404 if player not found', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1511,7 +1511,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1549,7 +1549,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       // Try to create duplicate
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1587,7 +1587,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
       // Add to different list type - should succeed
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1615,7 +1615,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1646,7 +1646,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/recruits/preference-lists')
+        .post('/api/v1/recruits/preference-lists')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1668,7 +1668,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/recruits/preference-lists/123')
+        .put('/api/v1/recruits/preference-lists/123')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -1702,7 +1702,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${pref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1746,7 +1746,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${pref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1798,7 +1798,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${pref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1834,7 +1834,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${pref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1870,7 +1870,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${pref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1905,7 +1905,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${pref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1940,7 +1940,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${pref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -1975,7 +1975,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${pref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2010,7 +2010,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${pref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2026,7 +2026,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
     it('should return 404 if preference list entry not found', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/recruits/preference-lists/99999')
+        .put('/api/v1/recruits/preference-lists/99999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2061,7 +2061,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${otherPref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${otherPref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2096,7 +2096,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put(`/api/recruits/preference-lists/${pref.id}`)
+        .put(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2117,7 +2117,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/recruits/preference-lists/123')
+        .delete('/api/v1/recruits/preference-lists/123')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -2147,7 +2147,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/recruits/preference-lists/${pref.id}`)
+        .delete(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2185,7 +2185,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .delete(`/api/recruits/preference-lists/${prefId}`)
+        .delete(`/api/v1/recruits/preference-lists/${prefId}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2218,7 +2218,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       await request(app)
-        .delete(`/api/recruits/preference-lists/${pref.id}`)
+        .delete(`/api/v1/recruits/preference-lists/${pref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2233,7 +2233,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
     it('should return 404 if preference list entry not found', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete('/api/recruits/preference-lists/99999')
+        .delete('/api/v1/recruits/preference-lists/99999')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -2265,7 +2265,7 @@ describe('Recruits API - Complete CRUD Tests', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/recruits/preference-lists/${otherPref.id}`)
+        .delete(`/api/v1/recruits/preference-lists/${otherPref.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)

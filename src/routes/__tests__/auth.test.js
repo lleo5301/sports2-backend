@@ -84,7 +84,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject password that is too short', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/auth/register')
+          .post('/api/v1/auth/register')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -108,7 +108,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject password without uppercase letter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/auth/register')
+          .post('/api/v1/auth/register')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -132,7 +132,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject password without lowercase letter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/auth/register')
+          .post('/api/v1/auth/register')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -156,7 +156,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject password without digit', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/auth/register')
+          .post('/api/v1/auth/register')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -180,7 +180,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject password without special character', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/auth/register')
+          .post('/api/v1/auth/register')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -204,7 +204,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject commonly used weak password "123456"', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/auth/register')
+          .post('/api/v1/auth/register')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -220,7 +220,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject commonly used weak password "password"', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/auth/register')
+          .post('/api/v1/auth/register')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -238,7 +238,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should accept password meeting all requirements', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/auth/register')
+          .post('/api/v1/auth/register')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -277,7 +277,7 @@ describe('Auth Routes - Password Validation', () => {
 
           const { token, cookies } = await getCsrfToken(app);
           const response = await request(app)
-            .post('/api/auth/register')
+            .post('/api/v1/auth/register')
             .set('Cookie', cookies)
             .set('x-csrf-token', token)
             .send({
@@ -295,7 +295,7 @@ describe('Auth Routes - Password Validation', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .post('/api/auth/register')
+          .post('/api/v1/auth/register')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -314,7 +314,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject new password that is too short', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/auth/change-password')
+          .put('/api/v1/auth/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -339,7 +339,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject new password without uppercase letter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/auth/change-password')
+          .put('/api/v1/auth/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -364,7 +364,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject new password without lowercase letter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/auth/change-password')
+          .put('/api/v1/auth/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -389,7 +389,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject new password without digit', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/auth/change-password')
+          .put('/api/v1/auth/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -414,7 +414,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject new password without special character', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/auth/change-password')
+          .put('/api/v1/auth/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -443,7 +443,7 @@ describe('Auth Routes - Password Validation', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/auth/change-password')
+          .put('/api/v1/auth/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -468,7 +468,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should return 401 when no token is provided', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/auth/change-password')
+          .put('/api/v1/auth/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -484,7 +484,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should return 401 when invalid token is provided', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/auth/change-password')
+          .put('/api/v1/auth/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', 'Bearer invalid_token')
@@ -502,7 +502,7 @@ describe('Auth Routes - Password Validation', () => {
       it('should reject when current password is incorrect', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/auth/change-password')
+          .put('/api/v1/auth/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -525,7 +525,7 @@ describe('Auth Routes - Password Validation', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -555,7 +555,7 @@ describe('Auth Routes - Password Validation', () => {
     it('should set JWT token as httpOnly cookie on successful login', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -582,7 +582,7 @@ describe('Auth Routes - Password Validation', () => {
     it('should include team information in login response', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -600,7 +600,7 @@ describe('Auth Routes - Password Validation', () => {
     it('should reject login with invalid credentials', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -623,7 +623,7 @@ describe('Auth Routes - Password Validation', () => {
     it('should reject login with non-existent email', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -641,7 +641,7 @@ describe('Auth Routes - Password Validation', () => {
     it('should clear JWT token cookie on logout', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/logout')
+        .post('/api/v1/auth/logout')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(200);
@@ -663,7 +663,7 @@ describe('Auth Routes - Password Validation', () => {
     it('should clear CSRF token cookie on logout', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/logout')
+        .post('/api/v1/auth/logout')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(200);
@@ -682,7 +682,7 @@ describe('Auth Routes - Password Validation', () => {
       // Logout should work even if user is not authenticated
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/logout')
+        .post('/api/v1/auth/logout')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(200);
@@ -698,7 +698,7 @@ describe('Auth Routes - Password Validation', () => {
       // Login to get cookies for protected route tests
       const { token, cookies } = await getCsrfToken(app);
       const loginResponse = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .send({
@@ -711,7 +711,7 @@ describe('Auth Routes - Password Validation', () => {
 
     it('should access protected route with cookie authentication', async () => {
       const response = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Cookie', loginCookies)
         .expect(200);
 
@@ -723,7 +723,7 @@ describe('Auth Routes - Password Validation', () => {
     it('should support Bearer token authentication (backward compatibility)', async () => {
       // Tests should still work with Bearer token for backward compatibility
       const response = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -734,7 +734,7 @@ describe('Auth Routes - Password Validation', () => {
 
     it('should reject access without authentication', async () => {
       const response = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -746,7 +746,7 @@ describe('Auth Routes - Password Validation', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/auth/change-password')
+        .put('/api/v1/auth/change-password')
         .set('Cookie', [...loginCookies, ...cookies])
         .set('x-csrf-token', token)
         .send({
@@ -761,7 +761,7 @@ describe('Auth Routes - Password Validation', () => {
       // Change password back for other tests
       const { token: token2, cookies: cookies2 } = await getCsrfToken(app);
       await request(app)
-        .put('/api/auth/change-password')
+        .put('/api/v1/auth/change-password')
         .set('Cookie', [...loginCookies, ...cookies2])
         .set('x-csrf-token', token2)
         .send({
@@ -829,7 +829,7 @@ describe('Auth Routes - Token Revocation', () => {
     it('should successfully logout and blacklist the current token', async () => {
       // First, verify the token works
       const preLogoutResponse = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -838,7 +838,7 @@ describe('Auth Routes - Token Revocation', () => {
       // Logout
       const { token, cookies } = await getCsrfToken(app);
       const logoutResponse = await request(app)
-        .post('/api/auth/logout')
+        .post('/api/v1/auth/logout')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -849,7 +849,7 @@ describe('Auth Routes - Token Revocation', () => {
 
       // Verify the token no longer works
       const postLogoutResponse = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(401);
 
@@ -860,7 +860,7 @@ describe('Auth Routes - Token Revocation', () => {
     it('should require authentication', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/logout')
+        .post('/api/v1/auth/logout')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .expect(401);
@@ -872,7 +872,7 @@ describe('Auth Routes - Token Revocation', () => {
     it('should handle logout with invalid token', async () => {
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/logout')
+        .post('/api/v1/auth/logout')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', 'Bearer invalid_token')
@@ -930,13 +930,13 @@ describe('Auth Routes - Token Revocation', () => {
     it('should revoke all sessions without keeping current session', async () => {
       // Verify both tokens work before revocation
       const preRevoke1 = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token1}`)
         .expect(200);
       expect(preRevoke1.body.success).toBe(true);
 
       const preRevoke2 = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token2}`)
         .expect(200);
       expect(preRevoke2.body.success).toBe(true);
@@ -944,7 +944,7 @@ describe('Auth Routes - Token Revocation', () => {
       // Revoke all sessions without keeping current
       const { token: csrfToken, cookies } = await getCsrfToken(app);
       const revokeResponse = await request(app)
-        .post('/api/auth/revoke-all-sessions')
+        .post('/api/v1/auth/revoke-all-sessions')
         .set('Cookie', cookies)
         .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${token1}`)
@@ -957,13 +957,13 @@ describe('Auth Routes - Token Revocation', () => {
 
       // Verify both tokens are now invalid
       const postRevoke1 = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token1}`)
         .expect(401);
       expect(postRevoke1.body.error).toBe('Token has been revoked');
 
       const postRevoke2 = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token2}`)
         .expect(401);
       expect(postRevoke2.body.error).toBe('Token has been revoked');
@@ -972,19 +972,19 @@ describe('Auth Routes - Token Revocation', () => {
     it('should revoke all sessions while keeping current session active', async () => {
       // Verify both tokens work before revocation
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token1}`)
         .expect(200);
 
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token2}`)
         .expect(200);
 
       // Revoke all sessions while keeping current
       const { token: csrfToken, cookies } = await getCsrfToken(app);
       const revokeResponse = await request(app)
-        .post('/api/auth/revoke-all-sessions')
+        .post('/api/v1/auth/revoke-all-sessions')
         .set('Cookie', cookies)
         .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${token1}`)
@@ -1000,18 +1000,18 @@ describe('Auth Routes - Token Revocation', () => {
 
       // Verify old tokens are now invalid
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token1}`)
         .expect(401);
 
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token2}`)
         .expect(401);
 
       // Verify new token works
       const newTokenResponse = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${newToken}`)
         .expect(200);
 
@@ -1022,7 +1022,7 @@ describe('Auth Routes - Token Revocation', () => {
     it('should require authentication', async () => {
       const { token: csrfToken, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/auth/revoke-all-sessions')
+        .post('/api/v1/auth/revoke-all-sessions')
         .set('Cookie', cookies)
         .set('x-csrf-token', csrfToken)
         .send({ keepCurrent: false })
@@ -1036,7 +1036,7 @@ describe('Auth Routes - Token Revocation', () => {
       // Revoke without specifying keepCurrent
       const { token: csrfToken, cookies } = await getCsrfToken(app);
       const revokeResponse = await request(app)
-        .post('/api/auth/revoke-all-sessions')
+        .post('/api/v1/auth/revoke-all-sessions')
         .set('Cookie', cookies)
         .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${token1}`)
@@ -1048,7 +1048,7 @@ describe('Auth Routes - Token Revocation', () => {
 
       // Verify token is revoked
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token1}`)
         .expect(401);
     });
@@ -1091,7 +1091,7 @@ describe('Auth Routes - Token Revocation', () => {
 
       const { token: csrfToken, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .put('/api/auth/change-password')
+        .put('/api/v1/auth/change-password')
         .set('Cookie', cookies)
         .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${oldToken}`)
@@ -1114,14 +1114,14 @@ describe('Auth Routes - Token Revocation', () => {
 
       // Verify old token works before password change
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${oldToken}`)
         .expect(200);
 
       // Change password
       const { token: csrfToken, cookies } = await getCsrfToken(app);
       const changeResponse = await request(app)
-        .put('/api/auth/change-password')
+        .put('/api/v1/auth/change-password')
         .set('Cookie', cookies)
         .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${oldToken}`)
@@ -1135,7 +1135,7 @@ describe('Auth Routes - Token Revocation', () => {
 
       // Verify old token is now invalid
       const oldTokenResponse = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${oldToken}`)
         .expect(401);
 
@@ -1143,7 +1143,7 @@ describe('Auth Routes - Token Revocation', () => {
 
       // Verify new token works
       const newTokenResponse = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${newToken}`)
         .expect(200);
 
@@ -1166,19 +1166,19 @@ describe('Auth Routes - Token Revocation', () => {
 
       // Verify both old tokens work
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${oldToken}`)
         .expect(200);
 
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${oldToken2}`)
         .expect(200);
 
       // Change password using first token
       const { token: csrfToken, cookies } = await getCsrfToken(app);
       const changeResponse = await request(app)
-        .put('/api/auth/change-password')
+        .put('/api/v1/auth/change-password')
         .set('Cookie', cookies)
         .set('x-csrf-token', csrfToken)
         .set('Authorization', `Bearer ${oldToken}`)
@@ -1192,18 +1192,18 @@ describe('Auth Routes - Token Revocation', () => {
 
       // Verify both old tokens are now invalid
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${oldToken}`)
         .expect(401);
 
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${oldToken2}`)
         .expect(401);
 
       // Verify new token works
       const newTokenResponse = await request(app)
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${newToken}`)
         .expect(200);
 

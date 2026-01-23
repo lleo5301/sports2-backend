@@ -146,7 +146,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Default Sorting', () => {
     it('should sort by game_date DESC by default', async () => {
       const response = await request(app)
-        .get('/api/games')
+        .get('/api/v1/games')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -164,7 +164,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Sorting by game_date', () => {
     it('should sort by game_date ASC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=game_date&sortDirection=ASC')
+        .get('/api/v1/games?orderBy=game_date&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -177,7 +177,7 @@ describe('Games List Sorting API', () => {
 
     it('should sort by game_date DESC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=game_date&sortDirection=DESC')
+        .get('/api/v1/games?orderBy=game_date&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -190,7 +190,7 @@ describe('Games List Sorting API', () => {
 
     it('should handle case-insensitive sortDirection for game_date', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=game_date&sortDirection=asc')
+        .get('/api/v1/games?orderBy=game_date&sortDirection=asc')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -205,7 +205,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Sorting by opponent', () => {
     it('should sort by opponent ASC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=opponent&sortDirection=ASC')
+        .get('/api/v1/games?orderBy=opponent&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -216,7 +216,7 @@ describe('Games List Sorting API', () => {
 
     it('should sort by opponent DESC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=opponent&sortDirection=DESC')
+        .get('/api/v1/games?orderBy=opponent&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -229,7 +229,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Sorting by home_away', () => {
     it('should sort by home_away ASC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=home_away&sortDirection=ASC')
+        .get('/api/v1/games?orderBy=home_away&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -247,7 +247,7 @@ describe('Games List Sorting API', () => {
 
     it('should sort by home_away DESC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=home_away&sortDirection=DESC')
+        .get('/api/v1/games?orderBy=home_away&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -263,7 +263,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Sorting by result', () => {
     it('should sort by result ASC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=result&sortDirection=ASC')
+        .get('/api/v1/games?orderBy=result&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -276,7 +276,7 @@ describe('Games List Sorting API', () => {
 
     it('should sort by result DESC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=result&sortDirection=DESC')
+        .get('/api/v1/games?orderBy=result&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -291,7 +291,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Sorting by team_score', () => {
     it('should sort by team_score ASC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=team_score&sortDirection=ASC')
+        .get('/api/v1/games?orderBy=team_score&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -304,7 +304,7 @@ describe('Games List Sorting API', () => {
 
     it('should sort by team_score DESC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=team_score&sortDirection=DESC')
+        .get('/api/v1/games?orderBy=team_score&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -319,7 +319,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Sorting by opponent_score', () => {
     it('should sort by opponent_score ASC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=opponent_score&sortDirection=ASC')
+        .get('/api/v1/games?orderBy=opponent_score&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -332,7 +332,7 @@ describe('Games List Sorting API', () => {
 
     it('should sort by opponent_score DESC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=opponent_score&sortDirection=DESC')
+        .get('/api/v1/games?orderBy=opponent_score&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -347,7 +347,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Sorting by season', () => {
     it('should sort by season ASC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=season&sortDirection=ASC')
+        .get('/api/v1/games?orderBy=season&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -360,7 +360,7 @@ describe('Games List Sorting API', () => {
 
     it('should sort by season DESC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=season&sortDirection=DESC')
+        .get('/api/v1/games?orderBy=season&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -375,7 +375,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Sorting by created_at', () => {
     it('should sort by created_at ASC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=created_at&sortDirection=ASC')
+        .get('/api/v1/games?orderBy=created_at&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -388,7 +388,7 @@ describe('Games List Sorting API', () => {
 
     it('should sort by created_at DESC', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=created_at&sortDirection=DESC')
+        .get('/api/v1/games?orderBy=created_at&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -403,7 +403,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Validation', () => {
     it('should return 400 for invalid orderBy column', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=invalid_column&sortDirection=ASC')
+        .get('/api/v1/games?orderBy=invalid_column&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -415,7 +415,7 @@ describe('Games List Sorting API', () => {
 
     it('should return 400 for invalid sortDirection', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=game_date&sortDirection=INVALID')
+        .get('/api/v1/games?orderBy=game_date&sortDirection=INVALID')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -426,7 +426,7 @@ describe('Games List Sorting API', () => {
 
     it('should return 400 for both invalid orderBy and sortDirection', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=bad_column&sortDirection=BAD_DIR')
+        .get('/api/v1/games?orderBy=bad_column&sortDirection=BAD_DIR')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -440,7 +440,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Sorting with Filters', () => {
     it('should sort filtered results by opponent (filter by season)', async () => {
       const response = await request(app)
-        .get('/api/games?season=2024&orderBy=opponent&sortDirection=ASC')
+        .get('/api/v1/games?season=2024&orderBy=opponent&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -452,7 +452,7 @@ describe('Games List Sorting API', () => {
 
     it('should sort filtered results by game_date (filter by result)', async () => {
       const response = await request(app)
-        .get('/api/games?result=W&orderBy=game_date&sortDirection=ASC')
+        .get('/api/v1/games?result=W&orderBy=game_date&sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -466,7 +466,7 @@ describe('Games List Sorting API', () => {
 
     it('should sort filtered results with multiple filters', async () => {
       const response = await request(app)
-        .get('/api/games?season=2024&result=W&orderBy=team_score&sortDirection=DESC')
+        .get('/api/v1/games?season=2024&result=W&orderBy=team_score&sortDirection=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -480,7 +480,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Sorting with Pagination', () => {
     it('should sort and paginate correctly', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=opponent&sortDirection=ASC&page=1&limit=2')
+        .get('/api/v1/games?orderBy=opponent&sortDirection=ASC&page=1&limit=2')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -497,12 +497,12 @@ describe('Games List Sorting API', () => {
 
     it('should maintain sort order across pages', async () => {
       const page1Response = await request(app)
-        .get('/api/games?orderBy=game_date&sortDirection=ASC&page=1&limit=3')
+        .get('/api/v1/games?orderBy=game_date&sortDirection=ASC&page=1&limit=3')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       const page2Response = await request(app)
-        .get('/api/games?orderBy=game_date&sortDirection=ASC&page=2&limit=3')
+        .get('/api/v1/games?orderBy=game_date&sortDirection=ASC&page=2&limit=3')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -522,7 +522,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Edge Cases', () => {
     it('should use default sorting when only orderBy is provided', async () => {
       const response = await request(app)
-        .get('/api/games?orderBy=opponent')
+        .get('/api/v1/games?orderBy=opponent')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -534,7 +534,7 @@ describe('Games List Sorting API', () => {
 
     it('should ignore sortDirection when orderBy is not provided', async () => {
       const response = await request(app)
-        .get('/api/games?sortDirection=ASC')
+        .get('/api/v1/games?sortDirection=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -550,7 +550,7 @@ describe('Games List Sorting API', () => {
   describe('GET /api/games - Authentication and Authorization', () => {
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/games')
+        .get('/api/v1/games')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -595,7 +595,7 @@ describe('Games List Sorting API', () => {
 
       it('should search by opponent name', async () => {
         const response = await request(app)
-          .get('/api/games?search=Eagles')
+          .get('/api/v1/games?search=Eagles')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -606,7 +606,7 @@ describe('Games List Sorting API', () => {
 
       it('should search by location', async () => {
         const response = await request(app)
-          .get('/api/games?search=Riverside')
+          .get('/api/v1/games?search=Riverside')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -618,7 +618,7 @@ describe('Games List Sorting API', () => {
 
       it('should search by season', async () => {
         const response = await request(app)
-          .get('/api/games?search=Fall')
+          .get('/api/v1/games?search=Fall')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -630,7 +630,7 @@ describe('Games List Sorting API', () => {
 
       it('should search by notes', async () => {
         const response = await request(app)
-          .get('/api/games?search=playoff')
+          .get('/api/v1/games?search=playoff')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -642,7 +642,7 @@ describe('Games List Sorting API', () => {
 
       it('should perform case-insensitive search', async () => {
         const response = await request(app)
-          .get('/api/games?search=EAGLES')
+          .get('/api/v1/games?search=EAGLES')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -653,7 +653,7 @@ describe('Games List Sorting API', () => {
 
       it('should return empty array when search has no matches', async () => {
         const response = await request(app)
-          .get('/api/games?search=NonexistentTeam')
+          .get('/api/v1/games?search=NonexistentTeam')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -664,7 +664,7 @@ describe('Games List Sorting API', () => {
 
       it('should return all games when search is empty', async () => {
         const response = await request(app)
-          .get('/api/games?search=')
+          .get('/api/v1/games?search=')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -674,7 +674,7 @@ describe('Games List Sorting API', () => {
 
       it('should combine search with season filter', async () => {
         const response = await request(app)
-          .get('/api/games?search=2024&season=2024')
+          .get('/api/v1/games?search=2024&season=2024')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -696,7 +696,7 @@ describe('Games List Sorting API', () => {
         );
 
         const response = await request(app)
-          .get('/api/games?search=2024&result=W')
+          .get('/api/v1/games?search=2024&result=W')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -709,7 +709,7 @@ describe('Games List Sorting API', () => {
       it('should search across multiple fields', async () => {
         // Search term that appears in multiple fields
         const response = await request(app)
-          .get('/api/games?search=Memorial')
+          .get('/api/v1/games?search=Memorial')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -720,7 +720,7 @@ describe('Games List Sorting API', () => {
 
       it('should handle partial matches', async () => {
         const response = await request(app)
-          .get('/api/games?search=Eag')
+          .get('/api/v1/games?search=Eag')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -731,7 +731,7 @@ describe('Games List Sorting API', () => {
 
       it('should validate search parameter type', async () => {
         const response = await request(app)
-          .get('/api/games?search[]=invalid')
+          .get('/api/v1/games?search[]=invalid')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(400);
 
@@ -754,7 +754,7 @@ describe('Games List Sorting API', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/games')
+        .post('/api/v1/games')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -775,7 +775,7 @@ describe('Games List Sorting API', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .post('/api/games')
+        .post('/api/v1/games')
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)
@@ -799,7 +799,7 @@ describe('Games List Sorting API', () => {
       });
 
       const response = await request(app)
-        .get(`/api/games/byId/${game.id}`)
+        .get(`/api/v1/games/byId/${game.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -842,7 +842,7 @@ describe('Games List Sorting API', () => {
 
       // Should not be able to access other team's game
       const response = await request(app)
-        .get(`/api/games/byId/${otherGame.id}`)
+        .get(`/api/v1/games/byId/${otherGame.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -863,7 +863,7 @@ describe('Games List Sorting API', () => {
 
       const { token, cookies } = await getCsrfToken(app);
       const response = await request(app)
-        .delete(`/api/games/byId/${game.id}`)
+        .delete(`/api/v1/games/byId/${game.id}`)
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${authToken}`)

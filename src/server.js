@@ -98,7 +98,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Health check endpoint (no CSRF required for GET)
+// Health check endpoints (no CSRF required for GET)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -107,24 +107,33 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/players', playerRoutes);
-app.use('/api/teams', teamRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/recruits', recruitRoutes);
-app.use('/api/schedules', scheduleRoutes);
-app.use('/api/schedule-templates', scheduleTemplateRoutes);
-app.use('/api/schedule-events', scheduleEventRoutes);
-app.use('/api/locations', locationRoutes);
-app.use('/api/depth-charts', depthChartRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/games', gamesRoutes);
-app.use('/api/coaches', coachRoutes);
-app.use('/api/scouts', scoutRoutes);
-app.use('/api/vendors', vendorRoutes);
-app.use('/api/high-school-coaches', highSchoolCoachRoutes);
-app.use('/api/integrations', integrationRoutes);
+app.get('/api/v1/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    version: 'v1'
+  });
+});
+
+// API v1 routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/players', playerRoutes);
+app.use('/api/v1/teams', teamRoutes);
+app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/recruits', recruitRoutes);
+app.use('/api/v1/schedules', scheduleRoutes);
+app.use('/api/v1/schedule-templates', scheduleTemplateRoutes);
+app.use('/api/v1/schedule-events', scheduleEventRoutes);
+app.use('/api/v1/locations', locationRoutes);
+app.use('/api/v1/depth-charts', depthChartRoutes);
+app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/games', gamesRoutes);
+app.use('/api/v1/coaches', coachRoutes);
+app.use('/api/v1/scouts', scoutRoutes);
+app.use('/api/v1/vendors', vendorRoutes);
+app.use('/api/v1/high-school-coaches', highSchoolCoachRoutes);
+app.use('/api/v1/integrations', integrationRoutes);
 
 // Error handling middleware
 app.use(csrfErrorHandler); // Handle CSRF validation errors

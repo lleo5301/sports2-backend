@@ -159,7 +159,7 @@ describe('Player Performance API', () => {
   describe('GET /api/players/performance', () => {
     it('should return performance data for all active players by default', async () => {
       const response = await request(app)
-        .get('/api/players/performance')
+        .get('/api/v1/players/performance')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -184,7 +184,7 @@ describe('Player Performance API', () => {
 
     it('should filter by position', async () => {
       const response = await request(app)
-        .get('/api/players/performance?position=P')
+        .get('/api/v1/players/performance?position=P')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -197,7 +197,7 @@ describe('Player Performance API', () => {
 
     it('should filter by school type', async () => {
       const response = await request(app)
-        .get('/api/players/performance?school_type=COLL')
+        .get('/api/v1/players/performance?school_type=COLL')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -210,7 +210,7 @@ describe('Player Performance API', () => {
 
     it('should include inactive players when status filter is set', async () => {
       const response = await request(app)
-        .get('/api/players/performance?status=inactive')
+        .get('/api/v1/players/performance?status=inactive')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -221,7 +221,7 @@ describe('Player Performance API', () => {
 
     it('should sort by batting average in descending order by default', async () => {
       const response = await request(app)
-        .get('/api/players/performance')
+        .get('/api/v1/players/performance')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -236,7 +236,7 @@ describe('Player Performance API', () => {
 
     it('should sort by home runs when specified', async () => {
       const response = await request(app)
-        .get('/api/players/performance?sort_by=home_runs&order=DESC')
+        .get('/api/v1/players/performance?sort_by=home_runs&order=DESC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -251,7 +251,7 @@ describe('Player Performance API', () => {
 
     it('should sort by ERA when specified', async () => {
       const response = await request(app)
-        .get('/api/players/performance?sort_by=era&order=ASC')
+        .get('/api/v1/players/performance?sort_by=era&order=ASC')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -268,7 +268,7 @@ describe('Player Performance API', () => {
 
     it('should calculate performance scores correctly', async () => {
       const response = await request(app)
-        .get('/api/players/performance')
+        .get('/api/v1/players/performance')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -288,7 +288,7 @@ describe('Player Performance API', () => {
 
     it('should limit results when limit parameter is provided', async () => {
       const response = await request(app)
-        .get('/api/players/performance?limit=2')
+        .get('/api/v1/players/performance?limit=2')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -298,7 +298,7 @@ describe('Player Performance API', () => {
 
     it('should assign proper rankings', async () => {
       const response = await request(app)
-        .get('/api/players/performance')
+        .get('/api/v1/players/performance')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -314,13 +314,13 @@ describe('Player Performance API', () => {
 
     it('should return 401 without authentication', async () => {
       await request(app)
-        .get('/api/players/performance')
+        .get('/api/v1/players/performance')
         .expect(401);
     });
 
     it('should validate query parameters', async () => {
       const response = await request(app)
-        .get('/api/players/performance?position=INVALID&sort_by=invalid_stat')
+        .get('/api/v1/players/performance?position=INVALID&sort_by=invalid_stat')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 
@@ -331,7 +331,7 @@ describe('Player Performance API', () => {
 
     it('should handle empty results gracefully', async () => {
       const response = await request(app)
-        .get('/api/players/performance?position=DH') // No DH players in test data
+        .get('/api/v1/players/performance?position=DH') // No DH players in test data
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -367,7 +367,7 @@ describe('Player Performance API', () => {
       });
 
       const response = await request(app)
-        .get('/api/players/performance')
+        .get('/api/v1/players/performance')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 

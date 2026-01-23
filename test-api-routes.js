@@ -4,7 +4,7 @@ const tough = require('tough-cookie');
 
 // Configuration
 const BASE_URL = process.env.API_URL || 'http://localhost:5000';
-const API_BASE = `${BASE_URL}/api`;
+const API_BASE = `${BASE_URL}/api/v1`;
 
 // Setup cookie jar for CSRF token handling
 const cookieJar = new tough.CookieJar();
@@ -151,9 +151,9 @@ const setupTestData = async () => {
     // Set environment variables for database connection
     process.env.DB_HOST = process.env.DB_HOST || 'localhost';
     process.env.DB_PORT = process.env.DB_PORT || '5432';
-    process.env.DB_NAME = process.env.DB_NAME || 'sports2';
+    process.env.DB_NAME = process.env.DB_NAME || 'collegiate_baseball_test';
     process.env.DB_USER = process.env.DB_USER || 'postgres';
-    process.env.DB_PASSWORD = process.env.DB_PASSWORD || 'postgres123';
+    process.env.DB_PASSWORD = process.env.DB_PASSWORD || 'password';
     
     // Use direct database connection to ensure test data exists
     const { sequelize } = require('./src/config/database');

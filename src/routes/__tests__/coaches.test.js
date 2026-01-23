@@ -168,7 +168,7 @@ describe('Coaches API Tests', () => {
 
     it('should require authentication', async () => {
       const response = await request(app)
-        .get('/api/coaches')
+        .get('/api/v1/coaches')
         .expect(401);
 
       expect(response.body.success).toBe(false);
@@ -179,7 +179,7 @@ describe('Coaches API Tests', () => {
 
         it('should return empty array when no coaches exist', async () => {
           const response = await request(app)
-            .get('/api/coaches')
+            .get('/api/v1/coaches')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -215,7 +215,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches')
+            .get('/api/v1/coaches')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -248,7 +248,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches')
+            .get('/api/v1/coaches')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -280,7 +280,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches?status=active')
+            .get('/api/v1/coaches?status=active')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -312,7 +312,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches?status=inactive')
+            .get('/api/v1/coaches?status=inactive')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -344,7 +344,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches')
+            .get('/api/v1/coaches')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -376,7 +376,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches?position=Head Coach')
+            .get('/api/v1/coaches?position=Head Coach')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -408,7 +408,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches?position=Recruiting Coordinator')
+            .get('/api/v1/coaches?position=Recruiting Coordinator')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -440,7 +440,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches?position=Pitching Coach')
+            .get('/api/v1/coaches?position=Pitching Coach')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -472,7 +472,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches?position=Volunteer')
+            .get('/api/v1/coaches?position=Volunteer')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -506,7 +506,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches?search=john')
+            .get('/api/v1/coaches?search=john')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -540,7 +540,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches?search=johnson')
+            .get('/api/v1/coaches?search=johnson')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -574,7 +574,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches?search=lincoln')
+            .get('/api/v1/coaches?search=lincoln')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -608,7 +608,7 @@ describe('Coaches API Tests', () => {
           });
 
           const response = await request(app)
-            .get('/api/coaches?search=mjohnson')
+            .get('/api/v1/coaches?search=mjohnson')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
@@ -627,7 +627,7 @@ describe('Coaches API Tests', () => {
       describe('GET /api/coaches - Sorting by first_name', () => {
         it('should sort by first_name ASC', async () => {
           const response = await request(app)
-            .get('/api/coaches?orderBy=first_name&sortDirection=ASC&status=');
+            .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC&status=');
           expect(response.body.data[0].email).toBe('mjohnson@central.edu');
         });
 
@@ -646,14 +646,14 @@ describe('Coaches API Tests', () => {
           }
 
           const response = await request(app)
-            .get('/api/coaches?page=2&limit=10')
+            .get('/api/v1/coaches?page=2&limit=10')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
           expect(response.body.success).toBe(true);
           it('should sort by last_name ASC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=last_name&sortDirection=ASC&status=')
+              .get('/api/v1/coaches?orderBy=last_name&sortDirection=ASC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -664,7 +664,7 @@ describe('Coaches API Tests', () => {
 
           it('should sort by last_name DESC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=last_name&sortDirection=DESC&status=')
+              .get('/api/v1/coaches?orderBy=last_name&sortDirection=DESC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -677,7 +677,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Sorting by school_name', () => {
           it('should sort by school_name ASC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=school_name&sortDirection=ASC&status=')
+              .get('/api/v1/coaches?orderBy=school_name&sortDirection=ASC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -688,7 +688,7 @@ describe('Coaches API Tests', () => {
 
           it('should sort by school_name DESC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=school_name&sortDirection=DESC&status=')
+              .get('/api/v1/coaches?orderBy=school_name&sortDirection=DESC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -701,7 +701,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Sorting by position', () => {
           it('should sort by position ASC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=position&sortDirection=ASC&status=')
+              .get('/api/v1/coaches?orderBy=position&sortDirection=ASC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -714,7 +714,7 @@ describe('Coaches API Tests', () => {
 
           it('should sort by position DESC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=position&sortDirection=DESC&status=')
+              .get('/api/v1/coaches?orderBy=position&sortDirection=DESC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -729,7 +729,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Sorting by last_contact_date', () => {
           it('should sort by last_contact_date ASC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=last_contact_date&sortDirection=ASC&status=')
+              .get('/api/v1/coaches?orderBy=last_contact_date&sortDirection=ASC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -742,7 +742,7 @@ describe('Coaches API Tests', () => {
 
           it('should sort by last_contact_date DESC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=last_contact_date&sortDirection=DESC&status=')
+              .get('/api/v1/coaches?orderBy=last_contact_date&sortDirection=DESC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -757,7 +757,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Sorting by next_contact_date', () => {
           it('should sort by next_contact_date ASC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=next_contact_date&sortDirection=ASC&status=')
+              .get('/api/v1/coaches?orderBy=next_contact_date&sortDirection=ASC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -770,7 +770,7 @@ describe('Coaches API Tests', () => {
 
           it('should sort by next_contact_date DESC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=next_contact_date&sortDirection=DESC&status=')
+              .get('/api/v1/coaches?orderBy=next_contact_date&sortDirection=DESC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -785,7 +785,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Sorting by status', () => {
           it('should sort by status ASC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=status&sortDirection=ASC&status=')
+              .get('/api/v1/coaches?orderBy=status&sortDirection=ASC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -802,7 +802,7 @@ describe('Coaches API Tests', () => {
 
           it('should sort by status DESC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=status&sortDirection=DESC&status=')
+              .get('/api/v1/coaches?orderBy=status&sortDirection=DESC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -817,7 +817,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Sorting by created_at', () => {
           it('should sort by created_at ASC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=created_at&sortDirection=ASC&status=')
+              .get('/api/v1/coaches?orderBy=created_at&sortDirection=ASC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -830,7 +830,7 @@ describe('Coaches API Tests', () => {
 
           it('should sort by created_at DESC', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=created_at&sortDirection=DESC&status=')
+              .get('/api/v1/coaches?orderBy=created_at&sortDirection=DESC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -845,7 +845,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Validation', () => {
           it('should return 400 for invalid orderBy column', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=invalid_column&sortDirection=ASC')
+              .get('/api/v1/coaches?orderBy=invalid_column&sortDirection=ASC')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(400);
 
@@ -857,7 +857,7 @@ describe('Coaches API Tests', () => {
 
           it('should return 400 for invalid sortDirection', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=first_name&sortDirection=INVALID')
+              .get('/api/v1/coaches?orderBy=first_name&sortDirection=INVALID')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(400);
 
@@ -868,7 +868,7 @@ describe('Coaches API Tests', () => {
 
           it('should return 400 for both invalid orderBy and sortDirection', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=bad_column&sortDirection=BAD_DIR')
+              .get('/api/v1/coaches?orderBy=bad_column&sortDirection=BAD_DIR')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(400);
 
@@ -882,7 +882,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Sorting with Filters', () => {
           it('should sort filtered results by first_name', async () => {
             const response = await request(app)
-              .get('/api/coaches?status=active&orderBy=first_name&sortDirection=ASC')
+              .get('/api/v1/coaches?status=active&orderBy=first_name&sortDirection=ASC')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -894,7 +894,7 @@ describe('Coaches API Tests', () => {
 
           it('should sort filtered results by position', async () => {
             const response = await request(app)
-              .get('/api/coaches?position=Head Coach&orderBy=last_name&sortDirection=ASC&status=')
+              .get('/api/v1/coaches?position=Head Coach&orderBy=last_name&sortDirection=ASC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -906,7 +906,7 @@ describe('Coaches API Tests', () => {
 
           it('should sort search results', async () => {
             const response = await request(app)
-              .get('/api/coaches?search=high&orderBy=school_name&sortDirection=ASC&status=')
+              .get('/api/v1/coaches?search=high&orderBy=school_name&sortDirection=ASC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -924,7 +924,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Sorting with Pagination', () => {
           it('should sort and paginate correctly', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=first_name&sortDirection=ASC&page=1&limit=2&status=')
+              .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC&page=1&limit=2&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -941,7 +941,7 @@ describe('Coaches API Tests', () => {
 
           it('should sort second page correctly', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=first_name&sortDirection=ASC&page=2&limit=2&status=')
+              .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC&page=2&limit=2&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -957,7 +957,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Edge Cases', () => {
           it('should handle sorting with only orderBy parameter (use default sortDirection)', async () => {
             const response = await request(app)
-              .get('/api/coaches?orderBy=first_name&status=')
+              .get('/api/v1/coaches?orderBy=first_name&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -969,7 +969,7 @@ describe('Coaches API Tests', () => {
 
           it('should handle sorting with only sortDirection parameter (use default orderBy)', async () => {
             const response = await request(app)
-              .get('/api/coaches?sortDirection=ASC&status=')
+              .get('/api/v1/coaches?sortDirection=ASC&status=')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -985,7 +985,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches - Authentication', () => {
           it('should return 401 without authentication', async () => {
             await request(app)
-              .get('/api/coaches?orderBy=first_name&sortDirection=ASC')
+              .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC')
               .expect(401);
           });
         });
@@ -1030,7 +1030,7 @@ describe('Coaches API Tests', () => {
             });
 
             const response = await request(app)
-              .get('/api/coaches')
+              .get('/api/v1/coaches')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -1065,7 +1065,7 @@ describe('Coaches API Tests', () => {
             });
 
             const response = await request(app)
-              .get('/api/coaches')
+              .get('/api/v1/coaches')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -1077,7 +1077,7 @@ describe('Coaches API Tests', () => {
 
           it('should reject invalid status values', async () => {
             const response = await request(app)
-              .get('/api/coaches?status=invalid')
+              .get('/api/v1/coaches?status=invalid')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(400);
 
@@ -1087,7 +1087,7 @@ describe('Coaches API Tests', () => {
 
           it('should reject invalid position values', async () => {
             const response = await request(app)
-              .get('/api/coaches?position=Invalid Position')
+              .get('/api/v1/coaches?position=Invalid Position')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(400);
 
@@ -1099,7 +1099,7 @@ describe('Coaches API Tests', () => {
         describe('GET /api/coaches/:id', () => {
           it('should require authentication', async () => {
             const response = await request(app)
-              .get('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+              .get('/api/v1/coaches/123e4567-e89b-12d3-a456-426614174000')
               .expect(401);
 
             expect(response.body.success).toBe(false);
@@ -1120,7 +1120,7 @@ describe('Coaches API Tests', () => {
             });
 
             const response = await request(app)
-              .get(`/api/coaches/${coach.id}`)
+              .get(`/api/v1/coaches/${coach.id}`)
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -1148,7 +1148,7 @@ describe('Coaches API Tests', () => {
             });
 
             const response = await request(app)
-              .get(`/api/coaches/${coach.id}`)
+              .get(`/api/v1/coaches/${coach.id}`)
               .set('Authorization', `Bearer ${authToken}`)
               .expect(200);
 
@@ -1160,7 +1160,7 @@ describe('Coaches API Tests', () => {
 
           it('should return 404 for non-existent coach', async () => {
             const response = await request(app)
-              .get('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+              .get('/api/v1/coaches/123e4567-e89b-12d3-a456-426614174000')
               .set('Authorization', `Bearer ${authToken}`)
               .expect(404);
 
@@ -1181,7 +1181,7 @@ describe('Coaches API Tests', () => {
             });
 
             const response = await request(app)
-              .get(`/api/coaches/${otherCoach.id}`)
+              .get(`/api/v1/coaches/${otherCoach.id}`)
               .set('Authorization', `Bearer ${authToken}`)
               .expect(404);
 
@@ -1194,7 +1194,7 @@ describe('Coaches API Tests', () => {
           it('should require authentication', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .send({
@@ -1211,7 +1211,7 @@ describe('Coaches API Tests', () => {
           it('should create a coach with required fields only', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1239,7 +1239,7 @@ describe('Coaches API Tests', () => {
           it('should create a coach with all fields', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1271,7 +1271,7 @@ describe('Coaches API Tests', () => {
           it('should auto-assign team_id from authenticated user', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1293,7 +1293,7 @@ describe('Coaches API Tests', () => {
           it('should auto-assign created_by from authenticated user', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1315,7 +1315,7 @@ describe('Coaches API Tests', () => {
           it('should include Creator information in response', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1336,7 +1336,7 @@ describe('Coaches API Tests', () => {
           it('should require first_name', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1354,7 +1354,7 @@ describe('Coaches API Tests', () => {
           it('should require last_name', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1372,7 +1372,7 @@ describe('Coaches API Tests', () => {
           it('should require school_name', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1390,7 +1390,7 @@ describe('Coaches API Tests', () => {
           it('should require position', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1408,7 +1408,7 @@ describe('Coaches API Tests', () => {
           it('should validate position enum (Head Coach)', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1427,7 +1427,7 @@ describe('Coaches API Tests', () => {
           it('should validate position enum (Recruiting Coordinator)', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1446,7 +1446,7 @@ describe('Coaches API Tests', () => {
           it('should validate position enum (Pitching Coach)', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1465,7 +1465,7 @@ describe('Coaches API Tests', () => {
           it('should validate position enum (Volunteer)', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1484,7 +1484,7 @@ describe('Coaches API Tests', () => {
           it('should reject invalid position values', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1503,7 +1503,7 @@ describe('Coaches API Tests', () => {
           it('should validate email format', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1523,7 +1523,7 @@ describe('Coaches API Tests', () => {
           it('should validate first_name max length (100 chars)', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1542,7 +1542,7 @@ describe('Coaches API Tests', () => {
           it('should validate last_name max length (100 chars)', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1561,7 +1561,7 @@ describe('Coaches API Tests', () => {
           it('should validate school_name max length (200 chars)', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1580,7 +1580,7 @@ describe('Coaches API Tests', () => {
           it('should validate phone max length (20 chars)', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1600,7 +1600,7 @@ describe('Coaches API Tests', () => {
           it('should validate email max length (255 chars)', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1620,7 +1620,7 @@ describe('Coaches API Tests', () => {
           it('should validate last_contact_date ISO8601 format', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1640,7 +1640,7 @@ describe('Coaches API Tests', () => {
           it('should validate next_contact_date ISO8601 format', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .post('/api/coaches')
+              .post('/api/v1/coaches')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1662,7 +1662,7 @@ describe('Coaches API Tests', () => {
           it('should require authentication', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .put('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+              .put('/api/v1/coaches/123e4567-e89b-12d3-a456-426614174000')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .send({ first_name: 'Updated' })
@@ -1684,7 +1684,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .put(`/api/coaches/${coach.id}`)
+              .put(`/api/v1/coaches/${coach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1718,7 +1718,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .put(`/api/coaches/${coach.id}`)
+              .put(`/api/v1/coaches/${coach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1767,7 +1767,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .put(`/api/coaches/${coach.id}`)
+              .put(`/api/v1/coaches/${coach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1795,7 +1795,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .put(`/api/coaches/${coach.id}`)
+              .put(`/api/v1/coaches/${coach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1819,7 +1819,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .put(`/api/coaches/${coach.id}`)
+              .put(`/api/v1/coaches/${coach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1843,7 +1843,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .put(`/api/coaches/${coach.id}`)
+              .put(`/api/v1/coaches/${coach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1857,7 +1857,7 @@ describe('Coaches API Tests', () => {
           it('should return 404 for non-existent coach', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .put('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+              .put('/api/v1/coaches/123e4567-e89b-12d3-a456-426614174000')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1881,7 +1881,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .put(`/api/coaches/${otherCoach.id}`)
+              .put(`/api/v1/coaches/${otherCoach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1909,7 +1909,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .put(`/api/coaches/${coach.id}`)
+              .put(`/api/v1/coaches/${coach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1926,7 +1926,7 @@ describe('Coaches API Tests', () => {
           it('should require authentication', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .delete('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+              .delete('/api/v1/coaches/123e4567-e89b-12d3-a456-426614174000')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .expect(401);
@@ -1947,7 +1947,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .delete(`/api/coaches/${coach.id}`)
+              .delete(`/api/v1/coaches/${coach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1974,7 +1974,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             await request(app)
-              .delete(`/api/coaches/${coach.id}`)
+              .delete(`/api/v1/coaches/${coach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -1988,7 +1988,7 @@ describe('Coaches API Tests', () => {
           it('should return 404 for non-existent coach', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .delete('/api/coaches/123e4567-e89b-12d3-a456-426614174000')
+              .delete('/api/v1/coaches/123e4567-e89b-12d3-a456-426614174000')
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)
@@ -2011,7 +2011,7 @@ describe('Coaches API Tests', () => {
 
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
-              .delete(`/api/coaches/${otherCoach.id}`)
+              .delete(`/api/v1/coaches/${otherCoach.id}`)
               .set('Cookie', cookies)
               .set('x-csrf-token', token)
               .set('Authorization', `Bearer ${authToken}`)

@@ -67,7 +67,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should reject new password that is too short', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -93,7 +93,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should reject new password without uppercase letter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -119,7 +119,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should reject new password without lowercase letter', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -145,7 +145,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should reject new password without digit', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -171,7 +171,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should reject new password without special character', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -197,7 +197,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should reject commonly used weak password "123456"', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -215,7 +215,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should reject commonly used weak password "password"', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -237,7 +237,7 @@ describe('Settings Routes - Password Change Validation', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -269,7 +269,7 @@ describe('Settings Routes - Password Change Validation', () => {
         for (const password of passwordsWithSpecialChars) {
           const { token, cookies } = await getCsrfToken(app);
           const response = await request(app)
-            .put('/api/settings/change-password')
+            .put('/api/v1/settings/change-password')
             .set('Cookie', cookies)
             .set('x-csrf-token', token)
             .set('Authorization', `Bearer ${authToken}`)
@@ -295,7 +295,7 @@ describe('Settings Routes - Password Change Validation', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -320,7 +320,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should return 401 when no token is provided', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .send({
@@ -337,7 +337,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should return 401 when invalid token is provided', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', 'Bearer invalid_token')
@@ -356,7 +356,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should reject when current password is incorrect', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -376,7 +376,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should reject when password confirmation does not match', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -407,7 +407,7 @@ describe('Settings Routes - Password Change Validation', () => {
 
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
@@ -434,7 +434,7 @@ describe('Settings Routes - Password Change Validation', () => {
       it('should validate newPassword is required', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
-          .put('/api/settings/change-password')
+          .put('/api/v1/settings/change-password')
           .set('Cookie', cookies)
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)

@@ -10,7 +10,7 @@ const request = require('supertest');
  */
 async function getCsrfToken(app) {
   const response = await request(app)
-    .get('/api/auth/csrf-token')
+    .get('/api/v1/auth/csrf-token')
     .expect(200);
 
   return {

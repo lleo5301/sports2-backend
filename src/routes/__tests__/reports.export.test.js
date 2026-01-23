@@ -66,7 +66,7 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Authentication', () => {
       it('should require authentication (401 without token)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .expect(401);
 
         expect(response.body.success).toBe(false);
@@ -75,7 +75,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should reject invalid token', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', 'Bearer invalid-token')
           .expect(401);
 
@@ -102,7 +102,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -131,7 +131,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -146,7 +146,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should handle empty result set', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -184,7 +184,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -217,7 +217,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -239,7 +239,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -295,7 +295,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by school_type', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players?school_type=HS')
+          .get('/api/v1/reports/export/players?school_type=HS')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -309,7 +309,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by position', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players?position=P')
+          .get('/api/v1/reports/export/players?position=P')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -323,7 +323,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by status', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players?status=active')
+          .get('/api/v1/reports/export/players?status=active')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -336,7 +336,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (first name)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players?search=College')
+          .get('/api/v1/reports/export/players?search=College')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -350,7 +350,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (school)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players?search=Harvard')
+          .get('/api/v1/reports/export/players?search=Harvard')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -363,7 +363,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (city)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players?search=Cambridge')
+          .get('/api/v1/reports/export/players?search=Cambridge')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -376,7 +376,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (state)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players?search=MA')
+          .get('/api/v1/reports/export/players?search=MA')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -389,7 +389,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should support multiple filters combined', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players?school_type=COLL&position=P&status=active')
+          .get('/api/v1/reports/export/players?school_type=COLL&position=P&status=active')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -403,7 +403,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should return empty result for non-matching filters', async () => {
         const response = await request(app)
-          .get('/api/reports/export/players?school_type=HS&position=1B')
+          .get('/api/v1/reports/export/players?school_type=HS&position=1B')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -451,7 +451,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -484,7 +484,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/players?position=P&school_type=HS')
+          .get('/api/v1/reports/export/players?position=P&school_type=HS')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -515,7 +515,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -548,7 +548,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -574,7 +574,7 @@ describe('Reports Export API - Player CSV Export', () => {
         await Player.bulkCreate(players);
 
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -591,7 +591,7 @@ describe('Reports Export API - Player CSV Export', () => {
         await sequelize.close();
 
         const response = await request(app)
-          .get('/api/reports/export/players')
+          .get('/api/v1/reports/export/players')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(500);
 
@@ -608,7 +608,7 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Authentication', () => {
       it('should require authentication (401 without token)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .expect(401);
 
         expect(response.body.success).toBe(false);
@@ -617,7 +617,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should reject invalid token', async () => {
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', 'Bearer invalid-token')
           .expect(401);
 
@@ -640,7 +640,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -667,7 +667,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -682,7 +682,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should handle empty result set', async () => {
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -720,7 +720,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -749,7 +749,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -771,7 +771,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -825,7 +825,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by status', async () => {
         const response = await request(app)
-          .get('/api/reports/export/coaches?status=active')
+          .get('/api/v1/reports/export/coaches?status=active')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -838,7 +838,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by position', async () => {
         const response = await request(app)
-          .get('/api/reports/export/coaches?position=Head Coach')
+          .get('/api/v1/reports/export/coaches?position=Head Coach')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -852,7 +852,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (first name)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/coaches?search=Active')
+          .get('/api/v1/reports/export/coaches?search=Active')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -864,7 +864,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (school name)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/coaches?search=Harvard')
+          .get('/api/v1/reports/export/coaches?search=Harvard')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -877,7 +877,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (email)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/coaches?search=harvard.edu')
+          .get('/api/v1/reports/export/coaches?search=harvard.edu')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -890,7 +890,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should support multiple filters combined', async () => {
         const response = await request(app)
-          .get('/api/reports/export/coaches?status=active&position=Head Coach')
+          .get('/api/v1/reports/export/coaches?status=active&position=Head Coach')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -904,7 +904,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should return empty result for non-matching filters', async () => {
         const response = await request(app)
-          .get('/api/reports/export/coaches?status=active&position=Volunteer')
+          .get('/api/v1/reports/export/coaches?status=active&position=Volunteer')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -952,7 +952,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -987,7 +987,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/coaches?position=Head Coach&status=active')
+          .get('/api/v1/reports/export/coaches?position=Head Coach&status=active')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1016,7 +1016,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1047,7 +1047,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1073,7 +1073,7 @@ describe('Reports Export API - Player CSV Export', () => {
         await Coach.bulkCreate(coaches);
 
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1090,7 +1090,7 @@ describe('Reports Export API - Player CSV Export', () => {
         await sequelize.close();
 
         const response = await request(app)
-          .get('/api/reports/export/coaches')
+          .get('/api/v1/reports/export/coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(500);
 
@@ -1107,7 +1107,7 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Authentication', () => {
       it('should require authentication (401 without token)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .expect(401);
 
         expect(response.body.success).toBe(false);
@@ -1116,7 +1116,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should reject invalid token', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', 'Bearer invalid-token')
           .expect(401);
 
@@ -1146,7 +1146,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1179,7 +1179,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1194,7 +1194,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should handle empty result set', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1235,7 +1235,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1267,7 +1267,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1291,7 +1291,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1358,7 +1358,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by state', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?state=MA')
+          .get('/api/v1/reports/export/high-school-coaches?state=MA')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1371,7 +1371,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by position', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?position=Head Coach')
+          .get('/api/v1/reports/export/high-school-coaches?position=Head Coach')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1385,7 +1385,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by relationship_type', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?relationship_type=Recruiting Contact')
+          .get('/api/v1/reports/export/high-school-coaches?relationship_type=Recruiting Contact')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1399,7 +1399,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by status', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?status=active')
+          .get('/api/v1/reports/export/high-school-coaches?status=active')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1412,7 +1412,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (first name)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?search=MA')
+          .get('/api/v1/reports/export/high-school-coaches?search=MA')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1424,7 +1424,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (city)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?search=Cambridge')
+          .get('/api/v1/reports/export/high-school-coaches?search=Cambridge')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1438,7 +1438,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (school district)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?search=Cambridge District')
+          .get('/api/v1/reports/export/high-school-coaches?search=Cambridge District')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1451,7 +1451,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should filter by search term (email)', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?search=hw.edu')
+          .get('/api/v1/reports/export/high-school-coaches?search=hw.edu')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1464,7 +1464,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should support multiple filters combined', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?state=MA&position=Head Coach&status=active')
+          .get('/api/v1/reports/export/high-school-coaches?state=MA&position=Head Coach&status=active')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1478,7 +1478,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should return empty result for non-matching filters', async () => {
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?state=CA&position=Head Coach')
+          .get('/api/v1/reports/export/high-school-coaches?state=CA&position=Head Coach')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1530,7 +1530,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1567,7 +1567,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches?state=MA&position=Head Coach&status=active')
+          .get('/api/v1/reports/export/high-school-coaches?state=MA&position=Head Coach&status=active')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1602,7 +1602,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1640,7 +1640,7 @@ describe('Reports Export API - Player CSV Export', () => {
         });
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1667,7 +1667,7 @@ describe('Reports Export API - Player CSV Export', () => {
         await HighSchoolCoach.bulkCreate(coaches);
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
@@ -1684,7 +1684,7 @@ describe('Reports Export API - Player CSV Export', () => {
         await sequelize.close();
 
         const response = await request(app)
-          .get('/api/reports/export/high-school-coaches')
+          .get('/api/v1/reports/export/high-school-coaches')
           .set('Authorization', `Bearer ${authToken}`)
           .expect(500);
 
