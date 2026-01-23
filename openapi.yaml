@@ -34,7 +34,7 @@ paths:
                     type: string
                     example: ok
 
-  /api/auth/csrf-token:
+  /api/v1/auth/csrf-token:
     get:
       summary: Get CSRF token
       security: []
@@ -49,7 +49,7 @@ paths:
                   token:
                     type: string
 
-  /api/auth/login:
+  /api/v1/auth/login:
     post:
       summary: User login
       security: []
@@ -78,7 +78,7 @@ paths:
         '401':
           description: Invalid credentials
 
-  /api/auth/register:
+  /api/v1/auth/register:
     post:
       summary: User registration
       security: []
@@ -109,14 +109,14 @@ paths:
         '400':
           description: Validation error
 
-  /api/auth/logout:
+  /api/v1/auth/logout:
     post:
       summary: User logout
       responses:
         '200':
           description: Logout successful
 
-  /api/auth/profile:
+  /api/v1/auth/profile:
     get:
       summary: Get current user profile
       responses:
@@ -127,7 +127,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
 
-  /api/players:
+  /api/v1/players:
     get:
       summary: List players
       parameters:
@@ -175,7 +175,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Player'
 
-  /api/players/{id}:
+  /api/v1/players/{id}:
     get:
       summary: Get player by ID
       parameters:
@@ -222,7 +222,7 @@ paths:
         '204':
           description: Player deleted
 
-  /api/teams:
+  /api/v1/teams:
     get:
       summary: List teams
       responses:
@@ -246,7 +246,7 @@ paths:
         '201':
           description: Team created
 
-  /api/teams/{id}:
+  /api/v1/teams/{id}:
     get:
       summary: Get team by ID
       parameters:
@@ -280,7 +280,7 @@ paths:
         '200':
           description: Team updated
 
-  /api/reports/scouting:
+  /api/v1/reports/scouting:
     get:
       summary: List scouting reports
       responses:
@@ -298,7 +298,7 @@ paths:
         '201':
           description: Scouting report created
 
-  /api/reports/daily:
+  /api/v1/reports/daily:
     get:
       summary: List daily reports
       responses:
