@@ -196,10 +196,12 @@ router.delete('/players/:assignmentId',
         include: [
           {
             model: DepthChartPosition,
+            required: true,
             include: [
               {
                 // Permission: Verify assignment belongs to a chart owned by user's team
                 model: DepthChart,
+                required: true,
                 where: { team_id: req.user.team_id, is_active: true }
               }
             ]

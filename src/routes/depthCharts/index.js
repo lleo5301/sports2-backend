@@ -637,7 +637,7 @@ router.get('/:id/history',
           id: 1,
           action: 'Created',
           description: `Depth chart "${depthChart.name}" was created`,
-          created_at: depthChart.created_at,
+          created_at: depthChart.createdAt,
           User: {
             id: depthChart.created_by,
             first_name: 'System',

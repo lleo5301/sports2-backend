@@ -19,18 +19,12 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'DepthChart Test Team',
-      program_name: 'DepthChart Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'DepthChart Test Team Program'
     });
 
     otherTeam = await Team.create({
       name: 'Other Team',
-      program_name: 'Other Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Other Team Program'
     });
 
     // Create test users
@@ -95,14 +89,14 @@ describe('DepthCharts API - Core CRUD Operations', () => {
     await UserPermission.create({
       user_id: testUser.id,
       team_id: testTeam.id,
-      permission_type: 'depth_chart_assign_players',
+      permission_type: 'player_assign',
       is_granted: true
     });
 
     await UserPermission.create({
       user_id: testUser.id,
       team_id: testTeam.id,
-      permission_type: 'depth_chart_unassign_players',
+      permission_type: 'player_unassign',
       is_granted: true
     });
 
@@ -2050,7 +2044,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
           .expect(403);
 
         expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain('depth_chart_assign_players');
+        expect(response.body.message).toContain('player_assign');
 
         await noPermUser.destroy();
       });
@@ -2196,7 +2190,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
           .expect(403);
 
         expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain('depth_chart_unassign_players');
+        expect(response.body.message).toContain('player_unassign');
 
         await noPermUser.destroy();
       });
@@ -2413,7 +2407,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
           .expect(403);
 
         expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain('depth_chart_assign_players');
+        expect(response.body.message).toContain('player_assign');
 
         await noPermUser.destroy();
       });
@@ -2583,7 +2577,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
           .expect(403);
 
         expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain('depth_chart_assign_players');
+        expect(response.body.message).toContain('player_assign');
 
         await noPermUser.destroy();
       });

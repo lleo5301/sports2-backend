@@ -70,12 +70,12 @@ module.exports = {
         type: Sequelize.INTEGER,
         defaultValue: 0
       },
-      createdAt: {
+      created_at: {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
-      updatedAt: {
+      updated_at: {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
@@ -86,7 +86,7 @@ module.exports = {
     await queryInterface.addIndex('reports', ['created_by']);
     await queryInterface.addIndex('reports', ['type']);
     await queryInterface.addIndex('reports', ['status']);
-    await queryInterface.addIndex('reports', ['createdAt']);
+    await queryInterface.addIndex('reports', ['created_at']);
   },
 
   async down(queryInterface) {
