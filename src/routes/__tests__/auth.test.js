@@ -252,7 +252,7 @@ describe('Auth Routes - Password Validation', () => {
         // Verify JWT cookie is set
         const responseCookies = response.headers['set-cookie'];
         expect(responseCookies).toBeDefined();
-        const tokenCookie = responseCookies.find(cookie => cookie.startsWith('token='));
+        const tokenCookie = responseCookies.find(cookie => cookie.startsWith('jwt='));
         expect(tokenCookie).toBeDefined();
         expect(tokenCookie).toContain('HttpOnly');
       });
@@ -570,7 +570,7 @@ describe('Auth Routes - Password Validation', () => {
       // Verify JWT cookie is set
       const responseCookies = response.headers['set-cookie'];
       expect(responseCookies).toBeDefined();
-      const tokenCookie = responseCookies.find(cookie => cookie.startsWith('token='));
+      const tokenCookie = responseCookies.find(cookie => cookie.startsWith('jwt='));
       expect(tokenCookie).toBeDefined();
       expect(tokenCookie).toContain('HttpOnly');
       expect(tokenCookie).toContain('Path=/');
@@ -612,7 +612,7 @@ describe('Auth Routes - Password Validation', () => {
       // No cookie should be set on failed login
       const responseCookies = response.headers['set-cookie'];
       if (responseCookies) {
-        const tokenCookie = responseCookies.find(cookie => cookie.startsWith('token='));
+        const tokenCookie = responseCookies.find(cookie => cookie.startsWith('jwt='));
         expect(tokenCookie).toBeUndefined();
       }
     });
@@ -651,10 +651,10 @@ describe('Auth Routes - Password Validation', () => {
       expect(responseCookies).toBeDefined();
 
       // Check that token cookie is cleared (value should be empty or expired)
-      const tokenCookie = responseCookies.find(cookie => cookie.startsWith('token='));
+      const tokenCookie = responseCookies.find(cookie => cookie.startsWith('jwt='));
       expect(tokenCookie).toBeDefined();
       // Cleared cookies have empty value or very old expiry
-      expect(tokenCookie).toMatch(/token=;|expires=Thu, 01 Jan 1970/);
+      expect(tokenCookie).toMatch(/jwt=;|expires=Thu, 01 Jan 1970/);
     });
 
     it('should clear CSRF token cookie on logout', async () => {
