@@ -49,6 +49,55 @@ describe('Reports Export API - Player CSV Export', () => {
     await otherTeam.destroy();
   });
 
+  // Helper functions to create test data with required fields
+  const createTestPlayer = (attrs = {}) => {
+    return Player.create({
+      team_id: testTeam.id,
+      created_by: testUser.id,
+      ...attrs
+    });
+  };
+
+  const createOtherTeamPlayer = (attrs = {}) => {
+    return Player.create({
+      team_id: otherTeam.id,
+      created_by: testUser.id,
+      ...attrs
+    });
+  };
+
+  const createTestCoach = (attrs = {}) => {
+    return Coach.create({
+      team_id: testTeam.id,
+      created_by: testUser.id,
+      ...attrs
+    });
+  };
+
+  const createOtherTeamCoach = (attrs = {}) => {
+    return Coach.create({
+      team_id: otherTeam.id,
+      created_by: testUser.id,
+      ...attrs
+    });
+  };
+
+  const createTestHighSchoolCoach = (attrs = {}) => {
+    return HighSchoolCoach.create({
+      team_id: testTeam.id,
+      created_by: testUser.id,
+      ...attrs
+    });
+  };
+
+  const createOtherTeamHighSchoolCoach = (attrs = {}) => {
+    return HighSchoolCoach.create({
+      team_id: otherTeam.id,
+      created_by: testUser.id,
+      ...attrs
+    });
+  };
+
   beforeEach(async () => {
     // Clean up players and coaches before each test
     await Player.destroy({ where: { team_id: [testTeam.id, otherTeam.id] } });
@@ -80,7 +129,7 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Successful CSV Download', () => {
       it('should return CSV with proper headers', async () => {
         // Create test player
-        await Player.create({
+        await createTestPlayer({
           first_name: 'John',
           last_name: 'Doe',
           position: 'P',
@@ -92,7 +141,6 @@ describe('Reports Export API - Player CSV Export', () => {
           phone: '555-1234',
           status: 'active',
           graduation_year: 2025,
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -109,7 +157,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should return valid CSV format with header row', async () => {
         // Create test player
-        await Player.create({
+        await createTestPlayer({
           first_name: 'Jane',
           last_name: 'Smith',
           position: 'C',
@@ -121,7 +169,6 @@ describe('Reports Export API - Player CSV Export', () => {
           phone: '555-5678',
           status: 'active',
           graduation_year: 2026,
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -153,28 +200,25 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should export multiple players sorted by name', async () => {
         // Create multiple players
-        await Player.create({
+        await createTestPlayer({
           first_name: 'Charlie',
           last_name: 'Brown',
           position: 'SS',
           school_type: 'HS',
-          team_id: testTeam.id
         });
 
-        await Player.create({
+        await createTestPlayer({
           first_name: 'Alice',
           last_name: 'Anderson',
           position: '1B',
           school_type: 'HS',
-          team_id: testTeam.id
         });
 
-        await Player.create({
+        await createTestPlayer({
           first_name: 'Bob',
           last_name: 'Baker',
           position: '2B',
           school_type: 'COLL',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -195,7 +239,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should properly escape CSV special characters', async () => {
         // Create player with special characters
-        await Player.create({
+        await createTestPlayer({
           first_name: 'John',
           last_name: 'O\'Brien',
           position: 'P',
@@ -207,7 +251,6 @@ describe('Reports Export API - Player CSV Export', () => {
           phone: '555-1234',
           status: 'active',
           graduation_year: 2025,
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -223,12 +266,11 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should handle null values in optional fields', async () => {
         // Create player with minimal data
-        await Player.create({
+        await createTestPlayer({
           first_name: 'Minimal',
           last_name: 'Player',
           position: 'OF',
           school_type: 'HS',
-          team_id: testTeam.id
           // All optional fields null/undefined
         });
 
@@ -247,34 +289,31 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Filtering', () => {
       beforeEach(async () => {
         // Create diverse set of players for filtering tests
-        await Player.create({
+        await createTestPlayer({
           first_name: 'High',
           last_name: 'School1',
           position: 'P',
           school_type: 'HS',
           status: 'active',
-          team_id: testTeam.id
         });
 
-        await Player.create({
+        await createTestPlayer({
           first_name: 'High',
           last_name: 'School2',
           position: 'C',
           school_type: 'HS',
           status: 'inactive',
-          team_id: testTeam.id
         });
 
-        await Player.create({
+        await createTestPlayer({
           first_name: 'College',
           last_name: 'Player1',
           position: 'P',
           school_type: 'COLL',
           status: 'active',
-          team_id: testTeam.id
         });
 
-        await Player.create({
+        await createTestPlayer({
           first_name: 'College',
           last_name: 'Player2',
           position: '1B',
@@ -283,7 +322,6 @@ describe('Reports Export API - Player CSV Export', () => {
           school: 'Harvard University',
           city: 'Cambridge',
           state: 'MA',
-          team_id: testTeam.id
         });
       });
 
@@ -411,37 +449,33 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Team Isolation', () => {
       it('should only export players from user\'s team', async () => {
         // Create players for test team
-        await Player.create({
+        await createTestPlayer({
           first_name: 'Team1',
           last_name: 'Player1',
           position: 'P',
           school_type: 'HS',
-          team_id: testTeam.id
         });
 
-        await Player.create({
+        await createTestPlayer({
           first_name: 'Team1',
           last_name: 'Player2',
           position: 'C',
           school_type: 'HS',
-          team_id: testTeam.id
         });
 
         // Create players for other team (should not appear)
-        await Player.create({
+        await createOtherTeamPlayer({
           first_name: 'Team2',
           last_name: 'Player1',
           position: 'P',
           school_type: 'HS',
-          team_id: otherTeam.id
         });
 
-        await Player.create({
+        await createOtherTeamPlayer({
           first_name: 'Team2',
           last_name: 'Player2',
           position: 'C',
           school_type: 'HS',
-          team_id: otherTeam.id
         });
 
         const response = await request(app)
@@ -460,21 +494,19 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should respect team isolation even with filters', async () => {
         // Create player for test team
-        await Player.create({
+        await createTestPlayer({
           first_name: 'Team1',
           last_name: 'Pitcher',
           position: 'P',
           school_type: 'HS',
-          team_id: testTeam.id
         });
 
         // Create player for other team with same filter criteria
-        await Player.create({
+        await createOtherTeamPlayer({
           first_name: 'Team2',
           last_name: 'Pitcher',
           position: 'P',
           school_type: 'HS',
-          team_id: otherTeam.id
         });
 
         const response = await request(app)
@@ -493,7 +525,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
     describe('CSV Format Validation', () => {
       it('should include all required columns in order', async () => {
-        await Player.create({
+        await createTestPlayer({
           first_name: 'Test',
           last_name: 'Player',
           position: 'P',
@@ -505,7 +537,6 @@ describe('Reports Export API - Player CSV Export', () => {
           phone: '555-1234',
           status: 'active',
           graduation_year: 2025,
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -533,12 +564,11 @@ describe('Reports Export API - Player CSV Export', () => {
       });
 
       it('should have matching number of columns in header and data rows', async () => {
-        await Player.create({
+        await createTestPlayer({
           first_name: 'Test',
           last_name: 'Player',
           position: 'P',
           school_type: 'HS',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -562,7 +592,6 @@ describe('Reports Export API - Player CSV Export', () => {
             last_name: `Test${i}`,
             position: 'P',
             school_type: 'HS',
-            team_id: testTeam.id
           });
         }
         await Player.bulkCreate(players);
@@ -622,7 +651,7 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Successful CSV Download', () => {
       it('should return CSV with proper headers', async () => {
         // Create test coach
-        await Coach.create({
+        await createTestCoach({
           first_name: 'John',
           last_name: 'Smith',
           school_name: 'University of Boston',
@@ -630,7 +659,6 @@ describe('Reports Export API - Player CSV Export', () => {
           email: 'jsmith@university.edu',
           phone: '555-1234',
           status: 'active',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -647,7 +675,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should return valid CSV format with header row', async () => {
         // Create test coach
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Jane',
           last_name: 'Doe',
           school_name: 'State College',
@@ -657,7 +685,6 @@ describe('Reports Export API - Player CSV Export', () => {
           last_contact_date: '2024-01-15',
           next_contact_date: '2024-02-15',
           status: 'active',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -689,28 +716,25 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should export multiple coaches sorted by name', async () => {
         // Create multiple coaches
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Charlie',
           last_name: 'Brown',
           school_name: 'Brown University',
           position: 'Head Coach',
-          team_id: testTeam.id
         });
 
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Alice',
           last_name: 'Anderson',
           school_name: 'Anderson College',
           position: 'Pitching Coach',
-          team_id: testTeam.id
         });
 
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Bob',
           last_name: 'Baker',
           school_name: 'Baker State',
           position: 'Volunteer',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -731,7 +755,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should properly escape CSV special characters', async () => {
         // Create coach with special characters
-        await Coach.create({
+        await createTestCoach({
           first_name: 'John',
           last_name: 'O\'Brien',
           school_name: 'St. Mary\'s College, Boston',
@@ -739,7 +763,6 @@ describe('Reports Export API - Player CSV Export', () => {
           email: 'jobrien@stmarys.edu',
           phone: '555-1234',
           status: 'active',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -755,12 +778,11 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should handle null values in optional fields', async () => {
         // Create coach with minimal data
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Minimal',
           last_name: 'Coach',
           school_name: 'Test School',
           position: 'Head Coach',
-          team_id: testTeam.id
           // All optional fields null/undefined
         });
 
@@ -779,41 +801,37 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Filtering', () => {
       beforeEach(async () => {
         // Create diverse set of coaches for filtering tests
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Active',
           last_name: 'Head1',
           school_name: 'University A',
           position: 'Head Coach',
           status: 'active',
-          team_id: testTeam.id
         });
 
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Inactive',
           last_name: 'Head2',
           school_name: 'University B',
           position: 'Head Coach',
           status: 'inactive',
-          team_id: testTeam.id
         });
 
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Active',
           last_name: 'Recruiter1',
           school_name: 'University C',
           position: 'Recruiting Coordinator',
           status: 'active',
-          team_id: testTeam.id
         });
 
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Active',
           last_name: 'Pitching1',
           school_name: 'Harvard University',
           position: 'Pitching Coach',
           email: 'coach@harvard.edu',
           status: 'active',
-          team_id: testTeam.id
         });
       });
 
@@ -912,37 +930,33 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Team Isolation', () => {
       it('should only export coaches from user\'s team', async () => {
         // Create coaches for test team
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Team1',
           last_name: 'Coach1',
           school_name: 'University A',
           position: 'Head Coach',
-          team_id: testTeam.id
         });
 
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Team1',
           last_name: 'Coach2',
           school_name: 'University B',
           position: 'Recruiting Coordinator',
-          team_id: testTeam.id
         });
 
         // Create coaches for other team (should not appear)
-        await Coach.create({
+        await createOtherTeamCoach({
           first_name: 'Team2',
           last_name: 'Coach1',
           school_name: 'University C',
           position: 'Head Coach',
-          team_id: otherTeam.id
         });
 
-        await Coach.create({
+        await createOtherTeamCoach({
           first_name: 'Team2',
           last_name: 'Coach2',
           school_name: 'University D',
           position: 'Pitching Coach',
-          team_id: otherTeam.id
         });
 
         const response = await request(app)
@@ -961,23 +975,21 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should respect team isolation even with filters', async () => {
         // Create coach for test team
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Team1',
           last_name: 'Head',
           school_name: 'University A',
           position: 'Head Coach',
           status: 'active',
-          team_id: testTeam.id
         });
 
         // Create coach for other team with same filter criteria
-        await Coach.create({
+        await createOtherTeamCoach({
           first_name: 'Team2',
           last_name: 'Head',
           school_name: 'University B',
           position: 'Head Coach',
           status: 'active',
-          team_id: otherTeam.id
         });
 
         const response = await request(app)
@@ -996,7 +1008,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
     describe('CSV Format Validation', () => {
       it('should include all required columns in order', async () => {
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Test',
           last_name: 'Coach',
           school_name: 'Test School',
@@ -1006,7 +1018,6 @@ describe('Reports Export API - Player CSV Export', () => {
           last_contact_date: '2024-01-15',
           next_contact_date: '2024-02-15',
           status: 'active',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -1032,12 +1043,11 @@ describe('Reports Export API - Player CSV Export', () => {
       });
 
       it('should have matching number of columns in header and data rows', async () => {
-        await Coach.create({
+        await createTestCoach({
           first_name: 'Test',
           last_name: 'Coach',
           school_name: 'Test School',
           position: 'Head Coach',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -1061,7 +1071,6 @@ describe('Reports Export API - Player CSV Export', () => {
             last_name: `Test${i}`,
             school_name: `University ${i}`,
             position: 'Head Coach',
-            team_id: testTeam.id
           });
         }
         await Coach.bulkCreate(coaches);
@@ -1121,7 +1130,7 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Successful CSV Download', () => {
       it('should return CSV with proper headers', async () => {
         // Create test high school coach
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'John',
           last_name: 'Smith',
           school_name: 'Lincoln High School',
@@ -1136,7 +1145,6 @@ describe('Reports Export API - Player CSV Export', () => {
           relationship_type: 'Recruiting Contact',
           players_sent_count: 5,
           status: 'active',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -1153,7 +1161,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should return valid CSV format with header row', async () => {
         // Create test high school coach
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'Jane',
           last_name: 'Doe',
           school_name: 'Washington High School',
@@ -1169,7 +1177,6 @@ describe('Reports Export API - Player CSV Export', () => {
           players_sent_count: 3,
           last_contact_date: '2024-01-15',
           status: 'active',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -1201,31 +1208,28 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should export multiple coaches sorted by name', async () => {
         // Create multiple high school coaches
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'Charlie',
           last_name: 'Brown',
           school_name: 'Brown High School',
           position: 'Head Coach',
           state: 'MA',
-          team_id: testTeam.id
         });
 
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'Alice',
           last_name: 'Anderson',
           school_name: 'Anderson High School',
           position: 'JV Coach',
           state: 'MA',
-          team_id: testTeam.id
         });
 
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'Bob',
           last_name: 'Baker',
           school_name: 'Baker High School',
           position: 'Assistant Coach',
           state: 'NY',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -1246,7 +1250,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should properly escape CSV special characters', async () => {
         // Create coach with special characters
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'John',
           last_name: 'O\'Brien',
           school_name: 'St. Mary\'s High School, Boston',
@@ -1257,7 +1261,6 @@ describe('Reports Export API - Player CSV Export', () => {
           email: 'jobrien@stmarys.edu',
           phone: '555-1234',
           status: 'active',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -1274,13 +1277,12 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should handle null values in optional fields', async () => {
         // Create coach with minimal data
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'Minimal',
           last_name: 'Coach',
           school_name: 'Test High School',
           position: 'Head Coach',
           state: 'MA',
-          team_id: testTeam.id
           // All optional fields null/undefined
         });
 
@@ -1299,7 +1301,7 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Filtering', () => {
       beforeEach(async () => {
         // Create diverse set of high school coaches for filtering tests
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'MA',
           last_name: 'Head1',
           school_name: 'Boston High',
@@ -1308,10 +1310,9 @@ describe('Reports Export API - Player CSV Export', () => {
           state: 'MA',
           relationship_type: 'Recruiting Contact',
           status: 'active',
-          team_id: testTeam.id
         });
 
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'MA',
           last_name: 'Assistant1',
           school_name: 'Cambridge High',
@@ -1320,10 +1321,9 @@ describe('Reports Export API - Player CSV Export', () => {
           state: 'MA',
           relationship_type: 'Former Player',
           status: 'inactive',
-          team_id: testTeam.id
         });
 
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'NY',
           last_name: 'Head1',
           school_name: 'Brooklyn High',
@@ -1332,10 +1332,9 @@ describe('Reports Export API - Player CSV Export', () => {
           state: 'NY',
           relationship_type: 'Recruiting Contact',
           status: 'active',
-          team_id: testTeam.id
         });
 
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'MA',
           last_name: 'JV1',
           school_name: 'Harvard-Westlake',
@@ -1346,7 +1345,6 @@ describe('Reports Export API - Player CSV Export', () => {
           email: 'coach@hw.edu',
           relationship_type: 'Coaching Connection',
           status: 'active',
-          team_id: testTeam.id
         });
       });
 
@@ -1486,41 +1484,37 @@ describe('Reports Export API - Player CSV Export', () => {
     describe('Team Isolation', () => {
       it('should only export high school coaches from user\'s team', async () => {
         // Create coaches for test team
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'Team1',
           last_name: 'Coach1',
           school_name: 'Lincoln High',
           position: 'Head Coach',
           state: 'MA',
-          team_id: testTeam.id
         });
 
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'Team1',
           last_name: 'Coach2',
           school_name: 'Washington High',
           position: 'Assistant Coach',
           state: 'MA',
-          team_id: testTeam.id
         });
 
         // Create coaches for other team (should not appear)
-        await HighSchoolCoach.create({
+        await createOtherTeamHighSchoolCoach({
           first_name: 'Team2',
           last_name: 'Coach1',
           school_name: 'Jefferson High',
           position: 'Head Coach',
           state: 'NY',
-          team_id: otherTeam.id
         });
 
-        await HighSchoolCoach.create({
+        await createOtherTeamHighSchoolCoach({
           first_name: 'Team2',
           last_name: 'Coach2',
           school_name: 'Madison High',
           position: 'JV Coach',
           state: 'NY',
-          team_id: otherTeam.id
         });
 
         const response = await request(app)
@@ -1539,25 +1533,23 @@ describe('Reports Export API - Player CSV Export', () => {
 
       it('should respect team isolation even with filters', async () => {
         // Create coach for test team
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'Team1',
           last_name: 'Head',
           school_name: 'Lincoln High',
           position: 'Head Coach',
           state: 'MA',
           status: 'active',
-          team_id: testTeam.id
         });
 
         // Create coach for other team with same filter criteria
-        await HighSchoolCoach.create({
+        await createOtherTeamHighSchoolCoach({
           first_name: 'Team2',
           last_name: 'Head',
           school_name: 'Jefferson High',
           position: 'Head Coach',
           state: 'MA',
           status: 'active',
-          team_id: otherTeam.id
         });
 
         const response = await request(app)
@@ -1576,7 +1568,7 @@ describe('Reports Export API - Player CSV Export', () => {
 
     describe('CSV Format Validation', () => {
       it('should include all required columns in order', async () => {
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'Test',
           last_name: 'Coach',
           school_name: 'Test High School',
@@ -1592,7 +1584,6 @@ describe('Reports Export API - Player CSV Export', () => {
           players_sent_count: 5,
           last_contact_date: '2024-01-15',
           status: 'active',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -1624,13 +1615,12 @@ describe('Reports Export API - Player CSV Export', () => {
       });
 
       it('should have matching number of columns in header and data rows', async () => {
-        await HighSchoolCoach.create({
+        await createTestHighSchoolCoach({
           first_name: 'Test',
           last_name: 'Coach',
           school_name: 'Test High School',
           position: 'Head Coach',
           state: 'MA',
-          team_id: testTeam.id
         });
 
         const response = await request(app)
@@ -1655,7 +1645,6 @@ describe('Reports Export API - Player CSV Export', () => {
             school_name: `High School ${i}`,
             position: 'Head Coach',
             state: 'MA',
-            team_id: testTeam.id
           });
         }
         await HighSchoolCoach.bulkCreate(coaches);

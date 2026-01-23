@@ -107,6 +107,23 @@ describe('Reports API - Custom Reports CRUD', () => {
     });
   });
 
+  // Helper functions to create test data with required fields
+  const createTestPlayer = (attrs = {}) => {
+    return Player.create({
+      team_id: testTeam.id,
+      created_by: testUser.id,
+      ...attrs
+    });
+  };
+
+  const createOtherTeamPlayer = (attrs = {}) => {
+    return Player.create({
+      team_id: otherTeam.id,
+      created_by: otherUser.id,
+      ...attrs
+    });
+  };
+
   afterAll(async () => {
     // Clean up test data
     await Report.destroy({ where: {}, force: true });
@@ -1219,28 +1236,25 @@ describe('Reports API - Scouting Reports', () => {
     _otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
 
     // Create test players
-    testPlayer = await Player.create({
+    testPlayer = await createTestPlayer({
       first_name: 'John',
       last_name: 'Doe',
       position: 'P',
-      school: 'Test High School',
-      team_id: testTeam.id
+      school: 'Test High School'
     });
 
-    testPlayer2 = await Player.create({
+    testPlayer2 = await createTestPlayer({
       first_name: 'Jane',
       last_name: 'Smith',
       position: 'C',
-      school: 'Test High School',
-      team_id: testTeam.id
+      school: 'Test High School'
     });
 
-    otherTeamPlayer = await Player.create({
+    otherTeamPlayer = await createOtherTeamPlayer({
       first_name: 'Other',
       last_name: 'Player',
       position: 'SS',
-      school: 'Other High School',
-      team_id: otherTeam.id
+      school: 'Other High School'
     });
   });
 
@@ -2127,12 +2141,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
     });
 
     // Create test players with performance statistics
-    testPlayer1 = await Player.create({
+    testPlayer1 = await createTestPlayer({
       first_name: 'Test',
       last_name: 'Pitcher',
       position: 'P',
       school: 'Test High School',
-      team_id: testTeam.id,
       batting_avg: 0.250,
       home_runs: 2,
       rbi: 10,
@@ -2142,12 +2155,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       strikeouts: 45
     });
 
-    testPlayer2 = await Player.create({
+    testPlayer2 = await createTestPlayer({
       first_name: 'Test',
       last_name: 'Catcher',
       position: 'C',
       school: 'Test High School',
-      team_id: testTeam.id,
       batting_avg: 0.320,
       home_runs: 8,
       rbi: 32,
@@ -2157,12 +2169,11 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       strikeouts: null
     });
 
-    testPlayer3 = await Player.create({
+    testPlayer3 = await createTestPlayer({
       first_name: 'Test',
       last_name: 'Outfielder',
       position: 'OF',
       school: 'Test High School',
-      team_id: testTeam.id,
       batting_avg: 0.280,
       home_runs: 5,
       rbi: 20,
@@ -2552,11 +2563,10 @@ describe('Reports API - Analytics and Export Endpoints', () => {
 
     it('should only include team reports (team isolation)', async () => {
       // Create player for other team
-      const otherPlayer = await Player.create({
+      const otherPlayer = await createOtherTeamPlayer({
         first_name: 'Other',
         last_name: 'Player',
-        position: 'SS',
-        team_id: otherTeam.id
+        position: 'SS'
       });
 
       // Create scouting reports for both teams
