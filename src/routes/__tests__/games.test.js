@@ -35,22 +35,17 @@ describe('Games List Sorting API', () => {
 
     // Create test team
     testTeam = await Team.create({
-      name: 'Test Team',
-      program_name: 'Test Program',
-      school: 'Test University',
-      division: 'D1',
-      conference: 'Test Conference',
-      city: 'Test City',
-      state: 'TS'
+      name: 'Games Test Team',
+      program_name: 'Games Test Program'
     });
 
     // Create test user
     testUser = await User.create({
-      first_name: 'Test',
-      last_name: 'Coach',
-      email: 'test@example.com',
-      password: 'password123',
-      role: 'coach',
+      first_name: 'Games',
+      last_name: 'TestUser',
+      email: 'games-test@example.com',
+      password: 'TestP@ss1',
+      role: 'head_coach',
       team_id: testTeam.id
     });
 
@@ -810,21 +805,16 @@ describe('Games List Sorting API', () => {
     it('should only return games for user\'s team', async () => {
       // Create another team and game
       const otherTeam = await Team.create({
-        name: 'Other Team',
-        program_name: 'Other Program',
-        school: 'Other University',
-        division: 'D1',
-        conference: 'Other Conference',
-        city: 'Other City',
-        state: 'OT'
+        name: 'Other Games Test Team',
+        program_name: 'Other Games Test Program'
       });
 
       const otherUser = await User.create({
         first_name: 'Other',
-        last_name: 'Coach',
-        email: 'other@example.com',
-        password: 'password123',
-        role: 'coach',
+        last_name: 'GamesUser',
+        email: 'other-games-test@example.com',
+        password: 'TestP@ss1',
+        role: 'head_coach',
         team_id: otherTeam.id
       });
 
