@@ -265,7 +265,7 @@ describe('CSRF middleware', () => {
       const expectedCookieName = getCookieName();
 
       expect(cookieName).toBe(expectedCookieName);
-      
+
       // In production, cookie name should have __Host- prefix
       if (process.env.NODE_ENV === 'production') {
         expect(cookieName).toContain('__Host-');

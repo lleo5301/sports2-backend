@@ -41,7 +41,7 @@
 const express = require('express');
 const { protect } = require('../../middleware/auth');
 const { checkPermission } = require('../../middleware/permissions');
-const { Player, Team, ScoutingReport, Game, PreferenceList } = require('../../models');
+const { Player, ScoutingReport, Game, PreferenceList } = require('../../models');
 const { Op } = require('sequelize');
 const { gradeToNumeric } = require('./helpers');
 
@@ -107,9 +107,13 @@ router.get('/player-performance', checkPermission('reports_view'), async (req, r
     };
 
     // Filter: Optionally filter by position
-    if (position) whereClause.position = position;
+    if (position) {
+      whereClause.position = position;
+    }
     // Filter: Optionally filter by school type
-    if (school_type) whereClause.school_type = school_type;
+    if (school_type) {
+      whereClause.school_type = school_type;
+    }
 
     // Database: Fetch players with comprehensive performance stats
     const players = await Player.findAll({
@@ -184,7 +188,9 @@ router.get('/team-statistics', checkPermission('reports_view'), async (req, res)
     // Business logic: Build where clause for games
     const whereClause = { team_id: req.user.team_id };
     // Filter: Optionally filter by season
-    if (season) whereClause.season = season;
+    if (season) {
+      whereClause.season = season;
+    }
 
     // Database: Fetch team games for win/loss record
     const games = await Game.findAll({ where: whereClause });
@@ -255,7 +261,7 @@ router.get('/team-statistics', checkPermission('reports_view'), async (req, res)
  */
 router.get('/scouting-analysis', checkPermission('reports_view'), async (req, res) => {
   try {
-    const { start_date, end_date, position } = req.query;
+    const { start_date, end_date, position: _position } = req.query;
 
     // Business logic: Build where clause for date filtering
     const whereClause = {};

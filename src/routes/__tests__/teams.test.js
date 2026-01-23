@@ -408,7 +408,7 @@ describe('Teams API - Core Operations', () => {
       // Create temporary team and user
       const tempTeam = await Team.create({
         name: 'Temp Test Team',
-      program_name: 'Temp Test Team Program',
+        program_name: 'Temp Test Team Program',
         sport: 'baseball',
         season: 'spring',
         year: 2024
@@ -1287,9 +1287,15 @@ describe('Teams API - Core Operations', () => {
 
     afterAll(async () => {
       // Clean up
-      if (pastActivity) await pastActivity.destroy();
-      if (pastSection) await pastSection.destroy();
-      if (pastSchedule) await pastSchedule.destroy();
+      if (pastActivity) {
+        await pastActivity.destroy();
+      }
+      if (pastSection) {
+        await pastSection.destroy();
+      }
+      if (pastSchedule) {
+        await pastSchedule.destroy();
+      }
     });
 
     it('should return recent past schedule events', async () => {
@@ -1407,9 +1413,15 @@ describe('Teams API - Core Operations', () => {
 
     afterAll(async () => {
       // Clean up
-      if (futureActivity) await futureActivity.destroy();
-      if (futureSection) await futureSection.destroy();
-      if (futureSchedule) await futureSchedule.destroy();
+      if (futureActivity) {
+        await futureActivity.destroy();
+      }
+      if (futureSection) {
+        await futureSection.destroy();
+      }
+      if (futureSchedule) {
+        await futureSchedule.destroy();
+      }
     });
 
     it('should return upcoming schedule events', async () => {
@@ -2118,8 +2130,12 @@ describe('Teams API - Core Operations', () => {
 
     afterAll(async () => {
       // Clean up
-      if (testPlayer) await testPlayer.destroy();
-      if (testGame) await testGame.destroy();
+      if (testPlayer) {
+        await testPlayer.destroy();
+      }
+      if (testGame) {
+        await testGame.destroy();
+      }
     });
 
     it('should return team statistics', async () => {
@@ -2201,7 +2217,7 @@ describe('Teams API - Core Operations', () => {
   });
 
   describe('GET /api/teams/roster', () => {
-    let testPlayers = [];
+    const testPlayers = [];
 
     beforeAll(async () => {
       const { Player } = require('../../models');

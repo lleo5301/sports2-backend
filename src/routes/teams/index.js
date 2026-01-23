@@ -26,13 +26,11 @@
  */
 
 const express = require('express');
-const { body } = require('express-validator');
 const { protect } = require('../../middleware/auth');
 const { checkPermission } = require('../../middleware/permissions');
 const { Team, User } = require('../../models');
 const {
   validateTeamCreate,
-  validateTeamUpdate,
   handleValidationErrors
 } = require('./validators');
 

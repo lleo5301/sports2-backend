@@ -95,7 +95,9 @@ class PrestoSyncService {
    * Parse height string (e.g., "6-2" or "6'2\"") to standardized format
    */
   parseHeight(heightStr) {
-    if (!heightStr) return null;
+    if (!heightStr) {
+      return null;
+    }
 
     // Handle formats like "6-2", "6'2", "6'2\"", "6 2"
     const match = heightStr.match(/(\d+)['\-\s]+(\d+)/);
@@ -110,9 +112,15 @@ class PrestoSyncService {
    * Determine game result from scores
    */
   determineResult(teamScore, opponentScore) {
-    if (teamScore === null || opponentScore === null) return null;
-    if (teamScore > opponentScore) return 'W';
-    if (teamScore < opponentScore) return 'L';
+    if (teamScore === null || opponentScore === null) {
+      return null;
+    }
+    if (teamScore > opponentScore) {
+      return 'W';
+    }
+    if (teamScore < opponentScore) {
+      return 'L';
+    }
     return 'T';
   }
 
@@ -156,7 +164,7 @@ class PrestoSyncService {
         };
 
         // Upsert by external_id
-        const [player, created] = await Player.upsert(playerData, {
+        const [_player, created] = await Player.upsert(playerData, {
           returning: true
         });
 
@@ -231,7 +239,7 @@ class PrestoSyncService {
         }
 
         const gameData = {
-          opponent: opponent,
+          opponent,
           game_date: new Date(event.date || event.eventDate),
           game_time: event.time || event.startTime || null,
           home_away: homeAway,
@@ -294,7 +302,7 @@ class PrestoSyncService {
   /**
    * Sync game statistics from PrestoSports
    */
-  async syncStats(teamId, userId) {
+  async syncStats(teamId, _userId) {
     const team = await Team.findByPk(teamId);
     if (!team.presto_team_id) {
       throw new Error('PrestoSports team ID not configured');
@@ -389,7 +397,7 @@ class PrestoSyncService {
             };
 
             // Upsert the stat record
-            const [gameStat, created] = await GameStatistic.upsert(statData, {
+            const [_gameStat, created] = await GameStatistic.upsert(statData, {
               returning: true
             });
 

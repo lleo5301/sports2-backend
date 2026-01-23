@@ -25,14 +25,14 @@ const cookieName = isProduction ? '__Host-psifi.x-csrf-token' : 'psifi.x-csrf-to
 const {
   generateToken, // Used to create a CSRF token
   doubleCsrfProtection, // Middleware to validate CSRF token
-  invalidCsrfTokenError, // Error type for invalid tokens
+  invalidCsrfTokenError // Error type for invalid tokens
 } = doubleCsrf({
   getSecret: () => csrfSecret,
   cookieName,
   cookieOptions,
   size: 64, // Token size in bytes
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'], // Safe methods that don't need CSRF protection
-  getTokenFromRequest: (req) => req.headers['x-csrf-token'], // Read token from header
+  getTokenFromRequest: (req) => req.headers['x-csrf-token'] // Read token from header
 });
 
 // Custom error handler for CSRF token validation

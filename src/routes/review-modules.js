@@ -33,7 +33,7 @@ const issues = {
 
 function checkFile(filePath) {
   const content = fs.readFileSync(filePath, 'utf8');
-  const fileName = path.basename(filePath);
+  const _fileName = path.basename(filePath);
   const relPath = path.relative(process.cwd(), filePath);
 
   console.log(`\nChecking: ${relPath}`);
@@ -155,4 +155,4 @@ if (totalIssues === 0) {
 }
 console.log('='.repeat(80) + '\n');
 
-process.exit(totalIssues > 0 ? 1 : 0);
+process.exit(totalIssues > 0 ? 1 : 0); // eslint-disable-line no-process-exit

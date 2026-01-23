@@ -8,11 +8,11 @@ describe('vendors routes basic structure', () => {
   it('router has standard HTTP methods', () => {
     const router = require('../vendors');
     // sanity check to ensure router is created; Express router attaches methods
-    expect(typeof router.get).toBe('function')
-    expect(typeof router.post).toBe('function')
-    expect(typeof router.put).toBe('function')
-    expect(typeof router.delete).toBe('function')
-  })
+    expect(typeof router.get).toBe('function');
+    expect(typeof router.post).toBe('function');
+    expect(typeof router.put).toBe('function');
+    expect(typeof router.delete).toBe('function');
+  });
 });
 
 describe('Vendors List Sorting API', () => {
@@ -21,8 +21,8 @@ describe('Vendors List Sorting API', () => {
   let testTeam;
   let otherTeam;
   let otherUser;
-  let otherAuthToken;
-  let testVendors = [];
+  let _otherAuthToken;
+  const testVendors = [];
 
   beforeAll(async () => {
     // Ensure database connection
@@ -72,7 +72,7 @@ describe('Vendors List Sorting API', () => {
       team_id: otherTeam.id
     });
     // Generate auth token for other user
-    otherAuthToken = jwt.sign(
+    _otherAuthToken = jwt.sign(
       {
         id: otherUser.id,
         jti: '840de278-a2a9-4d0d-af0a-fe0e13d1c890',
@@ -542,409 +542,307 @@ describe('Vendors List Sorting API', () => {
 
       expect(response.body.success).toBe(true);
       const types = response.body.data.map(v => v.vendor_type);
-    it('should sort by contract_value ASC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=contract_value&sortDirection=ASC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
+      it('should sort by contract_value ASC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=contract_value&sortDirection=ASC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
-      expect(response.body.success).toBe(true);
-      const values = response.body.data.map(v => parseFloat(v.contract_value));
-      for (let i = 1; i < values.length; i++) {
-        expect(values[i]).toBeGreaterThanOrEqual(values[i - 1]);
-      }
-    });
-
-    it('should sort by contract_value DESC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=contract_value&sortDirection=DESC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const values = response.body.data.map(v => parseFloat(v.contract_value));
-      for (let i = 1; i < values.length; i++) {
-        expect(values[i]).toBeLessThanOrEqual(values[i - 1]);
-      }
-    });
-  });
-
-  describe('GET /api/vendors - Sorting by contract_start_date', () => {
-    it('should sort by contract_start_date ASC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=contract_start_date&sortDirection=ASC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const dates = response.body.data.map(v => new Date(v.contract_start_date).getTime());
-      for (let i = 1; i < dates.length; i++) {
-        expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
-      }
-    });
-
-    it('should sort by contract_start_date DESC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=contract_start_date&sortDirection=DESC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const dates = response.body.data.map(v => new Date(v.contract_start_date).getTime());
-      for (let i = 1; i < dates.length; i++) {
-        expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
-      }
-    });
-  });
-
-  describe('GET /api/vendors - Sorting by contract_end_date', () => {
-    it('should sort by contract_end_date ASC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=contract_end_date&sortDirection=ASC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const dates = response.body.data.map(v => new Date(v.contract_end_date).getTime());
-      for (let i = 1; i < dates.length; i++) {
-        expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
-      }
-    });
-
-    it('should sort by contract_end_date DESC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=contract_end_date&sortDirection=DESC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const dates = response.body.data.map(v => new Date(v.contract_end_date).getTime());
-      for (let i = 1; i < dates.length; i++) {
-        expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
-      }
-    });
-  });
-
-  describe('GET /api/vendors - Sorting by last_contact_date', () => {
-    it('should sort by last_contact_date ASC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=last_contact_date&sortDirection=ASC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const dates = response.body.data.map(v => new Date(v.last_contact_date).getTime());
-      for (let i = 1; i < dates.length; i++) {
-        expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
-      }
-    });
-
-    it('should sort by last_contact_date DESC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=last_contact_date&sortDirection=DESC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const dates = response.body.data.map(v => new Date(v.last_contact_date).getTime());
-      for (let i = 1; i < dates.length; i++) {
-        expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
-      }
-    });
-  });
-
-  describe('GET /api/vendors - Sorting by next_contact_date', () => {
-    it('should sort by next_contact_date ASC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=next_contact_date&sortDirection=ASC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const dates = response.body.data.map(v => new Date(v.next_contact_date).getTime());
-      for (let i = 1; i < dates.length; i++) {
-        expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
-      }
-    });
-
-    it('should sort by next_contact_date DESC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=next_contact_date&sortDirection=DESC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const dates = response.body.data.map(v => new Date(v.next_contact_date).getTime());
-      for (let i = 1; i < dates.length; i++) {
-        expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
-      }
-    });
-  });
-
-  describe('GET /api/vendors - Sorting by status', () => {
-    it('should sort by status ASC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=status&sortDirection=ASC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const statuses = response.body.data.map(v => v.status);
-      // Alphabetically: active (2), expired (1), inactive (1), pending (1)
-      const activeCount = statuses.filter(s => s === 'active').length;
-      const expiredCount = statuses.filter(s => s === 'expired').length;
-      const inactiveCount = statuses.filter(s => s === 'inactive').length;
-      const pendingCount = statuses.filter(s => s === 'pending').length;
-      expect(activeCount).toBe(2);
-      expect(expiredCount).toBe(1);
-      expect(inactiveCount).toBe(1);
-      expect(pendingCount).toBe(1);
-      // Verify 'active' entries come first
-      expect(statuses[0]).toBe('active');
-      expect(statuses[1]).toBe('active');
-      expect(statuses[2]).toBe('expired');
-      expect(statuses[3]).toBe('inactive');
-      expect(statuses[4]).toBe('pending');
-    });
-
-    it('should sort by status DESC', async () => {
-      const response = await request(app)
-        .get('/api/vendors?orderBy=status&sortDirection=DESC')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      const statuses = response.body.data.map(v => v.status);
-      expect(response.body.data[0].company_name).toBe('Second Vendor');
-      expect(response.body.data[1].company_name).toBe('First Vendor');
-    });
-
-    it('should reject invalid vendor_type filter', async () => {
-      const response = await request(app)
-        .get('/api/vendors?vendor_type=InvalidType')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(400);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
-
-    it('should reject invalid status filter', async () => {
-      const response = await request(app)
-        .get('/api/vendors?status=invalid-status')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(400);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
-  });
-
-  describe('GET /api/vendors/:id', () => {
-    it('should require authentication', async () => {
-      const response = await request(app)
-        .get('/api/vendors/1')
-        .expect(401);
-
-      expect(response.body.success).toBe(false);
-    });
-
-    it('should return vendor by id', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Test Vendor',
-        contact_person: 'John Smith',
-        email: 'john@test.com',
-        phone: '555-1234',
-        website: 'https://test.com',
-        vendor_type: 'Equipment',
-        status: 'active',
-        contract_value: 10000,
-        contract_start_date: '2024-01-01',
-        contract_end_date: '2024-12-31',
-        team_id: testTeam.id,
-        created_by: testUser.id
+        expect(response.body.success).toBe(true);
+        const values = response.body.data.map(v => parseFloat(v.contract_value));
+        for (let i = 1; i < values.length; i++) {
+          expect(values[i]).toBeGreaterThanOrEqual(values[i - 1]);
+        }
       });
 
-      const response = await request(app)
-        .get(`/api/vendors/${vendor.id}`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
+      it('should sort by contract_value DESC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=contract_value&sortDirection=DESC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.company_name).toBe('Test Vendor');
-      expect(response.body.data.contact_person).toBe('John Smith');
-      expect(response.body.data.email).toBe('john@test.com');
-      expect(response.body.data.vendor_type).toBe('Equipment');
+        expect(response.body.success).toBe(true);
+        const values = response.body.data.map(v => parseFloat(v.contract_value));
+        for (let i = 1; i < values.length; i++) {
+          expect(values[i]).toBeLessThanOrEqual(values[i - 1]);
+        }
+      });
     });
 
-    it('should include creator information', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Test Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
+    describe('GET /api/vendors - Sorting by contract_start_date', () => {
+      it('should sort by contract_start_date ASC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=contract_start_date&sortDirection=ASC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        const dates = response.body.data.map(v => new Date(v.contract_start_date).getTime());
+        for (let i = 1; i < dates.length; i++) {
+          expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
+        }
       });
 
-      const response = await request(app)
-        .get(`/api/vendors/${vendor.id}`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
+      it('should sort by contract_start_date DESC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=contract_start_date&sortDirection=DESC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.Creator).toBeDefined();
-      expect(response.body.data.Creator.first_name).toBe('Vendors');
-      expect(response.body.data.Creator.last_name).toBe('TestUser');
+        expect(response.body.success).toBe(true);
+        const dates = response.body.data.map(v => new Date(v.contract_start_date).getTime());
+        for (let i = 1; i < dates.length; i++) {
+          expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
+        }
+      });
     });
 
-    it('should return 404 for non-existent vendor', async () => {
-      const response = await request(app)
-        .get('/api/vendors/99999')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(404);
+    describe('GET /api/vendors - Sorting by contract_end_date', () => {
+      it('should sort by contract_end_date ASC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=contract_end_date&sortDirection=ASC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Vendor not found');
-    });
-
-    it('should enforce team isolation (cannot access other team vendor)', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Other Team Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: otherTeam.id,
-        created_by: otherUser.id
+        expect(response.body.success).toBe(true);
+        const dates = response.body.data.map(v => new Date(v.contract_end_date).getTime());
+        for (let i = 1; i < dates.length; i++) {
+          expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
+        }
       });
 
-      const response = await request(app)
-        .get(`/api/vendors/${vendor.id}`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(404);
+      it('should sort by contract_end_date DESC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=contract_end_date&sortDirection=DESC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Vendor not found');
+        expect(response.body.success).toBe(true);
+        const dates = response.body.data.map(v => new Date(v.contract_end_date).getTime());
+        for (let i = 1; i < dates.length; i++) {
+          expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
+        }
+      });
     });
-  });
 
-  describe('POST /api/vendors', () => {
-    it('should require authentication', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .send({
+    describe('GET /api/vendors - Sorting by last_contact_date', () => {
+      it('should sort by last_contact_date ASC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=last_contact_date&sortDirection=ASC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        const dates = response.body.data.map(v => new Date(v.last_contact_date).getTime());
+        for (let i = 1; i < dates.length; i++) {
+          expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
+        }
+      });
+
+      it('should sort by last_contact_date DESC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=last_contact_date&sortDirection=DESC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        const dates = response.body.data.map(v => new Date(v.last_contact_date).getTime());
+        for (let i = 1; i < dates.length; i++) {
+          expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
+        }
+      });
+    });
+
+    describe('GET /api/vendors - Sorting by next_contact_date', () => {
+      it('should sort by next_contact_date ASC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=next_contact_date&sortDirection=ASC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        const dates = response.body.data.map(v => new Date(v.next_contact_date).getTime());
+        for (let i = 1; i < dates.length; i++) {
+          expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
+        }
+      });
+
+      it('should sort by next_contact_date DESC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=next_contact_date&sortDirection=DESC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        const dates = response.body.data.map(v => new Date(v.next_contact_date).getTime());
+        for (let i = 1; i < dates.length; i++) {
+          expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
+        }
+      });
+    });
+
+    describe('GET /api/vendors - Sorting by status', () => {
+      it('should sort by status ASC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=status&sortDirection=ASC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        const statuses = response.body.data.map(v => v.status);
+        // Alphabetically: active (2), expired (1), inactive (1), pending (1)
+        const activeCount = statuses.filter(s => s === 'active').length;
+        const expiredCount = statuses.filter(s => s === 'expired').length;
+        const inactiveCount = statuses.filter(s => s === 'inactive').length;
+        const pendingCount = statuses.filter(s => s === 'pending').length;
+        expect(activeCount).toBe(2);
+        expect(expiredCount).toBe(1);
+        expect(inactiveCount).toBe(1);
+        expect(pendingCount).toBe(1);
+        // Verify 'active' entries come first
+        expect(statuses[0]).toBe('active');
+        expect(statuses[1]).toBe('active');
+        expect(statuses[2]).toBe('expired');
+        expect(statuses[3]).toBe('inactive');
+        expect(statuses[4]).toBe('pending');
+      });
+
+      it('should sort by status DESC', async () => {
+        const response = await request(app)
+          .get('/api/vendors?orderBy=status&sortDirection=DESC')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        const statuses = response.body.data.map(v => v.status);
+        expect(response.body.data[0].company_name).toBe('Second Vendor');
+        expect(response.body.data[1].company_name).toBe('First Vendor');
+      });
+
+      it('should reject invalid vendor_type filter', async () => {
+        const response = await request(app)
+          .get('/api/vendors?vendor_type=InvalidType')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should reject invalid status filter', async () => {
+        const response = await request(app)
+          .get('/api/vendors?status=invalid-status')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+    });
+
+    describe('GET /api/vendors/:id', () => {
+      it('should require authentication', async () => {
+        const response = await request(app)
+          .get('/api/vendors/1')
+          .expect(401);
+
+        expect(response.body.success).toBe(false);
+      });
+
+      it('should return vendor by id', async () => {
+        const vendor = await Vendor.create({
           company_name: 'Test Vendor',
-          vendor_type: 'Equipment'
-        })
-        .expect(401);
-
-      expect(response.body.success).toBe(false);
-    });
-
-    it('should create vendor with required fields only', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'New Vendor',
-          vendor_type: 'Equipment'
-        })
-        .expect(201);
-
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.company_name).toBe('New Vendor');
-      expect(response.body.data.vendor_type).toBe('Equipment');
-      expect(response.body.data.team_id).toBe(testTeam.id);
-      expect(response.body.data.created_by).toBe(testUser.id);
-    });
-
-    it('should create vendor with all fields', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Complete Vendor',
-          contact_person: 'Jane Doe',
-          email: 'jane@vendor.com',
-          phone: '555-9876',
-          website: 'https://vendor.com',
-          vendor_type: 'Apparel',
-          contract_value: 25000,
+          contact_person: 'John Smith',
+          email: 'john@test.com',
+          phone: '555-1234',
+          website: 'https://test.com',
+          vendor_type: 'Equipment',
+          status: 'active',
+          contract_value: 10000,
           contract_start_date: '2024-01-01',
           contract_end_date: '2024-12-31',
-          services_provided: 'Uniforms and team apparel',
-          last_contact_date: '2024-01-15',
-          next_contact_date: '2024-02-15'
-        })
-        .expect(201);
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
 
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.company_name).toBe('Complete Vendor');
-      expect(response.body.data.contact_person).toBe('Jane Doe');
-      expect(response.body.data.email).toBe('jane@vendor.com');
-      expect(response.body.data.vendor_type).toBe('Apparel');
-    });
+        const response = await request(app)
+          .get(`/api/vendors/${vendor.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
-    it('should validate required company_name', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          vendor_type: 'Equipment'
-        })
-        .expect(400);
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.company_name).toBe('Test Vendor');
+        expect(response.body.data.contact_person).toBe('John Smith');
+        expect(response.body.data.email).toBe('john@test.com');
+        expect(response.body.data.vendor_type).toBe('Equipment');
+      });
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
-
-    it('should validate required vendor_type', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Test Vendor'
-        })
-        .expect(400);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
-
-    it('should validate vendor_type enum values', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
+      it('should include creator information', async () => {
+        const vendor = await Vendor.create({
           company_name: 'Test Vendor',
-          vendor_type: 'InvalidType'
-        })
-        .expect(400);
+          vendor_type: 'Equipment',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
+        const response = await request(app)
+          .get(`/api/vendors/${vendor.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.Creator).toBeDefined();
+        expect(response.body.data.Creator.first_name).toBe('Vendors');
+        expect(response.body.data.Creator.last_name).toBe('TestUser');
+      });
+
+      it('should return 404 for non-existent vendor', async () => {
+        const response = await request(app)
+          .get('/api/vendors/99999')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Vendor not found');
+      });
+
+      it('should enforce team isolation (cannot access other team vendor)', async () => {
+        const vendor = await Vendor.create({
+          company_name: 'Other Team Vendor',
+          vendor_type: 'Equipment',
+          status: 'active',
+          team_id: otherTeam.id,
+          created_by: otherUser.id
+        });
+
+        const response = await request(app)
+          .get(`/api/vendors/${vendor.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Vendor not found');
+      });
     });
 
-    it('should accept all valid vendor_type values', async () => {
-      const vendorTypes = ['Equipment', 'Apparel', 'Technology', 'Food Service', 'Transportation', 'Medical', 'Facilities', 'Other'];
+    describe('POST /api/vendors', () => {
+      it('should require authentication', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'Equipment'
+          })
+          .expect(401);
 
-      for (const type of vendorTypes) {
+        expect(response.body.success).toBe(false);
+      });
+
+      it('should create vendor with required fields only', async () => {
         const { token, cookies } = await getCsrfToken(app);
         const response = await request(app)
           .post('/api/vendors')
@@ -952,577 +850,679 @@ describe('Vendors List Sorting API', () => {
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
-            company_name: `${type} Vendor`,
-            vendor_type: type
+            company_name: 'New Vendor',
+            vendor_type: 'Equipment'
           })
           .expect(201);
 
         expect(response.body.success).toBe(true);
-        expect(response.body.data.vendor_type).toBe(type);
-      }
+        expect(response.body.data.company_name).toBe('New Vendor');
+        expect(response.body.data.vendor_type).toBe('Equipment');
+        expect(response.body.data.team_id).toBe(testTeam.id);
+        expect(response.body.data.created_by).toBe(testUser.id);
+      });
+
+      it('should create vendor with all fields', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Complete Vendor',
+            contact_person: 'Jane Doe',
+            email: 'jane@vendor.com',
+            phone: '555-9876',
+            website: 'https://vendor.com',
+            vendor_type: 'Apparel',
+            contract_value: 25000,
+            contract_start_date: '2024-01-01',
+            contract_end_date: '2024-12-31',
+            services_provided: 'Uniforms and team apparel',
+            last_contact_date: '2024-01-15',
+            next_contact_date: '2024-02-15'
+          })
+          .expect(201);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.company_name).toBe('Complete Vendor');
+        expect(response.body.data.contact_person).toBe('Jane Doe');
+        expect(response.body.data.email).toBe('jane@vendor.com');
+        expect(response.body.data.vendor_type).toBe('Apparel');
+      });
+
+      it('should validate required company_name', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            vendor_type: 'Equipment'
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should validate required vendor_type', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor'
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should validate vendor_type enum values', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'InvalidType'
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should accept all valid vendor_type values', async () => {
+        const vendorTypes = ['Equipment', 'Apparel', 'Technology', 'Food Service', 'Transportation', 'Medical', 'Facilities', 'Other'];
+
+        for (const type of vendorTypes) {
+          const { token, cookies } = await getCsrfToken(app);
+          const response = await request(app)
+            .post('/api/vendors')
+            .set('Cookie', cookies)
+            .set('x-csrf-token', token)
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({
+              company_name: `${type} Vendor`,
+              vendor_type: type
+            })
+            .expect(201);
+
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.vendor_type).toBe(type);
+        }
+      });
+
+      it('should validate email format', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'Equipment',
+            email: 'invalid-email'
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should validate website URL format', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'Equipment',
+            website: 'not-a-url'
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should validate company_name max length (200 chars)', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'a'.repeat(201),
+            vendor_type: 'Equipment'
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should validate contact_person max length (100 chars)', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'Equipment',
+            contact_person: 'a'.repeat(101)
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should validate phone max length (20 chars)', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'Equipment',
+            phone: '1'.repeat(21)
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should validate contract_start_date ISO8601 format', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'Equipment',
+            contract_start_date: 'invalid-date'
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should validate contract_end_date ISO8601 format', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'Equipment',
+            contract_end_date: 'not-a-date'
+          })
+          .expect(400);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should auto-assign team_id from authenticated user', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'Equipment'
+          })
+          .expect(201);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.team_id).toBe(testTeam.id);
+      });
+
+      it('should auto-assign created_by from authenticated user', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'Equipment'
+          })
+          .expect(201);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.created_by).toBe(testUser.id);
+      });
+
+      it('should include creator information in response', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .post('/api/vendors')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Test Vendor',
+            vendor_type: 'Equipment'
+          })
+          .expect(201);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.Creator).toBeDefined();
+        expect(response.body.data.Creator.first_name).toBe('Vendors');
+        expect(response.body.data.Creator.last_name).toBe('TestUser');
+      });
     });
 
-    it('should validate email format', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
+    describe('PUT /api/vendors/:id', () => {
+      it('should require authentication', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put('/api/vendors/1')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .send({ company_name: 'Updated' })
+          .expect(401);
+
+        expect(response.body.success).toBe(false);
+      });
+
+      it('should update vendor with partial fields', async () => {
+        const vendor = await Vendor.create({
+          company_name: 'Original Vendor',
+          vendor_type: 'Equipment',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
+
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Updated Vendor'
+          })
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.company_name).toBe('Updated Vendor');
+        expect(response.body.data.vendor_type).toBe('Equipment');
+      });
+
+      it('should update vendor with all fields', async () => {
+        const vendor = await Vendor.create({
+          company_name: 'Original Vendor',
+          vendor_type: 'Equipment',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
+
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Updated Vendor',
+            contact_person: 'New Contact',
+            email: 'new@vendor.com',
+            phone: '555-4321',
+            website: 'https://newvendor.com',
+            vendor_type: 'Apparel',
+            status: 'inactive',
+            contract_value: 15000,
+            contract_start_date: '2024-02-01',
+            contract_end_date: '2025-01-31'
+          })
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.company_name).toBe('Updated Vendor');
+        expect(response.body.data.contact_person).toBe('New Contact');
+        expect(response.body.data.vendor_type).toBe('Apparel');
+        expect(response.body.data.status).toBe('inactive');
+      });
+
+      it('should update vendor status', async () => {
+        const vendor = await Vendor.create({
           company_name: 'Test Vendor',
           vendor_type: 'Equipment',
-          email: 'invalid-email'
-        })
-        .expect(400);
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            status: 'expired'
+          })
+          .expect(200);
 
-    it('should validate website URL format', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.status).toBe('expired');
+      });
+
+      it('should validate status enum values', async () => {
+        const vendor = await Vendor.create({
           company_name: 'Test Vendor',
           vendor_type: 'Equipment',
-          website: 'not-a-url'
-        })
-        .expect(400);
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            status: 'invalid-status'
+          })
+          .expect(400);
 
-    it('should validate company_name max length (200 chars)', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'a'.repeat(201),
-          vendor_type: 'Equipment'
-        })
-        .expect(400);
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
-
-    it('should validate contact_person max length (100 chars)', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
+      it('should validate vendor_type enum on update', async () => {
+        const vendor = await Vendor.create({
           company_name: 'Test Vendor',
           vendor_type: 'Equipment',
-          contact_person: 'a'.repeat(101)
-        })
-        .expect(400);
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            vendor_type: 'InvalidType'
+          })
+          .expect(400);
 
-    it('should validate phone max length (20 chars)', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should validate email format on update', async () => {
+        const vendor = await Vendor.create({
           company_name: 'Test Vendor',
           vendor_type: 'Equipment',
-          phone: '1'.repeat(21)
-        })
-        .expect(400);
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            email: 'invalid-email'
+          })
+          .expect(400);
 
-    it('should validate contract_start_date ISO8601 format', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should validate website URL format on update', async () => {
+        const vendor = await Vendor.create({
           company_name: 'Test Vendor',
           vendor_type: 'Equipment',
-          contract_start_date: 'invalid-date'
-        })
-        .expect(400);
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            website: 'not-a-url'
+          })
+          .expect(400);
 
-    it('should validate contract_end_date ISO8601 format', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Validation failed');
+      });
+
+      it('should return 404 for non-existent vendor', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put('/api/vendors/99999')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Updated'
+          })
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Vendor not found');
+      });
+
+      it('should enforce team isolation (cannot update other team vendor)', async () => {
+        const vendor = await Vendor.create({
+          company_name: 'Other Team Vendor',
+          vendor_type: 'Equipment',
+          status: 'active',
+          team_id: otherTeam.id,
+          created_by: otherUser.id
+        });
+
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Hacked Vendor'
+          })
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Vendor not found');
+
+        // Verify vendor was not updated
+        const unchangedVendor = await Vendor.findByPk(vendor.id);
+        expect(unchangedVendor.company_name).toBe('Other Team Vendor');
+      });
+
+      it('should verify database update', async () => {
+        const vendor = await Vendor.create({
+          company_name: 'Original Vendor',
+          vendor_type: 'Equipment',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
+
+        const { token, cookies } = await getCsrfToken(app);
+        await request(app)
+          .put(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Database Updated Vendor'
+          })
+          .expect(200);
+
+        // Verify in database
+        const updatedVendor = await Vendor.findByPk(vendor.id);
+        expect(updatedVendor.company_name).toBe('Database Updated Vendor');
+      });
+
+      it('should include creator information in response', async () => {
+        const vendor = await Vendor.create({
           company_name: 'Test Vendor',
           vendor_type: 'Equipment',
-          contract_end_date: 'not-a-date'
-        })
-        .expect(400);
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .put(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            company_name: 'Updated Vendor'
+          })
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.Creator).toBeDefined();
+        expect(response.body.data.Creator.first_name).toBe('Vendors');
+      });
     });
 
-    it('should auto-assign team_id from authenticated user', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Test Vendor',
-          vendor_type: 'Equipment'
-        })
-        .expect(201);
+    describe('DELETE /api/vendors/:id', () => {
+      it('should require authentication', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .delete('/api/vendors/1')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .expect(401);
 
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.team_id).toBe(testTeam.id);
-    });
+        expect(response.body.success).toBe(false);
+      });
 
-    it('should auto-assign created_by from authenticated user', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Test Vendor',
-          vendor_type: 'Equipment'
-        })
-        .expect(201);
+      it('should delete vendor', async () => {
+        const vendor = await Vendor.create({
+          company_name: 'To Delete Vendor',
+          vendor_type: 'Equipment',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
 
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.created_by).toBe(testUser.id);
-    });
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .delete(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
-    it('should include creator information in response', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .post('/api/vendors')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Test Vendor',
-          vendor_type: 'Equipment'
-        })
-        .expect(201);
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toBe('Vendor deleted successfully');
+      });
 
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.Creator).toBeDefined();
-      expect(response.body.data.Creator.first_name).toBe('Vendors');
-      expect(response.body.data.Creator.last_name).toBe('TestUser');
+      it('should verify vendor is deleted from database (hard delete)', async () => {
+        const vendor = await Vendor.create({
+          company_name: 'To Delete Vendor',
+          vendor_type: 'Equipment',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
+        });
+
+        const { token, cookies } = await getCsrfToken(app);
+        await request(app)
+          .delete(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        // Verify vendor is gone from database
+        const deletedVendor = await Vendor.findByPk(vendor.id);
+        expect(deletedVendor).toBeNull();
+      });
+
+      it('should return 404 for non-existent vendor', async () => {
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .delete('/api/vendors/99999')
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Vendor not found');
+      });
+
+      it('should enforce team isolation (cannot delete other team vendor)', async () => {
+        const vendor = await Vendor.create({
+          company_name: 'Other Team Vendor',
+          vendor_type: 'Equipment',
+          status: 'active',
+          team_id: otherTeam.id,
+          created_by: otherUser.id
+        });
+
+        const { token, cookies } = await getCsrfToken(app);
+        const response = await request(app)
+          .delete(`/api/vendors/${vendor.id}`)
+          .set('Cookie', cookies)
+          .set('x-csrf-token', token)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(404);
+
+        expect(response.body.success).toBe(false);
+        expect(response.body.error).toBe('Vendor not found');
+        // Should only see the 5 vendors from testTeam, not the 6th from otherTeam
+        expect(response.body.data.length).toBe(5);
+        response.body.data.forEach(vendor => {
+          expect(vendor.team_id).toBe(testTeam.id);
+        });
+      });
     });
   });
-
-  describe('PUT /api/vendors/:id', () => {
-    it('should require authentication', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put('/api/vendors/1')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .send({ company_name: 'Updated' })
-        .expect(401);
-
-      expect(response.body.success).toBe(false);
-    });
-
-    it('should update vendor with partial fields', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Original Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Updated Vendor'
-        })
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.company_name).toBe('Updated Vendor');
-      expect(response.body.data.vendor_type).toBe('Equipment');
-    });
-
-    it('should update vendor with all fields', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Original Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Updated Vendor',
-          contact_person: 'New Contact',
-          email: 'new@vendor.com',
-          phone: '555-4321',
-          website: 'https://newvendor.com',
-          vendor_type: 'Apparel',
-          status: 'inactive',
-          contract_value: 15000,
-          contract_start_date: '2024-02-01',
-          contract_end_date: '2025-01-31'
-        })
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.company_name).toBe('Updated Vendor');
-      expect(response.body.data.contact_person).toBe('New Contact');
-      expect(response.body.data.vendor_type).toBe('Apparel');
-      expect(response.body.data.status).toBe('inactive');
-    });
-
-    it('should update vendor status', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Test Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          status: 'expired'
-        })
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.status).toBe('expired');
-    });
-
-    it('should validate status enum values', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Test Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          status: 'invalid-status'
-        })
-        .expect(400);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
-
-    it('should validate vendor_type enum on update', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Test Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          vendor_type: 'InvalidType'
-        })
-        .expect(400);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
-
-    it('should validate email format on update', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Test Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          email: 'invalid-email'
-        })
-        .expect(400);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
-
-    it('should validate website URL format on update', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Test Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          website: 'not-a-url'
-        })
-        .expect(400);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Validation failed');
-    });
-
-    it('should return 404 for non-existent vendor', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put('/api/vendors/99999')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Updated'
-        })
-        .expect(404);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Vendor not found');
-    });
-
-    it('should enforce team isolation (cannot update other team vendor)', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Other Team Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: otherTeam.id,
-        created_by: otherUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Hacked Vendor'
-        })
-        .expect(404);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Vendor not found');
-
-      // Verify vendor was not updated
-      const unchangedVendor = await Vendor.findByPk(vendor.id);
-      expect(unchangedVendor.company_name).toBe('Other Team Vendor');
-    });
-
-    it('should verify database update', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Original Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      await request(app)
-        .put(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Database Updated Vendor'
-        })
-        .expect(200);
-
-      // Verify in database
-      const updatedVendor = await Vendor.findByPk(vendor.id);
-      expect(updatedVendor.company_name).toBe('Database Updated Vendor');
-    });
-
-    it('should include creator information in response', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Test Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .put(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          company_name: 'Updated Vendor'
-        })
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.Creator).toBeDefined();
-      expect(response.body.data.Creator.first_name).toBe('Vendors');
-    });
-  });
-
-  describe('DELETE /api/vendors/:id', () => {
-    it('should require authentication', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .delete('/api/vendors/1')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .expect(401);
-
-      expect(response.body.success).toBe(false);
-    });
-
-    it('should delete vendor', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'To Delete Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .delete(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
-      expect(response.body.message).toBe('Vendor deleted successfully');
-    });
-
-    it('should verify vendor is deleted from database (hard delete)', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'To Delete Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: testTeam.id,
-        created_by: testUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      await request(app)
-        .delete(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-
-      // Verify vendor is gone from database
-      const deletedVendor = await Vendor.findByPk(vendor.id);
-      expect(deletedVendor).toBeNull();
-    });
-
-    it('should return 404 for non-existent vendor', async () => {
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .delete('/api/vendors/99999')
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(404);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Vendor not found');
-    });
-
-    it('should enforce team isolation (cannot delete other team vendor)', async () => {
-      const vendor = await Vendor.create({
-        company_name: 'Other Team Vendor',
-        vendor_type: 'Equipment',
-        status: 'active',
-        team_id: otherTeam.id,
-        created_by: otherUser.id
-      });
-
-      const { token, cookies } = await getCsrfToken(app);
-      const response = await request(app)
-        .delete(`/api/vendors/${vendor.id}`)
-        .set('Cookie', cookies)
-        .set('x-csrf-token', token)
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(404);
-
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Vendor not found');
-      // Should only see the 5 vendors from testTeam, not the 6th from otherTeam
-      expect(response.body.data.length).toBe(5);
-      response.body.data.forEach(vendor => {
-        expect(vendor.team_id).toBe(testTeam.id);
-      });
-    });
-  });
-});
 });

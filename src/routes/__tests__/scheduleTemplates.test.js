@@ -72,7 +72,7 @@ describe('Schedule Templates API', () => {
       // Create another team and template (should not appear in results)
       const otherTeam = await Team.create({
         name: 'Other Team',
-      program_name: 'Other Team Program',
+        program_name: 'Other Team Program',
         sport: 'baseball',
         season: 'spring',
         year: 2024

@@ -262,7 +262,8 @@ const createSortValidators = (entityType) => {
     throw new Error('express-validator is required for createSortValidators');
   }
 
-  const allowedColumns = getAllowedSortColumns(entityType);
+  // Validate entityType by checking allowed columns exist
+  getAllowedSortColumns(entityType);
 
   return [
     query('orderBy')

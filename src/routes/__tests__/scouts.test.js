@@ -10,7 +10,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
   let testTeam;
   let otherTeam;
   let otherUser;
-  let otherAuthToken;
+  let _otherAuthToken;
 
   beforeAll(async () => {
     // Ensure database connection
@@ -54,7 +54,7 @@ describe('Scouts API - Complete CRUD Tests', () => {
 
     // Generate auth tokens
     authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
-    otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
+    _otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
   });
 
   afterAll(async () => {

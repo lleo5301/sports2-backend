@@ -10,7 +10,7 @@ describe('Schedules API - Core CRUD Operations', () => {
   let testTeam;
   let otherTeam;
   let otherUser;
-  let otherAuthToken;
+  let _otherAuthToken;
 
   beforeAll(async () => {
     // Ensure database connection
@@ -54,7 +54,7 @@ describe('Schedules API - Core CRUD Operations', () => {
 
     // Generate auth tokens
     authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
-    otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
+    _otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
   });
 
   afterAll(async () => {
@@ -1437,7 +1437,7 @@ describe('Schedules API - Core CRUD Operations', () => {
           .set('x-csrf-token', token)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
-            type: type,
+            type,
             title: `${type} Section`
           })
           .expect(201);

@@ -11,18 +11,18 @@ describe('games routes basic structure', () => {
   it('router has standard HTTP methods', () => {
     const router = require('../games');
     // sanity check to ensure router is created; Express router attaches methods
-    expect(typeof router.get).toBe('function')
-    expect(typeof router.post).toBe('function')
-    expect(typeof router.put).toBe('function')
-    expect(typeof router.delete).toBe('function')
-  })
-})
+    expect(typeof router.get).toBe('function');
+    expect(typeof router.post).toBe('function');
+    expect(typeof router.put).toBe('function');
+    expect(typeof router.delete).toBe('function');
+  });
+});
 
 describe('Games List Sorting API', () => {
   let authToken;
   let testUser;
   let testTeam;
-  let testGames = [];
+  const testGames = [];
 
   beforeAll(async () => {
     // Ensure we're using the test database

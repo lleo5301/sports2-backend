@@ -10,7 +10,7 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
   let testTeam;
   let otherTeam;
   let otherUser;
-  let otherAuthToken;
+  let _otherAuthToken;
   let testTemplate;
   let testLocation;
 
@@ -90,7 +90,7 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
 
     // Generate auth tokens
     authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
-    otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
+    _otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
   });
 
   afterAll(async () => {
@@ -928,7 +928,7 @@ describe('Schedule Events API - Complete CRUD Tests', () => {
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             title: `${priority} Priority Event`,
-            priority: priority,
+            priority,
             schedule_template_id: testTemplate.id,
             event_dates: [{ event_date: '2024-06-01' }]
           })

@@ -213,7 +213,7 @@ router.get('/preferences', async (req, res) => {
   try {
     // Database: Fetch user for personalized preferences
     // Note: Currently returns defaults, should read from user.settings.notifications
-    const user = await User.findByPk(req.user.id);
+    const _user = await User.findByPk(req.user.id);
 
     // Business logic: Return notification preferences structure
     // Simplified view with reports, schedules, games, players categories
@@ -316,7 +316,7 @@ router.get('/preferences', async (req, res) => {
 router.put('/preferences', validateNotificationSettings, handleValidationErrors, async (req, res) => {
   try {
     // Database: Fetch user (not currently used but available for implementation)
-    const user = await User.findByPk(req.user.id);
+    const _user = await User.findByPk(req.user.id);
 
     // Note: Production should persist these preferences to user.settings.notifications
     // Currently just returns success without saving

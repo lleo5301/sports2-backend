@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
  * Token Blacklist Cleanup Utility
@@ -58,7 +57,7 @@ async function main() {
 
     // Close database connection
     await sequelize.close();
-    process.exit(0);
+    process.exit(0); // eslint-disable-line no-process-exit
   } catch (error) {
     process.stderr.write('\n');
     process.stderr.write('================================================================================\n');
@@ -84,7 +83,7 @@ async function main() {
       // Ignore close errors
     }
 
-    process.exit(1);
+    process.exit(1); // eslint-disable-line no-process-exit
   }
 }
 

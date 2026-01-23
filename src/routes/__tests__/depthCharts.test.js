@@ -10,7 +10,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
   let testTeam;
   let otherTeam;
   let otherUser;
-  let otherAuthToken;
+  let _otherAuthToken;
 
   beforeAll(async () => {
     // Ensure database connection
@@ -54,7 +54,7 @@ describe('DepthCharts API - Core CRUD Operations', () => {
 
     // Generate auth tokens
     authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
-    otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
+    _otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
 
     // Grant necessary permissions to test user
     await UserPermission.create({

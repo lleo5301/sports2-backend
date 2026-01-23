@@ -74,7 +74,7 @@ router.use(protect);
  */
 router.post('/generate-pdf', checkPermission('reports_create'), async (req, res) => {
   try {
-    const { type, data, options } = req.body;
+    const { type, data: _data, options } = req.body;
 
     // Business logic: Placeholder implementation
     // TODO: Implement actual PDF generation using a library like pdfmake or puppeteer
@@ -137,7 +137,7 @@ router.post('/generate-pdf', checkPermission('reports_create'), async (req, res)
  */
 router.post('/export-excel', checkPermission('reports_create'), async (req, res) => {
   try {
-    const { type, data, options } = req.body;
+    const { type, data: _data, options } = req.body;
 
     // Business logic: Placeholder implementation
     // TODO: Implement actual Excel export using a library like exceljs or xlsx

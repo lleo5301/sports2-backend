@@ -56,7 +56,7 @@ module.exports = {
       SELECT indexname FROM pg_indexes 
       WHERE tablename = 'user_teams' AND indexname = 'user_teams_user_team_unique'
     `);
-    
+
     if (indexes.length === 0) {
       await queryInterface.addIndex('user_teams', ['user_id', 'team_id'], {
         unique: true,

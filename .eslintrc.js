@@ -40,6 +40,14 @@ module.exports = {
   // Plugins
   plugins: ['node'],
 
+  // Ignore test files
+  ignorePatterns: [
+    '**/__tests__/**',
+    '**/*.test.js',
+    '**/*.spec.js',
+    'test/**'
+  ],
+
   // Custom rules to match existing code style
   rules: {
     // Indentation: 2 spaces

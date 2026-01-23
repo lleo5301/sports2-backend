@@ -174,7 +174,7 @@ describe('LockoutService', () => {
     it('should increment failed attempts counter', async () => {
       const mockUser = {
         failed_login_attempts: 2,
-        incrementFailedAttempts: jest.fn().mockImplementation(function() {
+        incrementFailedAttempts: jest.fn().mockImplementation(function () {
           this.failed_login_attempts = 3;
         }),
         lockAccount: jest.fn()
@@ -201,10 +201,10 @@ describe('LockoutService', () => {
         email: 'test@example.com',
         failed_login_attempts: 4,
         locked_until: null,
-        incrementFailedAttempts: jest.fn().mockImplementation(function() {
+        incrementFailedAttempts: jest.fn().mockImplementation(function () {
           this.failed_login_attempts = 5;
         }),
-        lockAccount: jest.fn().mockImplementation(function() {
+        lockAccount: jest.fn().mockImplementation(function () {
           this.locked_until = lockUntil;
         })
       };
@@ -239,7 +239,7 @@ describe('LockoutService', () => {
     it('should not lock account before threshold is reached', async () => {
       const mockUser = {
         failed_login_attempts: 1,
-        incrementFailedAttempts: jest.fn().mockImplementation(function() {
+        incrementFailedAttempts: jest.fn().mockImplementation(function () {
           this.failed_login_attempts = 2;
         }),
         lockAccount: jest.fn()
@@ -262,10 +262,10 @@ describe('LockoutService', () => {
         id: 123,
         email: 'test@example.com',
         failed_login_attempts: 4,
-        incrementFailedAttempts: jest.fn().mockImplementation(function() {
+        incrementFailedAttempts: jest.fn().mockImplementation(function () {
           this.failed_login_attempts = 5;
         }),
-        lockAccount: jest.fn().mockImplementation(function() {
+        lockAccount: jest.fn().mockImplementation(function () {
           this.locked_until = lockUntil;
         })
       };
@@ -287,7 +287,7 @@ describe('LockoutService', () => {
 
       const mockUser = {
         failed_login_attempts: 1,
-        incrementFailedAttempts: jest.fn().mockImplementation(function() {
+        incrementFailedAttempts: jest.fn().mockImplementation(function () {
           this.failed_login_attempts = 2;
         }),
         lockAccount: jest.fn()
@@ -308,7 +308,7 @@ describe('LockoutService', () => {
 
       const mockUser = {
         failed_login_attempts: 4,
-        incrementFailedAttempts: jest.fn().mockImplementation(function() {
+        incrementFailedAttempts: jest.fn().mockImplementation(function () {
           this.failed_login_attempts = 5;
         }),
         lockAccount: jest.fn()

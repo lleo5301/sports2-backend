@@ -49,14 +49,14 @@ function getHelmetConfig() {
         styleSrc: ["'self'", "'unsafe-inline'"],
 
         // Images: Allow data URIs for inline images and self
-        imgSrc: ["'self'", "data:", "https:"],
+        imgSrc: ["'self'", 'data:', 'https:'],
 
         // Fonts: Allow self and data URIs
-        fontSrc: ["'self'", "data:"],
+        fontSrc: ["'self'", 'data:'],
 
         // Connect: API calls - allow self and any configured API origins
         connectSrc: isDevelopment
-          ? ["'self'", "ws://localhost:*", "http://localhost:*"]
+          ? ["'self'", 'ws://localhost:*', 'http://localhost:*']
           : ["'self'"],
 
         // Frames: Disallow embedding content from other origins
@@ -78,8 +78,8 @@ function getHelmetConfig() {
         frameAncestors: ["'none'"],
 
         // Upgrade insecure requests in production
-        ...(isProduction && { upgradeInsecureRequests: [] }),
-      },
+        ...(isProduction && { upgradeInsecureRequests: [] })
+      }
     },
 
     /**
@@ -94,10 +94,10 @@ function getHelmetConfig() {
      */
     strictTransportSecurity: isProduction
       ? {
-          maxAge: 31536000, // 1 year in seconds
-          includeSubDomains: true,
-          preload: true,
-        }
+        maxAge: 31536000, // 1 year in seconds
+        includeSubDomains: true,
+        preload: true
+      }
       : false, // Disabled in development (local dev doesn't use HTTPS)
 
     /**
@@ -107,7 +107,7 @@ function getHelmetConfig() {
      * 'DENY' completely prevents the page from being embedded.
      */
     frameguard: {
-      action: 'deny',
+      action: 'deny'
     },
 
     /**
@@ -128,7 +128,7 @@ function getHelmetConfig() {
      * - Cross-origin HTTPS→HTTP: No referrer (prevents downgrade)
      */
     referrerPolicy: {
-      policy: 'strict-origin-when-cross-origin',
+      policy: 'strict-origin-when-cross-origin'
     },
 
     /**
@@ -138,7 +138,7 @@ function getHelmetConfig() {
      * from browsers prefetching DNS for links the user hasn't clicked.
      */
     dnsPrefetchControl: {
-      allow: false,
+      allow: false
     },
 
     /**
@@ -156,7 +156,7 @@ function getHelmetConfig() {
      * Set to 'none' for maximum security.
      */
     permittedCrossDomainPolicies: {
-      permittedPolicies: 'none',
+      permittedPolicies: 'none'
     },
 
     /**
@@ -165,7 +165,7 @@ function getHelmetConfig() {
      * Removes the X-Powered-By header to avoid revealing server technology.
      * This is a minor security improvement through obscurity.
      */
-    hidePoweredBy: true,
+    hidePoweredBy: true
   };
 }
 

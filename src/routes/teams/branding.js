@@ -237,8 +237,12 @@ router.put('/branding',
       const { primary_color, secondary_color } = req.body;
       const updateData = {};
 
-      if (primary_color) updateData.primary_color = primary_color;
-      if (secondary_color) updateData.secondary_color = secondary_color;
+      if (primary_color) {
+        updateData.primary_color = primary_color;
+      }
+      if (secondary_color) {
+        updateData.secondary_color = secondary_color;
+      }
 
       // Database: Apply color updates
       await team.update(updateData);

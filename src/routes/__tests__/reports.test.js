@@ -10,7 +10,7 @@ describe('Reports API - Custom Reports CRUD', () => {
   let testTeam;
   let otherTeam;
   let otherUser;
-  let otherAuthToken;
+  let _otherAuthToken;
   let userWithoutPermissions;
   let userWithoutPermissionsToken;
 
@@ -65,7 +65,7 @@ describe('Reports API - Custom Reports CRUD', () => {
 
     // Generate auth tokens
     authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
-    otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
+    _otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
     userWithoutPermissionsToken = jwt.sign({ id: userWithoutPermissions.id }, process.env.JWT_SECRET || 'test_secret');
 
     // Grant necessary permissions to test user
@@ -551,7 +551,7 @@ describe('Reports API - Custom Reports CRUD', () => {
       for (const type of validTypes) {
         const reportData = {
           title: `Test ${type}`,
-          type: type
+          type
         };
 
         const { token, cookies } = await getCsrfToken(app);
@@ -1181,7 +1181,7 @@ describe('Reports API - Scouting Reports', () => {
   let testTeam;
   let otherTeam;
   let otherUser;
-  let otherAuthToken;
+  let _otherAuthToken;
   let testPlayer;
   let testPlayer2;
   let otherTeamPlayer;
@@ -1228,7 +1228,7 @@ describe('Reports API - Scouting Reports', () => {
 
     // Generate auth tokens
     authToken = jwt.sign({ id: testUser.id }, process.env.JWT_SECRET || 'test_secret');
-    otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
+    _otherAuthToken = jwt.sign({ id: otherUser.id }, process.env.JWT_SECRET || 'test_secret');
 
     // Create test players
     testPlayer = await Player.create({
@@ -2385,7 +2385,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       // Create user with invalid team_id
       const invalidTeam = await Team.create({
         name: 'Temp Team',
-      program_name: 'Temp Team Program',
+        program_name: 'Temp Team Program',
         sport: 'baseball',
         season: 'spring',
         year: 2024

@@ -117,23 +117,39 @@ const REDACTION_LABELS = {
 const getRedactionLabel = (fieldName) => {
   const lowerField = fieldName.toLowerCase();
 
-  if (lowerField.includes('email')) return REDACTION_LABELS.email;
-  if (lowerField.includes('password')) return REDACTION_LABELS.password;
+  if (lowerField.includes('email')) {
+    return REDACTION_LABELS.email;
+  }
+  if (lowerField.includes('password')) {
+    return REDACTION_LABELS.password;
+  }
   if (lowerField.includes('token') || lowerField.includes('jwt') || lowerField.includes('bearer')) {
     return REDACTION_LABELS.token;
   }
-  if (lowerField.includes('secret')) return REDACTION_LABELS.secret;
-  if (lowerField.includes('key')) return REDACTION_LABELS.key;
+  if (lowerField.includes('secret')) {
+    return REDACTION_LABELS.secret;
+  }
+  if (lowerField.includes('key')) {
+    return REDACTION_LABELS.key;
+  }
   if (lowerField.includes('id') && (lowerField.includes('user') || lowerField.includes('team'))) {
     return REDACTION_LABELS.id;
   }
-  if (lowerField.includes('phone') || lowerField.includes('mobile')) return REDACTION_LABELS.phone;
-  if (lowerField.includes('ssn') || lowerField.includes('social')) return REDACTION_LABELS.ssn;
+  if (lowerField.includes('phone') || lowerField.includes('mobile')) {
+    return REDACTION_LABELS.phone;
+  }
+  if (lowerField.includes('ssn') || lowerField.includes('social')) {
+    return REDACTION_LABELS.ssn;
+  }
   if (lowerField.includes('card') || lowerField.includes('cvv') || lowerField.includes('cvc')) {
     return REDACTION_LABELS.card;
   }
-  if (lowerField.includes('credential') || lowerField.includes('auth')) return REDACTION_LABELS.credential;
-  if (lowerField.includes('stack')) return REDACTION_LABELS.stack;
+  if (lowerField.includes('credential') || lowerField.includes('auth')) {
+    return REDACTION_LABELS.credential;
+  }
+  if (lowerField.includes('stack')) {
+    return REDACTION_LABELS.stack;
+  }
 
   return REDACTION_LABELS.default;
 };
@@ -144,7 +160,9 @@ const getRedactionLabel = (fieldName) => {
  * @returns {boolean} True if field is sensitive
  */
 const isSensitiveField = (fieldName) => {
-  if (!fieldName || typeof fieldName !== 'string') return false;
+  if (!fieldName || typeof fieldName !== 'string') {
+    return false;
+  }
 
   const lowerField = fieldName.toLowerCase();
   return SENSITIVE_FIELDS.some(sensitiveField =>
@@ -161,12 +179,16 @@ const isSensitiveField = (fieldName) => {
  */
 const sanitizeValue = (value, fieldName = '') => {
   // Handle null/undefined
-  if (value === null || value === undefined) return value;
+  if (value === null || value === undefined) {
+    return value;
+  }
 
   // Handle strings
   if (typeof value === 'string') {
     // Don't sanitize empty strings
-    if (value.trim() === '') return value;
+    if (value.trim() === '') {
+      return value;
+    }
 
     // If this is a sensitive field, redact it
     if (isSensitiveField(fieldName)) {
@@ -196,10 +218,14 @@ const sanitizeValue = (value, fieldName = '') => {
   }
 
   // Handle booleans
-  if (typeof value === 'boolean') return value;
+  if (typeof value === 'boolean') {
+    return value;
+  }
 
   // Handle dates
-  if (value instanceof Date) return value.toISOString();
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
 
   // Handle arrays
   if (Array.isArray(value)) {
@@ -225,7 +251,9 @@ const sanitizeValue = (value, fieldName = '') => {
  */
 const sanitizeObject = (obj, parentKey = '', seen = new WeakSet()) => {
   // Handle null
-  if (obj === null) return null;
+  if (obj === null) {
+    return null;
+  }
 
   // Handle non-objects
   if (typeof obj !== 'object') {
@@ -358,7 +386,9 @@ const shouldLog = (level) => {
  * @param {Array} args - Arguments to log
  */
 const log = (level, ...args) => {
-  if (!shouldLog(level)) return;
+  if (!shouldLog(level)) {
+    return;
+  }
 
   const timestamp = getTimestamp();
   const sanitizedMessage = formatLogMessage(...args);

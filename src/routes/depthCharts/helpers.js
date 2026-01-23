@@ -118,9 +118,8 @@ function getPerformanceScore(player, positionCode) {
         reasons.push(`Good win rate: ${(winRate * 100).toFixed(0)}%`);
       }
     }
-  }
-  // Business logic: Use batting metrics for position players
-  else {
+  } else {
+    // Business logic: Use batting metrics for position players
     // Batting average is primary hitting metric
     if (player.batting_avg !== null && player.batting_avg > 0.300) {
       score += 40;

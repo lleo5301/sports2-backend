@@ -416,7 +416,9 @@ describe('errorHandler', () => {
 
         const err = new Error(errorType.message);
         err.name = errorType.name;
-        if (errorType.errors) err.errors = errorType.errors;
+        if (errorType.errors) {
+          err.errors = errorType.errors;
+        }
 
         const req = {};
         const response = res();

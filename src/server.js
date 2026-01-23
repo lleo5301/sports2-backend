@@ -151,7 +151,7 @@ const startServer = async () => {
 
       if (isStrictMode) {
         logger.error(`\n🛑 Server startup aborted. Fix JWT_SECRET before deploying to ${nodeEnv}.\n`);
-        process.exit(1);
+        process.exit(1); // eslint-disable-line no-process-exit
       } else {
         logger.warn('\n⚠️  WARNING: Starting server with weak JWT_SECRET (development mode only)');
         logger.warn('   DO NOT deploy to production with this configuration!\n');
@@ -181,7 +181,7 @@ const startServer = async () => {
     });
   } catch (error) {
     logger.error('❌ Unable to start server:', error);
-    process.exit(1);
+    process.exit(1); // eslint-disable-line no-process-exit
   }
 };
 

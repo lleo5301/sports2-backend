@@ -29,8 +29,7 @@ async function getCsrfToken(app) {
 async function requestWithCsrf(app, method, url) {
   const { token, cookies } = await getCsrfToken(app);
 
-  return request(app)
-    [method](url)
+  return request(app)[method](url)
     .set('Cookie', cookies)
     .set('x-csrf-token', token);
 }
@@ -46,8 +45,7 @@ async function requestWithCsrf(app, method, url) {
 async function authenticatedRequestWithCsrf(app, method, url, authToken) {
   const { token, cookies } = await getCsrfToken(app);
 
-  return request(app)
-    [method](url)
+  return request(app)[method](url)
     .set('Cookie', cookies)
     .set('x-csrf-token', token)
     .set('Authorization', `Bearer ${authToken}`);

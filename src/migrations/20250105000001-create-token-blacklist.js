@@ -75,7 +75,7 @@ module.exports = {
     await queryInterface.addIndex('token_blacklist', ['reason']);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: async (queryInterface, _Sequelize) => {
     await queryInterface.dropTable('token_blacklist');
   }
 };

@@ -134,7 +134,9 @@ class EmailService {
    * Verify the email connection (non-blocking)
    */
   verifyConnection() {
-    if (!this.transporter) return;
+    if (!this.transporter) {
+      return;
+    }
 
     this.transporter.verify()
       .then(() => {

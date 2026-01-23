@@ -13,7 +13,9 @@ class PrestoSportsService {
    */
   getCachedToken(teamId) {
     const cached = this.tokenCache.get(teamId);
-    if (!cached) return null;
+    if (!cached) {
+      return null;
+    }
 
     // Check if token is expired (with 5 minute buffer)
     const now = Date.now();

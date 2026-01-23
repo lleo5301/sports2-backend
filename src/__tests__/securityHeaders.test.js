@@ -132,7 +132,7 @@ describe('Security Headers Integration Tests', () => {
       // Development should allow unsafe-inline and unsafe-eval for hot reloading
       // Note: This is checking current state, which may not reflect env changes
       // without server restart
-      expect(csp).toContain("default-src");
+      expect(csp).toContain('default-src');
     });
   });
 
