@@ -331,19 +331,40 @@ components:
           type: integer
         email:
           type: string
-        firstName:
+          format: email
+        first_name:
           type: string
-        lastName:
+        last_name:
           type: string
         role:
           type: string
-          enum: [head_coach, assistant_coach, scout]
-        teamId:
+          enum: [super_admin, head_coach, assistant_coach]
+        team_id:
           type: integer
+        phone:
+          type: string
+        oauth_provider:
+          type: string
+          enum: [google, apple, local]
+        avatar_url:
+          type: string
+        is_active:
+          type: boolean
+        last_login:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     AuthResponse:
       type: object
       properties:
+        success:
+          type: boolean
         user:
           $ref: '#/components/schemas/User'
         token:
@@ -354,35 +375,136 @@ components:
       properties:
         id:
           type: integer
-        firstName:
+        first_name:
           type: string
-        lastName:
+        last_name:
           type: string
+        school_type:
+          type: string
+          enum: [HS, COLL]
         position:
           type: string
+          enum: [P, C, 1B, 2B, 3B, SS, LF, CF, RF, OF, DH]
+        height:
+          type: string
+        weight:
+          type: integer
+        birth_date:
+          type: string
+          format: date
+        graduation_year:
+          type: integer
         school:
           type: string
-        graduationYear:
+        city:
+          type: string
+        state:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        batting_avg:
+          type: number
+          format: decimal
+        home_runs:
           type: integer
+        rbi:
+          type: integer
+        stolen_bases:
+          type: integer
+        era:
+          type: number
+          format: decimal
+        wins:
+          type: integer
+        losses:
+          type: integer
+        strikeouts:
+          type: integer
+        innings_pitched:
+          type: number
+          format: decimal
+        has_medical_issues:
+          type: boolean
+        injury_details:
+          type: string
+        has_comparison:
+          type: boolean
+        comparison_player:
+          type: string
         status:
           type: string
+          enum: [active, inactive, graduated, transferred]
+        team_id:
+          type: integer
+        created_by:
+          type: integer
+        video_url:
+          type: string
+        external_id:
+          type: string
+        source_system:
+          type: string
+          enum: [manual, presto]
+        last_synced_at:
+          type: string
+          format: date-time
+        jersey_number:
+          type: integer
+        class_year:
+          type: string
+          enum: [FR, SO, JR, SR, GR]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     PlayerInput:
       type: object
       required:
-        - firstName
-        - lastName
+        - first_name
+        - last_name
+        - position
       properties:
-        firstName:
+        first_name:
           type: string
-        lastName:
+        last_name:
           type: string
+        school_type:
+          type: string
+          enum: [HS, COLL]
         position:
           type: string
+          enum: [P, C, 1B, 2B, 3B, SS, LF, CF, RF, OF, DH]
+        height:
+          type: string
+        weight:
+          type: integer
+        birth_date:
+          type: string
+          format: date
+        graduation_year:
+          type: integer
         school:
           type: string
-        graduationYear:
+        city:
+          type: string
+        state:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        jersey_number:
           type: integer
+        class_year:
+          type: string
+          enum: [FR, SO, JR, SR, GR]
 
     Team:
       type: object
@@ -391,51 +513,317 @@ components:
           type: integer
         name:
           type: string
-        programName:
+        program_name:
+          type: string
+        school_logo_url:
           type: string
         conference:
           type: string
         division:
           type: string
+          enum: [D1, D2, D3, NAIA, JUCO]
+        city:
+          type: string
+        state:
+          type: string
+        primary_color:
+          type: string
+          description: Hex color code (e.g., #000000)
+        secondary_color:
+          type: string
+          description: Hex color code (e.g., #FFFFFF)
+        is_active:
+          type: boolean
+        subscription_tier:
+          type: string
+          enum: [basic, premium, enterprise]
+        subscription_expires:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     TeamInput:
       type: object
       required:
         - name
+        - program_name
       properties:
         name:
           type: string
-        programName:
+        program_name:
+          type: string
+        school_logo_url:
           type: string
         conference:
           type: string
         division:
           type: string
+          enum: [D1, D2, D3, NAIA, JUCO]
+        city:
+          type: string
+        state:
+          type: string
+        primary_color:
+          type: string
+        secondary_color:
+          type: string
+
+    ScoutingReport:
+      type: object
+      properties:
+        id:
+          type: integer
+        player_id:
+          type: integer
+        created_by:
+          type: integer
+        report_date:
+          type: string
+          format: date
+        game_date:
+          type: string
+          format: date
+        opponent:
+          type: string
+        overall_grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F]
+        overall_notes:
+          type: string
+        hitting_grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F]
+        hitting_notes:
+          type: string
+        bat_speed:
+          type: string
+          enum: [Excellent, Good, Average, Below Average, Poor]
+        power_potential:
+          type: string
+          enum: [Excellent, Good, Average, Below Average, Poor]
+        plate_discipline:
+          type: string
+          enum: [Excellent, Good, Average, Below Average, Poor]
+        pitching_grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F]
+        pitching_notes:
+          type: string
+        fastball_velocity:
+          type: integer
+        fastball_grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F]
+        breaking_ball_grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F]
+        command:
+          type: string
+          enum: [Excellent, Good, Average, Below Average, Poor]
+        fielding_grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F]
+        fielding_notes:
+          type: string
+        arm_strength:
+          type: string
+          enum: [Excellent, Good, Average, Below Average, Poor]
+        arm_accuracy:
+          type: string
+          enum: [Excellent, Good, Average, Below Average, Poor]
+        range:
+          type: string
+          enum: [Excellent, Good, Average, Below Average, Poor]
+        speed_grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F]
+        speed_notes:
+          type: string
+        home_to_first:
+          type: number
+          format: decimal
+        intangibles_grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F]
+        intangibles_notes:
+          type: string
+        work_ethic:
+          type: string
+          enum: [Excellent, Good, Average, Below Average, Poor]
+        coachability:
+          type: string
+          enum: [Excellent, Good, Average, Below Average, Poor]
+        projection:
+          type: string
+          enum: [MLB, AAA, AA, A+, A, A-, College, High School]
+        projection_notes:
+          type: string
+        is_draft:
+          type: boolean
+        is_public:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     ScoutingReportInput:
       type: object
       required:
-        - playerId
+        - player_id
       properties:
-        playerId:
+        player_id:
           type: integer
-        overallGrade:
+        report_date:
           type: string
-        notes:
+          format: date
+        game_date:
           type: string
+          format: date
+        opponent:
+          type: string
+        overall_grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F]
+        overall_notes:
+          type: string
+        hitting_grade:
+          type: string
+        hitting_notes:
+          type: string
+        pitching_grade:
+          type: string
+        pitching_notes:
+          type: string
+        fielding_grade:
+          type: string
+        fielding_notes:
+          type: string
+        speed_grade:
+          type: string
+        speed_notes:
+          type: string
+        intangibles_grade:
+          type: string
+        intangibles_notes:
+          type: string
+        projection:
+          type: string
+        projection_notes:
+          type: string
+
+    DailyReport:
+      type: object
+      properties:
+        id:
+          type: integer
+        team_id:
+          type: integer
+        created_by:
+          type: integer
+        report_date:
+          type: string
+          format: date
+        report_type:
+          type: string
+          enum: [practice, game, scrimmage, workout]
+        title:
+          type: string
+        weather:
+          type: string
+        temperature:
+          type: integer
+        opponent:
+          type: string
+        location:
+          type: string
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
+        duration_minutes:
+          type: integer
+        home_score:
+          type: integer
+        away_score:
+          type: integer
+        innings:
+          type: integer
+        activities:
+          type: string
+        highlights:
+          type: string
+        concerns:
+          type: string
+        next_steps:
+          type: string
+        players_present:
+          type: integer
+        players_absent:
+          type: integer
+        equipment_notes:
+          type: string
+        facility_notes:
+          type: string
+        is_complete:
+          type: boolean
+        is_approved:
+          type: boolean
+        approved_by:
+          type: integer
+        approved_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     DailyReportInput:
       type: object
       required:
-        - reportDate
-        - reportType
+        - report_date
+        - report_type
+        - title
       properties:
-        reportDate:
+        report_date:
           type: string
           format: date
-        reportType:
+        report_type:
           type: string
+          enum: [practice, game, scrimmage, workout]
         title:
           type: string
+        weather:
+          type: string
+        temperature:
+          type: integer
+        opponent:
+          type: string
+        location:
+          type: string
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
         activities:
+          type: string
+        highlights:
+          type: string
+        concerns:
+          type: string
+        next_steps:
           type: string
