@@ -41,6 +41,7 @@ const UserPermission = sequelize.define('UserPermission', {
       'reports_edit',
       'reports_delete',
       'team_settings',
+      'team_management',
       'user_management'
     ),
     allowNull: false
