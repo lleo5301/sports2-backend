@@ -11,6 +11,10 @@ module.exports = {
   ],
   setupFiles: ['<rootDir>/jest.setup.js'],
   moduleFileExtensions: ['js', 'json'],
+  // Run tests serially to avoid database race conditions with sync({ force: true })
+  maxWorkers: 1,
+  // Increase timeout for database operations
+  testTimeout: 30000,
 };
 
 

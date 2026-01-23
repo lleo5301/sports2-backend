@@ -1,8 +1,11 @@
 const { Sequelize } = require('sequelize');
 const logger = require('../utils/logger');
 
+// Use test database when NODE_ENV is test
+const defaultDbName = process.env.NODE_ENV === 'test' ? 'collegiate_baseball_test' : 'collegiate_baseball';
+
 const sequelize = new Sequelize(
-  process.env.DB_NAME || 'collegiate_baseball',
+  process.env.DB_NAME || defaultDbName,
   process.env.DB_USER || 'postgres',
   process.env.DB_PASSWORD || 'password',
   {
