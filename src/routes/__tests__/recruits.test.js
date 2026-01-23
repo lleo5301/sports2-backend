@@ -52,12 +52,21 @@ describe('Recruits API - Complete CRUD Tests', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
+    // Clean up test data in correct order (children before parents)
+    // 1. Delete children first (PreferenceList references Player)
     await PreferenceList.destroy({ where: {}, force: true });
+
+    // 2. Delete players (references Team and User)
     await Player.destroy({ where: {}, force: true });
+
+    // 3. Delete permissions (references User)
     await Permission.destroy({ where: {}, force: true });
+
+    // 4. Delete users (references Team)
     await testUser.destroy();
     await otherUser.destroy();
+
+    // 5. Finally delete teams
     await testTeam.destroy();
     await otherTeam.destroy();
   });

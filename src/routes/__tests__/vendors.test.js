@@ -164,6 +164,18 @@ describe('Vendors List Sorting API', () => {
   });
 
   afterAll(async () => {
+    // Clean up test data in correct order (children before parents)
+    // 1. Delete vendors (references Team and User)
+    await Vendor.destroy({ where: {}, force: true });
+
+    // 2. Delete users (references Team)
+    await testUser.destroy();
+    await otherUser.destroy();
+
+    // 3. Finally delete teams
+    await testTeam.destroy();
+    await otherTeam.destroy();
+
     await sequelize.close();
   });
 

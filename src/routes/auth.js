@@ -163,6 +163,16 @@ router.post('/register', [
     const token = generateToken(user.id);
 
     // Response: Return user data with token (password excluded by model)
+    // Set JWT token as httpOnly cookie for secure authentication
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('jwt', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/'
+    });
+
     res.status(201).json({
       success: true,
       data: {
@@ -173,7 +183,8 @@ router.post('/register', [
         role: user.role,
         team_id: user.team_id,
         phone: user.phone,
-        token
+        team: user.Team
+        // Token only in httpOnly cookie, not here
       }
     });
 
@@ -330,8 +341,8 @@ router.post('/login', [
         role: user.role,
         team_id: user.team_id,
         phone: user.phone,
-        team: user.Team,
-        token // Keep token in response for backwards compatibility
+        team: user.Team
+        // Token only in httpOnly cookie, not here
       }
     });
   } catch (error) {
@@ -554,9 +565,19 @@ router.put('/change-password', protect, [
     // Security: Generate a new token for the current session
     const token = generateToken(user.id);
 
+    // Set new JWT token as httpOnly cookie
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('jwt', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/'
+    });
+
     res.json({
       success: true,
-      message: 'Password updated successfully',
+      message: 'Password changed successfully. All other sessions have been logged out.',
       data: {
         token
       }
@@ -1026,15 +1047,38 @@ router.get('/admin/lockout-status/:userId', protect, async (req, res) => {
  * @returns {boolean} response.success - Operation success status
  * @returns {string} response.message - Logout confirmation message
  */
-router.post('/logout', (req, res) => {
+router.post('/logout', protect, async (req, res) => {
   try {
-    // Clear the JWT cookie
+    // Blacklist the current token
+    const token = req.headers.authorization?.split(' ')[1] || req.cookies?.jwt;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded.jti) {
+        const expiresAt = new Date(decoded.exp * 1000);
+        await tokenBlacklistService.addToBlacklist(
+          decoded.jti,
+          decoded.id,
+          expiresAt,
+          'logout'
+        );
+      }
+    }
+
+    // Clear cookies
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('jwt', '', {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'strict' : 'lax',
-      expires: new Date(0), // Set expiry to past date to delete cookie
+      expires: new Date(0),
+      path: '/'
+    });
+
+    res.cookie('csrf-token', '', {
+      httpOnly: false,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      expires: new Date(0),
       path: '/'
     });
 
@@ -1047,6 +1091,69 @@ router.post('/logout', (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to logout'
+    });
+  }
+});
+
+/**
+ * @route POST /api/auth/revoke-all-sessions
+ * @description Revokes all active sessions for the authenticated user.
+ *              Optionally keeps the current session active by issuing a new token.
+ * @access Private - Requires authentication
+ * @middleware protect - JWT authentication required
+ *
+ * @param {boolean} [req.body.keepCurrent=false] - Whether to keep current session active
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Status message
+ * @returns {Object} [response.data] - New token if keepCurrent is true
+ * @returns {string} [response.data.token] - New JWT token for current session
+ *
+ * @throws {500} Server error while revoking sessions
+ */
+router.post('/revoke-all-sessions', protect, async (req, res) => {
+  try {
+    const { keepCurrent = false } = req.body;
+
+    await tokenBlacklistService.revokeAllUserTokens(req.user.id, 'user_initiated');
+
+    if (keepCurrent) {
+      const newToken = generateToken(req.user.id);
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('jwt', newToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'strict' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/'
+      });
+
+      return res.json({
+        success: true,
+        message: 'All other sessions have been revoked',
+        data: { token: newToken }
+      });
+    }
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('jwt', '', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      expires: new Date(0),
+      path: '/'
+    });
+
+    res.json({
+      success: true,
+      message: 'All sessions have been revoked'
+    });
+  } catch (error) {
+    console.error('Error revoking sessions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while revoking sessions'
     });
   }
 });

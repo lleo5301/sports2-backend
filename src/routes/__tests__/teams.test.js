@@ -91,6 +91,22 @@ describe('Teams API - Core Operations', () => {
       permission_type: 'team_management',
       is_granted: true
     });
+
+    // Grant user_management permission to admin user
+    await UserPermission.create({
+      user_id: adminUser.id,
+      team_id: adminTeam.id,
+      permission_type: 'user_management',
+      is_granted: true
+    });
+
+    // Grant user_management permission to test user
+    await UserPermission.create({
+      user_id: testUser.id,
+      team_id: testTeam.id,
+      permission_type: 'user_management',
+      is_granted: true
+    });
   });
 
   afterAll(async () => {
@@ -335,7 +351,10 @@ describe('Teams API - Core Operations', () => {
         .set('Cookie', cookies)
         .set('x-csrf-token', token)
         .set('Authorization', `Bearer ${adminAuthToken}`)
-        .send({ name: 'Minimal Test Team' })
+        .send({
+          name: 'Minimal Test Team',
+          program_name: 'Minimal Program'
+        })
         .expect(201);
 
       expect(response.body.success).toBe(true);
@@ -1261,7 +1280,8 @@ describe('Teams API - Core Operations', () => {
         schedule_id: pastSchedule.id,
         title: 'Morning Practice',
         type: 'practice',
-        sort_order: 1
+        sort_order: 1,
+        team_id: testTeam.id
       });
 
       pastActivity = await ScheduleActivity.create({
@@ -1269,7 +1289,9 @@ describe('Teams API - Core Operations', () => {
         activity: 'Past Team Practice',
         time: '14:00',
         location: 'Past Field',
-        notes: 'Completed practice'
+        notes: 'Completed practice',
+        sort_order: 1,
+        team_id: testTeam.id
       });
     });
 
@@ -1387,7 +1409,8 @@ describe('Teams API - Core Operations', () => {
         schedule_id: futureSchedule.id,
         title: 'Championship Game',
         type: 'game',
-        sort_order: 1
+        sort_order: 1,
+        team_id: testTeam.id
       });
 
       futureActivity = await ScheduleActivity.create({
@@ -1395,7 +1418,9 @@ describe('Teams API - Core Operations', () => {
         activity: 'Upcoming Championship Game',
         time: '18:00',
         location: 'Championship Field',
-        notes: 'Big game'
+        notes: 'Big game',
+        sort_order: 1,
+        team_id: testTeam.id
       });
     });
 

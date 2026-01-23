@@ -983,7 +983,10 @@ router.get('/performance', [
       where: {
         team_id: req.user.team_id,
         status: 'active',
-        batting_avg: { [Op.not]: null }
+        batting_avg: {
+          [Op.not]: null,
+          [Op.gt]: 0  // Exclude 0.000 (converted from NULL by model hook)
+        }
       }
     });
 
@@ -991,7 +994,10 @@ router.get('/performance', [
       where: {
         team_id: req.user.team_id,
         status: 'active',
-        era: { [Op.not]: null }
+        era: {
+          [Op.not]: null,
+          [Op.gt]: 0  // Exclude 0.00 (converted from NULL by model hook)
+        }
       }
     });
 

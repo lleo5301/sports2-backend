@@ -40,7 +40,7 @@ services:
         condition: service_healthy
     networks:
       - backend-network
-    command: npm run dev
+    command: npm start
 
   postgres:
     image: postgres:15-alpine

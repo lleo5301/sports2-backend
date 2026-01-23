@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../../server');
-const { sequelize, User, Team, Location, UserPermission, ScheduleEvent } = require('../../models');
+const { sequelize, User, Team, Location, UserPermission, ScheduleEvent, ScheduleTemplate } = require('../../models');
 const jwt = require('jsonwebtoken');
 const { getCsrfToken } = require('../../test/helpers');
 
@@ -69,18 +69,37 @@ describe('Locations API - Complete CRUD Tests', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
+    // Clean up test data in correct order (children before parents)
+    // 1. Delete children first (ScheduleEvents reference Locations)
+    await ScheduleEvent.destroy({ where: {}, force: true });
+
+    // 2. Delete locations
     await Location.destroy({ where: {}, force: true });
+
+    // 3. Delete user permissions
     await UserPermission.destroy({ where: {}, force: true });
+
+    // 4. Delete users
     await testUser.destroy();
     await otherUser.destroy();
+
+    // 5. Finally delete teams
     await testTeam.destroy();
     await otherTeam.destroy();
   });
 
   beforeEach(async () => {
-    // Clean up locations before each test
+    // Clean up locations and temporary test users before each test
     await Location.destroy({ where: {}, force: true });
+    // Clean up any temporary users created in permission tests
+    await User.destroy({
+      where: {
+        email: {
+          [require('sequelize').Op.like]: '%-permission-%@example.com'
+        }
+      },
+      force: true
+    });
   });
 
   describe('GET /api/locations', () => {
@@ -554,7 +573,7 @@ describe('Locations API - Complete CRUD Tests', () => {
       expect(response.body.success).toBe(false);
       expect(response.body.message).toContain('permission');
 
-      await userWithoutUserPermission.destroy();
+      await userWithoutPermission.destroy();
     });
 
     it('should create location with required fields only', async () => {
@@ -1151,7 +1170,7 @@ describe('Locations API - Complete CRUD Tests', () => {
       expect(response.body.success).toBe(false);
       expect(response.body.message).toContain('permission');
 
-      await userWithoutUserPermission.destroy();
+      await userWithoutPermission.destroy();
     });
 
     it('should update location with partial fields', async () => {
@@ -1432,7 +1451,7 @@ describe('Locations API - Complete CRUD Tests', () => {
       expect(response.body.success).toBe(false);
       expect(response.body.message).toContain('permission');
 
-      await userWithoutUserPermission.destroy();
+      await userWithoutPermission.destroy();
     });
 
     it('should successfully delete a location', async () => {
@@ -1538,12 +1557,22 @@ describe('Locations API - Complete CRUD Tests', () => {
         created_by: testUser.id
       });
 
+      // Create a schedule template first (required for schedule events)
+      const scheduleTemplate = await ScheduleTemplate.create({
+        name: 'Test Schedule Template',
+        template_data: {},
+        team_id: testTeam.id,
+        created_by: testUser.id
+      });
+
       // Create a schedule event that uses this location
       await ScheduleEvent.create({
+        title: 'Test Game Event',
         event_type: 'game',
         opponent_name: 'Test Opponent',
         date: new Date(),
         location_id: location.id,
+        schedule_template_id: scheduleTemplate.id,
         team_id: testTeam.id,
         created_by: testUser.id
       });
@@ -1564,8 +1593,9 @@ describe('Locations API - Complete CRUD Tests', () => {
       const unchangedLocation = await Location.findByPk(location.id);
       expect(unchangedLocation).not.toBeNull();
 
-      // Clean up schedule event
+      // Clean up in correct order (children before parents)
       await ScheduleEvent.destroy({ where: { location_id: location.id }, force: true });
+      await ScheduleTemplate.destroy({ where: { id: scheduleTemplate.id }, force: true });
     });
   });
 });
