@@ -120,4 +120,37 @@ User.prototype.getFullName = function () {
   return `${this.first_name} ${this.last_name}`;
 };
 
+// Instance method to check if account is locked
+User.prototype.isLocked = function () {
+  if (!this.locked_until) {
+    return false;
+  }
+  const now = new Date();
+  const lockEnd = new Date(this.locked_until);
+  return lockEnd > now;
+};
+
+// Instance method to increment failed login attempts
+User.prototype.incrementFailedAttempts = async function () {
+  this.failed_login_attempts = (this.failed_login_attempts || 0) + 1;
+  this.last_failed_login = new Date();
+  await this.save({ hooks: false }); // Skip hooks to avoid password rehashing
+};
+
+// Instance method to lock the account for a specified duration
+User.prototype.lockAccount = async function (durationMinutes) {
+  const lockUntil = new Date();
+  lockUntil.setMinutes(lockUntil.getMinutes() + durationMinutes);
+  this.locked_until = lockUntil;
+  await this.save({ hooks: false }); // Skip hooks to avoid password rehashing
+};
+
+// Instance method to reset failed login attempts
+User.prototype.resetFailedAttempts = async function () {
+  this.failed_login_attempts = 0;
+  this.locked_until = null;
+  this.last_failed_login = null;
+  await this.save({ hooks: false }); // Skip hooks to avoid password rehashing
+};
+
 module.exports = User;

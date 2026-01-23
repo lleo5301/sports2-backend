@@ -197,7 +197,7 @@ describe('CSRF Protection - Integration Tests', () => {
 
       // Verify JWT cookie is set
       const cookies = response.headers['set-cookie'];
-      const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
+      const tokenCookie = cookies.find(cookie => cookie.startsWith('jwt='));
       expect(tokenCookie).toBeDefined();
     });
 

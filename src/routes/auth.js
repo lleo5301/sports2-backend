@@ -29,13 +29,16 @@ const { User, Team } = require('../models');
 const { protect } = require('../middleware/auth');
 const UserPermission = require('../models/UserPermission'); // Added import for UserPermission
 const { generateToken: generateCsrfToken } = require('../middleware/csrf');
+const lockoutService = require('../services/lockoutService');
+const tokenBlacklistService = require('../services/tokenBlacklistService');
+const crypto = require('crypto');
 
 const router = express.Router();
 
 /**
  * @description Generates a signed JWT token for user authentication.
- *              The token contains the user's ID in its payload and is signed
- *              with the secret from environment variables. Token expiration
+ *              The token contains the user's ID and a unique JTI (JWT ID) in its payload
+ *              and is signed with the secret from environment variables. Token expiration
  *              defaults to 7 days if not configured.
  *
  * @param {string|number} id - The user's unique identifier to encode in the token
@@ -47,8 +50,9 @@ const router = express.Router();
  */
 const generateToken = (id) => {
   // Security: Sign token with secret key and set expiration
-  // Token payload contains only user ID to minimize exposure if token is compromised
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  // Token payload contains user ID and unique JTI for token revocation support
+  const jti = crypto.randomUUID();
+  return jwt.sign({ id, jti }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
 };
@@ -265,6 +269,13 @@ router.post('/login', [
       });
     }
 
+    // Security: Check if account is locked before validating password
+    const lockoutStatus = lockoutService.checkAccountLockout(user);
+    if (lockoutStatus.isLocked) {
+      const lockedResponse = lockoutService.generateLockedAccountResponse(lockoutStatus);
+      return res.status(lockedResponse.statusCode).json(lockedResponse.body);
+    }
+
     // Security: Check if account is active before allowing login
     if (!user.is_active) {
       return res.status(401).json({
@@ -276,12 +287,21 @@ router.post('/login', [
     // Security: Verify password using bcrypt comparison (timing-safe)
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
+      // Security: Track failed login attempt and potentially lock account
+      const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+      await lockoutService.handleFailedLogin(user, ipAddress);
+
       // Security: Same error message as user not found to prevent enumeration
+      // Return 401 even if account was just locked (423 will be returned on next attempt)
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials'
       });
     }
+
+    // Security: Reset failed attempts counter on successful login
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    await lockoutService.handleSuccessfulLogin(user, ipAddress);
 
     // Business logic: Track last login timestamp for analytics/security
     await user.update({ last_login: new Date() });
@@ -528,9 +548,18 @@ router.put('/change-password', protect, [
     user.password = new_password;
     await user.save();
 
+    // Security: Revoke all existing tokens for this user
+    await tokenBlacklistService.revokeAllUserTokens(user.id, 'password_change');
+
+    // Security: Generate a new token for the current session
+    const token = generateToken(user.id);
+
     res.json({
       success: true,
-      message: 'Password updated successfully'
+      message: 'Password updated successfully',
+      data: {
+        token
+      }
     });
   } catch (error) {
     // Error: Log and return generic server error
@@ -856,6 +885,132 @@ router.get('/csrf-token', (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to generate CSRF token'
+    });
+  }
+});
+
+/**
+ * @route POST /api/auth/admin/unlock/:userId
+ * @description Admin endpoint to manually unlock a locked user account.
+ *              Resets failed login attempts counter and clears lockout timestamp.
+ * @access Private - Requires authentication and super_admin role
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.params.userId - The user ID to unlock
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Success message
+ * @returns {Object} response.data - Unlock details
+ * @returns {boolean} response.data.wasLocked - Whether account was locked
+ * @returns {number} response.data.previousFailedAttempts - Failed attempts before unlock
+ *
+ * @throws {401} Unauthorized - Not authenticated
+ * @throws {403} Only admins can unlock accounts - Non-admin attempted unlock
+ * @throws {404} User not found - User ID doesn't exist
+ */
+router.post('/admin/unlock/:userId', protect, async (req, res) => {
+  try {
+    // Permission: Only super_admin can unlock accounts
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only admins can unlock accounts'
+      });
+    }
+
+    const { userId } = req.params;
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Store previous state for response
+    const wasLocked = user.isLocked();
+    const previousFailedAttempts = user.failed_login_attempts;
+
+    // Reset lockout state
+    await user.resetFailedAttempts();
+
+    res.json({
+      success: true,
+      message: `Account ${user.email} has been unlocked`,
+      data: {
+        wasLocked,
+        previousFailedAttempts
+      }
+    });
+  } catch (error) {
+    console.error('Admin unlock error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while unlocking account'
+    });
+  }
+});
+
+/**
+ * @route GET /api/auth/admin/lockout-status/:userId
+ * @description Admin endpoint to check the lockout status of a user account.
+ * @access Private - Requires authentication and super_admin role
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.params.userId - The user ID to check
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Lockout status details
+ * @returns {boolean} response.data.isLocked - Whether account is currently locked
+ * @returns {number} response.data.failedLoginAttempts - Current failed attempts count
+ * @returns {Date|null} response.data.lockedUntil - When lock expires
+ * @returns {Date|null} response.data.lastFailedLogin - Last failed login timestamp
+ * @returns {number} response.data.remainingLockoutMinutes - Minutes until unlock
+ *
+ * @throws {401} Unauthorized - Not authenticated
+ * @throws {403} Only admins can view lockout status - Non-admin attempted access
+ * @throws {404} User not found - User ID doesn't exist
+ */
+router.get('/admin/lockout-status/:userId', protect, async (req, res) => {
+  try {
+    // Permission: Only super_admin can view lockout status
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only admins can view lockout status'
+      });
+    }
+
+    const { userId } = req.params;
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const lockoutStatus = lockoutService.checkAccountLockout(user);
+
+    res.json({
+      success: true,
+      data: {
+        isLocked: lockoutStatus.isLocked,
+        failedLoginAttempts: user.failed_login_attempts,
+        lockedUntil: user.locked_until,
+        lastFailedLogin: user.last_failed_login,
+        remainingLockoutMinutes: lockoutStatus.remainingMinutes
+      }
+    });
+  } catch (error) {
+    console.error('Admin lockout status error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching lockout status'
     });
   }
 });
