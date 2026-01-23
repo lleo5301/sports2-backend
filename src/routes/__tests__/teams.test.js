@@ -2104,15 +2104,18 @@ describe('Teams API - Core Operations', () => {
         first_name: 'Stats',
         last_name: 'Player',
         position: 'P',
-        status: 'active'
+        status: 'active',
+        created_by: testUser.id
       });
 
       // Create test game
       testGame = await Game.create({
         team_id: testTeam.id,
         opponent: 'Test Opponent',
-        date: new Date(),
-        result: 'W'
+        game_date: new Date(),
+        home_away: 'home',
+        result: 'W',
+        created_by: testUser.id
       });
     });
 
@@ -2219,7 +2222,8 @@ describe('Teams API - Core Operations', () => {
           position: 'P',
           status: 'active',
           height: '6-2',
-          weight: 190
+          weight: 190,
+          created_by: testUser.id
         }),
         await Player.create({
           team_id: testTeam.id,
@@ -2228,7 +2232,8 @@ describe('Teams API - Core Operations', () => {
           position: 'C',
           status: 'active',
           height: '6-0',
-          weight: 200
+          weight: 200,
+          created_by: testUser.id
         }),
         await Player.create({
           team_id: testTeam.id,
@@ -2237,7 +2242,8 @@ describe('Teams API - Core Operations', () => {
           position: '1B',
           status: 'active',
           height: '6-1',
-          weight: 210
+          weight: 210,
+          created_by: testUser.id
         }),
         await Player.create({
           team_id: testTeam.id,
@@ -2246,7 +2252,8 @@ describe('Teams API - Core Operations', () => {
           position: 'CF',
           status: 'active',
           height: '5-11',
-          weight: 180
+          weight: 180,
+          created_by: testUser.id
         }),
         await Player.create({
           team_id: testTeam.id,
@@ -2255,7 +2262,8 @@ describe('Teams API - Core Operations', () => {
           position: 'DH',
           status: 'active',
           height: '6-3',
-          weight: 220
+          weight: 220,
+          created_by: testUser.id
         }),
         await Player.create({
           team_id: testTeam.id,
@@ -2264,7 +2272,8 @@ describe('Teams API - Core Operations', () => {
           position: 'P',
           status: 'inactive',
           height: '6-0',
-          weight: 185
+          weight: 185,
+          created_by: testUser.id
         })
       );
     });
