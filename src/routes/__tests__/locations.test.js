@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../../server');
-const { sequelize, User, Team, Location, Permission, ScheduleEvent } = require('../../models');
+const { sequelize, User, Team, Location, UserPermission, ScheduleEvent } = require('../../models');
 const jwt = require('jsonwebtoken');
 const { getCsrfToken } = require('../../test/helpers');
 
@@ -19,18 +19,12 @@ describe('Locations API - Complete CRUD Tests', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'Locations Test Team',
-      program_name: 'Locations Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Locations Test Team Program'
     });
 
     otherTeam = await Team.create({
       name: 'Other Locations Test Team',
-      program_name: 'Other Locations Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Other Locations Test Team Program'
     });
 
     // Create test users
@@ -53,17 +47,17 @@ describe('Locations API - Complete CRUD Tests', () => {
     });
 
     // Grant schedule permissions to test user
-    await Permission.create({
+    await UserPermission.create({
       user_id: testUser.id,
       team_id: testTeam.id,
       permission_type: 'schedule_create'
     });
-    await Permission.create({
+    await UserPermission.create({
       user_id: testUser.id,
       team_id: testTeam.id,
       permission_type: 'schedule_edit'
     });
-    await Permission.create({
+    await UserPermission.create({
       user_id: testUser.id,
       team_id: testTeam.id,
       permission_type: 'schedule_delete'
@@ -77,7 +71,7 @@ describe('Locations API - Complete CRUD Tests', () => {
   afterAll(async () => {
     // Clean up test data
     await Location.destroy({ where: {}, force: true });
-    await Permission.destroy({ where: {}, force: true });
+    await UserPermission.destroy({ where: {}, force: true });
     await testUser.destroy();
     await otherUser.destroy();
     await testTeam.destroy();
@@ -560,7 +554,7 @@ describe('Locations API - Complete CRUD Tests', () => {
       expect(response.body.success).toBe(false);
       expect(response.body.message).toContain('permission');
 
-      await userWithoutPermission.destroy();
+      await userWithoutUserPermission.destroy();
     });
 
     it('should create location with required fields only', async () => {
@@ -1030,7 +1024,7 @@ describe('Locations API - Complete CRUD Tests', () => {
       });
 
       // Grant schedule_create permission to other user
-      await Permission.create({
+      await UserPermission.create({
         user_id: otherUser.id,
         team_id: otherTeam.id,
         permission_type: 'schedule_create'
@@ -1157,7 +1151,7 @@ describe('Locations API - Complete CRUD Tests', () => {
       expect(response.body.success).toBe(false);
       expect(response.body.message).toContain('permission');
 
-      await userWithoutPermission.destroy();
+      await userWithoutUserPermission.destroy();
     });
 
     it('should update location with partial fields', async () => {
@@ -1438,7 +1432,7 @@ describe('Locations API - Complete CRUD Tests', () => {
       expect(response.body.success).toBe(false);
       expect(response.body.message).toContain('permission');
 
-      await userWithoutPermission.destroy();
+      await userWithoutUserPermission.destroy();
     });
 
     it('should successfully delete a location', async () => {

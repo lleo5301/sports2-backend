@@ -31,18 +31,12 @@ describe('Coaches API Tests', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'Coaches Test Team',
-      program_name: 'Coaches Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Coaches Test Team Program'
     });
 
     otherTeam = await Team.create({
       name: 'Other Coaches Test Team',
-      program_name: 'Other Coaches Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Other Coaches Test Team Program'
     });
 
     // Create test users

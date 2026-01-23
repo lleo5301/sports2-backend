@@ -24,6 +24,9 @@ const HighSchoolCoach = require('./HighSchoolCoach');
 const UserTeam = require('./UserTeam');
 const TokenBlacklist = require('./TokenBlacklist');
 const GameStatistic = require('./GameStatistic');
+const Location = require('./Location');
+const ScheduleEvent = require('./ScheduleEvent');
+const ScheduleEventDate = require('./ScheduleEventDate');
 
 // Define associations
 
@@ -186,6 +189,30 @@ User.hasMany(HighSchoolCoach, { foreignKey: 'created_by' });
 TokenBlacklist.belongsTo(User, { foreignKey: 'user_id' });
 User.hasMany(TokenBlacklist, { foreignKey: 'user_id' });
 
+// Location associations
+Location.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(Location, { foreignKey: 'team_id' });
+
+Location.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(Location, { foreignKey: 'created_by' });
+
+// ScheduleEvent associations
+ScheduleEvent.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(ScheduleEvent, { foreignKey: 'team_id' });
+
+ScheduleEvent.belongsTo(ScheduleTemplate, { foreignKey: 'schedule_template_id' });
+ScheduleTemplate.hasMany(ScheduleEvent, { foreignKey: 'schedule_template_id' });
+
+ScheduleEvent.belongsTo(Location, { foreignKey: 'location_id' });
+Location.hasMany(ScheduleEvent, { foreignKey: 'location_id' });
+
+ScheduleEvent.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(ScheduleEvent, { foreignKey: 'created_by' });
+
+// ScheduleEventDate associations
+ScheduleEventDate.belongsTo(ScheduleEvent, { foreignKey: 'schedule_event_id' });
+ScheduleEvent.hasMany(ScheduleEventDate, { foreignKey: 'schedule_event_id' });
+
 module.exports = {
   sequelize,
   User,
@@ -210,5 +237,8 @@ module.exports = {
   Vendor,
   HighSchoolCoach,
   UserTeam,
-  TokenBlacklist
+  TokenBlacklist,
+  Location,
+  ScheduleEvent,
+  ScheduleEventDate
 };

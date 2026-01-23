@@ -33,19 +33,13 @@ describe('Players List Sorting API', () => {
       // Create test team
       testTeam = await Team.create({
         name: 'Stats Test Team',
-        program_name: 'Stats Test Team Program',
-        sport: 'baseball',
-        season: 'spring',
-        year: 2024
+        program_name: 'Stats Test Team Program'
       });
 
       // Create other team for isolation testing
       otherTeam = await Team.create({
         name: 'Other Stats Team',
-        program_name: 'Other Stats Team Program',
-        sport: 'baseball',
-        season: 'spring',
-        year: 2024
+        program_name: 'Other Stats Team Program'
       });
 
       // Create test user

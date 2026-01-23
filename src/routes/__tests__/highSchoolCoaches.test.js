@@ -19,18 +19,12 @@ describe('High School Coaches API - Complete CRUD Tests', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'HS Coaches Test Team',
-      program_name: 'HS Coaches Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'HS Coaches Test Team Program'
     });
 
     otherTeam = await Team.create({
       name: 'Other HS Coaches Test Team',
-      program_name: 'Other HS Coaches Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Other HS Coaches Test Team Program'
     });
 
     // Create test users

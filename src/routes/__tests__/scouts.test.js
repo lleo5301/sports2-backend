@@ -19,18 +19,12 @@ describe('Scouts API - Complete CRUD Tests', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'Scouts Test Team',
-      program_name: 'Scouts Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Scouts Test Team Program'
     });
 
     otherTeam = await Team.create({
       name: 'Other Scouts Test Team',
-      program_name: 'Other Scouts Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Other Scouts Test Team Program'
     });
 
     // Create test users

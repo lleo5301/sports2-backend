@@ -607,8 +607,9 @@ router.get('/stats/summary', async (req, res) => {
       ]
     });
 
-    // Business logic: Format batting average to 3 decimal places, default to '.000'
-    const teamAvg = teamAvgResult ? parseFloat(teamAvgResult.getDataValue('team_avg')).toFixed(3) : '.000';
+    // Business logic: Return batting average as number, default to 0
+    const rawAvg = teamAvgResult ? teamAvgResult.getDataValue('team_avg') : null;
+    const teamAvg = rawAvg !== null ? parseFloat(parseFloat(rawAvg).toFixed(3)) : 0;
 
     res.json({
       success: true,

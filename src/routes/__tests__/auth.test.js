@@ -30,10 +30,7 @@ describe('Auth Routes - Password Validation', () => {
     // Create test team
     testTeam = await Team.create({
       name: 'Auth Test Team',
-      program_name: 'Auth Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Auth Test Team Program'
     });
 
     // Create existing test user for change-password tests
@@ -786,10 +783,7 @@ describe('Auth Routes - Token Revocation', () => {
     // Create test team
     testTeam = await Team.create({
       name: 'Revocation Test Team',
-      program_name: 'Revocation Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Revocation Test Team Program'
     });
 
     // Create test user

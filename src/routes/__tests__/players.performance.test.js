@@ -16,14 +16,13 @@ describe('Player Performance API', () => {
       process.env.NODE_ENV = 'test';
     }
 
-    // Sync database
-    await sequelize.sync({ force: true });
+    // Ensure database connection
+    await sequelize.authenticate();
 
     // Create test team
     testTeam = await Team.create({
-      name: 'Test Team',
-      program_name: 'Test Program',
-      school: 'Test University',
+      name: 'Performance Test Team',
+      program_name: 'Performance Test Program',
       division: 'D1',
       conference: 'Test Conference',
       city: 'Test City',
@@ -34,9 +33,9 @@ describe('Player Performance API', () => {
     testUser = await User.create({
       first_name: 'Test',
       last_name: 'Coach',
-      email: 'test@example.com',
+      email: 'perf-test@example.com',
       password: 'password123',
-      role: 'coach',
+      role: 'head_coach',
       team_id: testTeam.id
     });
 

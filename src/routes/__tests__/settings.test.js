@@ -30,10 +30,7 @@ describe('Settings Routes - Password Change Validation', () => {
     // Create test team
     testTeam = await Team.create({
       name: 'Settings Test Team',
-      program_name: 'Settings Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Settings Test Team Program'
     });
 
     // Create test user for password change tests

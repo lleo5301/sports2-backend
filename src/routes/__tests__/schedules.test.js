@@ -19,18 +19,12 @@ describe('Schedules API - Core CRUD Operations', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'Schedules Test Team',
-      program_name: 'Schedules Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Schedules Test Team Program'
     });
 
     otherTeam = await Team.create({
       name: 'Other Schedules Test Team',
-      program_name: 'Other Schedules Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Other Schedules Test Team Program'
     });
 
     // Create test users

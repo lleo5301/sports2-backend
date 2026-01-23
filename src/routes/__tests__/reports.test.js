@@ -21,18 +21,12 @@ describe('Reports API - Custom Reports CRUD', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'Reports Test Team',
-      program_name: 'Reports Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Reports Test Team Program'
     });
 
     otherTeam = await Team.create({
       name: 'Other Reports Test Team',
-      program_name: 'Other Reports Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Other Reports Test Team Program'
     });
 
     // Create test users
@@ -1193,18 +1187,12 @@ describe('Reports API - Scouting Reports', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'Scouting Test Team',
-      program_name: 'Scouting Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Scouting Test Team Program'
     });
 
     otherTeam = await Team.create({
       name: 'Other Scouting Test Team',
-      program_name: 'Other Scouting Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Other Scouting Test Team Program'
     });
 
     // Create test users
@@ -2090,18 +2078,12 @@ describe('Reports API - Analytics and Export Endpoints', () => {
     // Create test teams
     testTeam = await Team.create({
       name: 'Analytics Test Team',
-      program_name: 'Analytics Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Analytics Test Team Program'
     });
 
     otherTeam = await Team.create({
       name: 'Other Analytics Test Team',
-      program_name: 'Other Analytics Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      program_name: 'Other Analytics Test Team Program'
     });
 
     // Create test users
@@ -2385,10 +2367,7 @@ describe('Reports API - Analytics and Export Endpoints', () => {
       // Create user with invalid team_id
       const invalidTeam = await Team.create({
         name: 'Temp Team',
-        program_name: 'Temp Team Program',
-        sport: 'baseball',
-        season: 'spring',
-        year: 2024
+        program_name: 'Temp Team Program'
       });
 
       const tempUser = await User.create({

@@ -15,18 +15,15 @@ describe('Schedule Templates API', () => {
 
     // Create test team
     testTeam = await Team.create({
-      name: 'Test Team',
-      program_name: 'Test Team Program',
-      sport: 'baseball',
-      season: 'spring',
-      year: 2024
+      name: 'Schedule Template Test Team',
+      program_name: 'Schedule Template Test Program'
     });
 
     // Create test user
     testUser = await User.create({
       first_name: 'Test',
       last_name: 'User',
-      email: 'test@example.com',
+      email: 'schedule-template-test@example.com',
       password: 'password123',
       role: 'head_coach',
       team_id: testTeam.id
@@ -71,14 +68,11 @@ describe('Schedule Templates API', () => {
 
       // Create another team and template (should not appear in results)
       const otherTeam = await Team.create({
-        name: 'Other Team',
-        program_name: 'Other Team Program',
-        sport: 'baseball',
-        season: 'spring',
-        year: 2024
+        name: 'Other Schedule Template Team',
+        program_name: 'Other Schedule Template Program'
       });
 
-      await ScheduleTemplate.create({
+      const otherTemplate = await ScheduleTemplate.create({
         name: 'Other Team Template',
         description: 'Should not appear',
         template_data: { sections: [] },
@@ -96,7 +90,8 @@ describe('Schedule Templates API', () => {
       expect(response.body.data[0].name).toBe('Test Template 1');
       expect(response.body.data[0].team_id).toBe(testTeam.id);
 
-      // Cleanup
+      // Cleanup - must delete template before team due to foreign key constraint
+      await otherTemplate.destroy();
       await otherTeam.destroy();
     });
 
