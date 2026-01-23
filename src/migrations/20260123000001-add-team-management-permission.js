@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-  up: async (queryInterface, Sequelize) => {
+  up: async (queryInterface, _Sequelize) => {
     // Add 'team_management' to the permission_type enum
     // PostgreSQL requires ALTER TYPE to add new values to an existing enum
     await queryInterface.sequelize.query(`
@@ -14,7 +14,7 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: (_queryInterface, _Sequelize) => {
     // PostgreSQL doesn't support removing enum values easily
     // This would require recreating the enum type, which is complex
     // and not typically done in production downgrades
