@@ -169,441 +169,440 @@ describe('Coaches API Tests', () => {
     });
 
     describe('GET /api/coaches - Default Sorting', () => {
-
       it('should return empty array when no coaches exist', async () => {
         const response = await request(app)
-            .get('/api/v1/coaches')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(Array.isArray(response.body.data)).toBe(true);
         expect(response.body.data.length).toBe(0);
-        });
+      });
 
       it('should return list of coaches for authenticated user team', async () => {
         // Create test coaches
         await Coach.create({
-            first_name: 'John',
-            last_name: 'Smith',
-            school_name: 'Lincoln High School',
-            position: 'Head Coach',
-            email: 'jsmith@lincoln.edu',
-            phone: '555-1234',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'John',
+          last_name: 'Smith',
+          school_name: 'Lincoln High School',
+          position: 'Head Coach',
+          email: 'jsmith@lincoln.edu',
+          phone: '555-1234',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Mike',
-            last_name: 'Johnson',
-            school_name: 'Central High School',
-            position: 'Recruiting Coordinator',
-            email: 'mjohnson@central.edu',
-            phone: '555-5678',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Mike',
+          last_name: 'Johnson',
+          school_name: 'Central High School',
+          position: 'Recruiting Coordinator',
+          email: 'mjohnson@central.edu',
+          phone: '555-5678',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(2);
         expect(response.body.pagination).toBeDefined();
         expect(response.body.pagination.total).toBe(2);
-        });
+      });
 
       it('should only return coaches for user team (team isolation)', async () => {
         // Create coaches for different teams
         await Coach.create({
-            first_name: 'My',
-            last_name: 'Coach',
-            school_name: 'My School',
-            position: 'Head Coach',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'My',
+          last_name: 'Coach',
+          school_name: 'My School',
+          position: 'Head Coach',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Other',
-            last_name: 'Coach',
-            school_name: 'Other School',
-            position: 'Head Coach',
-            status: 'active',
-            team_id: otherTeam.id,
-            created_by: otherUser.id
+          first_name: 'Other',
+          last_name: 'Coach',
+          school_name: 'Other School',
+          position: 'Head Coach',
+          status: 'active',
+          team_id: otherTeam.id,
+          created_by: otherUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].first_name).toBe('My');
-        });
+      });
 
       it('should filter coaches by status (active)', async () => {
         // Create coaches with different statuses
         await Coach.create({
-            first_name: 'Active',
-            last_name: 'Coach',
-            school_name: 'Active School',
-            position: 'Head Coach',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Active',
+          last_name: 'Coach',
+          school_name: 'Active School',
+          position: 'Head Coach',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Inactive',
-            last_name: 'Coach',
-            school_name: 'Inactive School',
-            position: 'Head Coach',
-            status: 'inactive',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Inactive',
+          last_name: 'Coach',
+          school_name: 'Inactive School',
+          position: 'Head Coach',
+          status: 'inactive',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches?status=active')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches?status=active')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].status).toBe('active');
-        });
+      });
 
       it('should filter coaches by status (inactive)', async () => {
         // Create coaches with different statuses
         await Coach.create({
-            first_name: 'Active',
-            last_name: 'Coach',
-            school_name: 'Active School',
-            position: 'Head Coach',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Active',
+          last_name: 'Coach',
+          school_name: 'Active School',
+          position: 'Head Coach',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Inactive',
-            last_name: 'Coach',
-            school_name: 'Inactive School',
-            position: 'Head Coach',
-            status: 'inactive',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Inactive',
+          last_name: 'Coach',
+          school_name: 'Inactive School',
+          position: 'Head Coach',
+          status: 'inactive',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches?status=inactive')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches?status=inactive')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].status).toBe('inactive');
-        });
+      });
 
       it('should default to active status filter', async () => {
         // Create coaches with different statuses
         await Coach.create({
-            first_name: 'Active',
-            last_name: 'Coach',
-            school_name: 'Active School',
-            position: 'Head Coach',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Active',
+          last_name: 'Coach',
+          school_name: 'Active School',
+          position: 'Head Coach',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Inactive',
-            last_name: 'Coach',
-            school_name: 'Inactive School',
-            position: 'Head Coach',
-            status: 'inactive',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Inactive',
+          last_name: 'Coach',
+          school_name: 'Inactive School',
+          position: 'Head Coach',
+          status: 'inactive',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].status).toBe('active');
-        });
+      });
 
       it('should filter coaches by position (Head Coach)', async () => {
         // Create coaches with different positions
         await Coach.create({
-            first_name: 'Head',
-            last_name: 'Coach',
-            school_name: 'School A',
-            position: 'Head Coach',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Head',
+          last_name: 'Coach',
+          school_name: 'School A',
+          position: 'Head Coach',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Recruiting',
-            last_name: 'Coordinator',
-            school_name: 'School B',
-            position: 'Recruiting Coordinator',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Recruiting',
+          last_name: 'Coordinator',
+          school_name: 'School B',
+          position: 'Recruiting Coordinator',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches?position=Head Coach')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches?position=Head Coach')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].position).toBe('Head Coach');
-        });
+      });
 
       it('should filter coaches by position (Recruiting Coordinator)', async () => {
         // Create coaches with different positions
         await Coach.create({
-            first_name: 'Head',
-            last_name: 'Coach',
-            school_name: 'School A',
-            position: 'Head Coach',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Head',
+          last_name: 'Coach',
+          school_name: 'School A',
+          position: 'Head Coach',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Recruiting',
-            last_name: 'Coordinator',
-            school_name: 'School B',
-            position: 'Recruiting Coordinator',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Recruiting',
+          last_name: 'Coordinator',
+          school_name: 'School B',
+          position: 'Recruiting Coordinator',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches?position=Recruiting Coordinator')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches?position=Recruiting Coordinator')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].position).toBe('Recruiting Coordinator');
-        });
+      });
 
       it('should filter coaches by position (Pitching Coach)', async () => {
         // Create coaches with different positions
         await Coach.create({
-            first_name: 'Pitching',
-            last_name: 'Coach',
-            school_name: 'School A',
-            position: 'Pitching Coach',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Pitching',
+          last_name: 'Coach',
+          school_name: 'School A',
+          position: 'Pitching Coach',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Head',
-            last_name: 'Coach',
-            school_name: 'School B',
-            position: 'Head Coach',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Head',
+          last_name: 'Coach',
+          school_name: 'School B',
+          position: 'Head Coach',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches?position=Pitching Coach')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches?position=Pitching Coach')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].position).toBe('Pitching Coach');
-        });
+      });
 
       it('should filter coaches by position (Volunteer)', async () => {
         // Create coaches with different positions
         await Coach.create({
-            first_name: 'Volunteer',
-            last_name: 'Coach',
-            school_name: 'School A',
-            position: 'Volunteer',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Volunteer',
+          last_name: 'Coach',
+          school_name: 'School A',
+          position: 'Volunteer',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Head',
-            last_name: 'Coach',
-            school_name: 'School B',
-            position: 'Head Coach',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Head',
+          last_name: 'Coach',
+          school_name: 'School B',
+          position: 'Head Coach',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches?position=Volunteer')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches?position=Volunteer')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].position).toBe('Volunteer');
-        });
+      });
 
       it('should search coaches by first name', async () => {
         // Create test coaches
         await Coach.create({
-            first_name: 'John',
-            last_name: 'Smith',
-            school_name: 'Lincoln High School',
-            position: 'Head Coach',
-            email: 'jsmith@lincoln.edu',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'John',
+          last_name: 'Smith',
+          school_name: 'Lincoln High School',
+          position: 'Head Coach',
+          email: 'jsmith@lincoln.edu',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Mike',
-            last_name: 'Johnson',
-            school_name: 'Central High School',
-            position: 'Head Coach',
-            email: 'mjohnson@central.edu',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Mike',
+          last_name: 'Johnson',
+          school_name: 'Central High School',
+          position: 'Head Coach',
+          email: 'mjohnson@central.edu',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches?search=john')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches?search=john')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].first_name).toBe('John');
-        });
+      });
 
       it('should search coaches by last name', async () => {
         // Create test coaches
         await Coach.create({
-            first_name: 'John',
-            last_name: 'Smith',
-            school_name: 'Lincoln High School',
-            position: 'Head Coach',
-            email: 'jsmith@lincoln.edu',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'John',
+          last_name: 'Smith',
+          school_name: 'Lincoln High School',
+          position: 'Head Coach',
+          email: 'jsmith@lincoln.edu',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Mike',
-            last_name: 'Johnson',
-            school_name: 'Central High School',
-            position: 'Head Coach',
-            email: 'mjohnson@central.edu',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Mike',
+          last_name: 'Johnson',
+          school_name: 'Central High School',
+          position: 'Head Coach',
+          email: 'mjohnson@central.edu',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches?search=johnson')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches?search=johnson')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].last_name).toBe('Johnson');
-        });
+      });
 
       it('should search coaches by school name', async () => {
         // Create test coaches
         await Coach.create({
-            first_name: 'John',
-            last_name: 'Smith',
-            school_name: 'Lincoln High School',
-            position: 'Head Coach',
-            email: 'jsmith@lincoln.edu',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'John',
+          last_name: 'Smith',
+          school_name: 'Lincoln High School',
+          position: 'Head Coach',
+          email: 'jsmith@lincoln.edu',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Mike',
-            last_name: 'Johnson',
-            school_name: 'Central High School',
-            position: 'Head Coach',
-            email: 'mjohnson@central.edu',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Mike',
+          last_name: 'Johnson',
+          school_name: 'Central High School',
+          position: 'Head Coach',
+          email: 'mjohnson@central.edu',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches?search=lincoln')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches?search=lincoln')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
         expect(response.body.data[0].school_name).toBe('Lincoln High School');
-        });
+      });
 
       it('should search coaches by email', async () => {
         // Create test coaches
         await Coach.create({
-            first_name: 'John',
-            last_name: 'Smith',
-            school_name: 'Lincoln High School',
-            position: 'Head Coach',
-            email: 'jsmith@lincoln.edu',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'John',
+          last_name: 'Smith',
+          school_name: 'Lincoln High School',
+          position: 'Head Coach',
+          email: 'jsmith@lincoln.edu',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         await Coach.create({
-            first_name: 'Mike',
-            last_name: 'Johnson',
-            school_name: 'Central High School',
-            position: 'Head Coach',
-            email: 'mjohnson@central.edu',
-            status: 'active',
-            team_id: testTeam.id,
-            created_by: testUser.id
+          first_name: 'Mike',
+          last_name: 'Johnson',
+          school_name: 'Central High School',
+          position: 'Head Coach',
+          email: 'mjohnson@central.edu',
+          status: 'active',
+          team_id: testTeam.id,
+          created_by: testUser.id
         });
 
         const response = await request(app)
-            .get('/api/v1/coaches?search=mjohnson')
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
+          .get('/api/v1/coaches?search=mjohnson')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
 
         expect(response.body.success).toBe(true);
         expect(response.body.data.length).toBe(1);
@@ -612,14 +611,16 @@ describe('Coaches API Tests', () => {
         // Verify descending order by created_at (most recent first)
         const timestamps = response.body.data.map(c => new Date(c.created_at).getTime());
         for (let i = 1; i < timestamps.length; i++) {
-            expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
+          expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
         }
-        });
+      });
+    });
 
-      describe('GET /api/coaches - Sorting by first_name', () => {
+    describe('GET /api/coaches - Sorting by first_name', () => {
         it('should sort by first_name ASC', async () => {
           const response = await request(app)
-            .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC&status=');
+            .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`);
           expect(response.body.data[0].email).toBe('mjohnson@central.edu');
         });
 
@@ -643,452 +644,454 @@ describe('Coaches API Tests', () => {
             .expect(200);
 
           expect(response.body.success).toBe(true);
-          it('should sort by last_name ASC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=last_name&sortDirection=ASC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
+        });
 
-            expect(response.body.success).toBe(true);
-            const names = response.body.data.map(c => c.last_name);
-            expect(names).toEqual(['Anderson', 'Brown', 'Chen', 'Davis', 'Evans']);
+        it('should sort by last_name ASC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=last_name&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const names = response.body.data.map(c => c.last_name);
+          expect(names).toEqual(['Anderson', 'Brown', 'Chen', 'Davis', 'Evans']);
+        });
+
+        it('should sort by last_name DESC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=last_name&sortDirection=DESC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const names = response.body.data.map(c => c.last_name);
+        expect(names).toEqual(['Evans', 'Davis', 'Chen', 'Brown', 'Anderson']);
+      });
+    });
+
+      describe('GET /api/coaches - Sorting by school_name', () => {
+        it('should sort by school_name ASC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=school_name&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const schools = response.body.data.map(c => c.school_name);
+          expect(schools).toEqual(['Adams High School', 'Jefferson Prep', 'Lincoln High School', 'Madison Academy', 'Washington Academy']);
+        });
+
+        it('should sort by school_name DESC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=school_name&sortDirection=DESC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const schools = response.body.data.map(c => c.school_name);
+          expect(schools).toEqual(['Washington Academy', 'Madison Academy', 'Lincoln High School', 'Jefferson Prep', 'Adams High School']);
+        });
+      });
+
+      describe('GET /api/coaches - Sorting by position', () => {
+        it('should sort by position ASC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=position&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const positions = response.body.data.map(c => c.position);
+          // Alphabetical order: Head Coach, Pitching Coach, Recruiting Coordinator, Volunteer
+          expect(positions[0]).toBe('Head Coach');
+          expect(positions[positions.length - 1]).toBe('Volunteer');
+        });
+
+        it('should sort by position DESC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=position&sortDirection=DESC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const positions = response.body.data.map(c => c.position);
+          // Reverse alphabetical order
+          expect(positions[0]).toBe('Volunteer');
+          expect(positions[positions.length - 1]).toBe('Head Coach');
+        });
+      });
+
+      describe('GET /api/coaches - Sorting by last_contact_date', () => {
+        it('should sort by last_contact_date ASC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=last_contact_date&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const dates = response.body.data.map(c => new Date(c.last_contact_date).getTime());
+          for (let i = 1; i < dates.length; i++) {
+            expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
+          }
+        });
+
+        it('should sort by last_contact_date DESC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=last_contact_date&sortDirection=DESC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const dates = response.body.data.map(c => new Date(c.last_contact_date).getTime());
+          for (let i = 1; i < dates.length; i++) {
+            expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
+          }
+        });
+      });
+
+      describe('GET /api/coaches - Sorting by next_contact_date', () => {
+        it('should sort by next_contact_date ASC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=next_contact_date&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const dates = response.body.data.map(c => new Date(c.next_contact_date).getTime());
+          for (let i = 1; i < dates.length; i++) {
+            expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
+          }
+        });
+
+        it('should sort by next_contact_date DESC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=next_contact_date&sortDirection=DESC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const dates = response.body.data.map(c => new Date(c.next_contact_date).getTime());
+          for (let i = 1; i < dates.length; i++) {
+            expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
+          }
+        });
+      });
+
+      describe('GET /api/coaches - Sorting by status', () => {
+        it('should sort by status ASC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=status&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const statuses = response.body.data.map(c => c.status);
+          // Alphabetical order: active comes before inactive
+          const activeCount = statuses.filter(s => s === 'active').length;
+          const inactiveCount = statuses.filter(s => s === 'inactive').length;
+          expect(activeCount).toBe(3);
+          expect(inactiveCount).toBe(2);
+          expect(statuses[0]).toBe('active');
+          expect(statuses[statuses.length - 1]).toBe('inactive');
+        });
+
+        it('should sort by status DESC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=status&sortDirection=DESC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const statuses = response.body.data.map(c => c.status);
+          // Reverse alphabetical order: inactive comes before active
+          expect(statuses[0]).toBe('inactive');
+          expect(statuses[statuses.length - 1]).toBe('active');
+        });
+      });
+
+      describe('GET /api/coaches - Sorting by created_at', () => {
+        it('should sort by created_at ASC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=created_at&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const timestamps = response.body.data.map(c => new Date(c.created_at).getTime());
+          for (let i = 1; i < timestamps.length; i++) {
+            expect(timestamps[i]).toBeGreaterThanOrEqual(timestamps[i - 1]);
+          }
+        });
+
+        it('should sort by created_at DESC', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=created_at&sortDirection=DESC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const timestamps = response.body.data.map(c => new Date(c.created_at).getTime());
+          for (let i = 1; i < timestamps.length; i++) {
+            expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
+          }
+        });
+      });
+
+      describe('GET /api/coaches - Validation', () => {
+        it('should return 400 for invalid orderBy column', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=invalid_column&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(400);
+
+          expect(response.body.success).toBe(false);
+          expect(response.body.error).toBe('Validation failed');
+          expect(response.body.details).toBeDefined();
+          expect(response.body.details.length).toBeGreaterThan(0);
+        });
+
+        it('should return 400 for invalid sortDirection', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=first_name&sortDirection=INVALID')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(400);
+
+          expect(response.body.success).toBe(false);
+          expect(response.body.error).toBe('Validation failed');
+          expect(response.body.details).toBeDefined();
+        });
+
+        it('should return 400 for both invalid orderBy and sortDirection', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=bad_column&sortDirection=BAD_DIR')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(400);
+
+          expect(response.body.success).toBe(false);
+          expect(response.body.error).toBe('Validation failed');
+          expect(response.body.details).toBeDefined();
+          expect(response.body.details.length).toBeGreaterThan(0);
+        });
+      });
+
+      describe('GET /api/coaches - Sorting with Filters', () => {
+        it('should sort filtered results by first_name', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?status=active&orderBy=first_name&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(3); // 3 active coaches
+          const names = response.body.data.map(c => c.first_name);
+          expect(names).toEqual(['Alice', 'Charlie', 'Diana']);
+        });
+
+        it('should sort filtered results by position', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?position=Head Coach&orderBy=last_name&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(2); // 2 Head Coaches
+          const names = response.body.data.map(c => c.last_name);
+          expect(names).toEqual(['Anderson', 'Evans']);
+        });
+
+        it('should sort search results', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?search=high&orderBy=school_name&sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          // Coaches with 'high' in name, school, or email
+          expect(response.body.data.length).toBeGreaterThan(0);
+          const schools = response.body.data.map(c => c.school_name);
+          // Verify ascending order
+          for (let i = 1; i < schools.length; i++) {
+            expect(schools[i].localeCompare(schools[i - 1])).toBeGreaterThanOrEqual(0);
+          }
+        });
+      });
+
+      describe('GET /api/coaches - Sorting with Pagination', () => {
+        it('should sort and paginate correctly', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC&page=1&limit=2')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          expect(response.body.data).toHaveLength(2);
+          expect(response.body.pagination.page).toBe(1);
+          expect(response.body.pagination.limit).toBe(2);
+          expect(response.body.pagination.total).toBe(5);
+
+          // First page should have Alice and Bob
+          const names = response.body.data.map(c => c.first_name);
+          expect(names).toEqual(['Alice', 'Bob']);
+        });
+
+        it('should sort second page correctly', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC&page=2&limit=2')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          expect(response.body.data).toHaveLength(2);
+
+          // Second page should have Charlie and Diana
+          const names = response.body.data.map(c => c.first_name);
+          expect(names).toEqual(['Charlie', 'Diana']);
+        });
+      });
+
+      describe('GET /api/coaches - Edge Cases', () => {
+        it('should handle sorting with only orderBy parameter (use default sortDirection)', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?orderBy=first_name')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          const names = response.body.data.map(c => c.first_name);
+          // Default sortDirection is DESC
+          expect(names).toEqual(['Edward', 'Diana', 'Charlie', 'Bob', 'Alice']);
+        });
+
+        it('should handle sorting with only sortDirection parameter (use default orderBy)', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?sortDirection=ASC')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          // Default orderBy is created_at, so should be oldest first
+          const timestamps = response.body.data.map(c => new Date(c.created_at).getTime());
+          for (let i = 1; i < timestamps.length; i++) {
+            expect(timestamps[i]).toBeGreaterThanOrEqual(timestamps[i - 1]);
+          }
+        });
+      });
+
+      describe('GET /api/coaches - Authentication', () => {
+        it('should return 401 without authentication', async () => {
+          await request(app)
+            .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC')
+            .expect(401);
+        });
+      });
+
+      describe('GET /api/coaches - Team Isolation', () => {
+        it('should only return and sort coaches from the authenticated user\'s team', async () => {
+          // Create another team and coach
+          const otherTeam = await Team.create({
+            name: 'Other Team',
+            program_name: 'Other Program',
+            school: 'Other University',
+            division: 'D1',
+            conference: 'Other Conference',
+            city: 'Other City',
+            state: 'OT'
           });
 
-          it('should sort by last_name DESC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=last_name&sortDirection=DESC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            const names = response.body.data.map(c => c.last_name);
-            expect(names).toEqual(['Evans', 'Davis', 'Chen', 'Brown', 'Anderson']);
+          await Coach.create({
+            first_name: 'Zack',
+            last_name: 'Zimmerman',
+            school_name: 'Zebra High School',
+            position: 'Head Coach',
+            email: 'zack@zebra.edu',
+            phone: '555-9999',
+            last_contact_date: new Date('2024-01-01'),
+            next_contact_date: new Date('2024-02-01'),
+            status: 'active',
+            team_id: otherTeam.id,
+            created_by: otherUser.id
           });
         });
 
-        describe('GET /api/coaches - Sorting by school_name', () => {
-          it('should sort by school_name ASC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=school_name&sortDirection=ASC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            const schools = response.body.data.map(c => c.school_name);
-            expect(schools).toEqual(['Adams High School', 'Jefferson Prep', 'Lincoln High School', 'Madison Academy', 'Washington Academy']);
+        it('should include Creator information in response', async () => {
+          await Coach.create({
+            first_name: 'Test',
+            last_name: 'Coach',
+            school_name: 'Test School',
+            position: 'Head Coach',
+            status: 'active',
+            team_id: testTeam.id,
+            created_by: testUser.id
           });
 
-          it('should sort by school_name DESC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=school_name&sortDirection=DESC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
+          const response = await request(app)
+            .get('/api/v1/coaches')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
 
-            expect(response.body.success).toBe(true);
-            const schools = response.body.data.map(c => c.school_name);
-            expect(schools).toEqual(['Washington Academy', 'Madison Academy', 'Lincoln High School', 'Jefferson Prep', 'Adams High School']);
-          });
+          expect(response.body.success).toBe(true);
+          expect(response.body.data[0].Creator).toBeDefined();
+          expect(response.body.data[0].Creator.id).toBe(testUser.id);
+          expect(response.body.data[0].Creator.first_name).toBe('Coaches');
         });
 
-        describe('GET /api/coaches - Sorting by position', () => {
-          it('should sort by position ASC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=position&sortDirection=ASC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            const positions = response.body.data.map(c => c.position);
-            // Alphabetical order: Head Coach, Pitching Coach, Recruiting Coordinator, Volunteer
-            expect(positions[0]).toBe('Head Coach');
-            expect(positions[positions.length - 1]).toBe('Volunteer');
+        it('should sort coaches by created_at DESC (newest first)', async () => {
+          // Create coaches with slight delays to ensure different timestamps
+          const coach1 = await Coach.create({
+            first_name: 'First',
+            last_name: 'Coach',
+            school_name: 'School 1',
+            position: 'Head Coach',
+            status: 'active',
+            team_id: testTeam.id,
+            created_by: testUser.id
           });
 
-          it('should sort by position DESC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=position&sortDirection=DESC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
+          await new Promise(resolve => setTimeout(resolve, 10));
 
-            expect(response.body.success).toBe(true);
-            const positions = response.body.data.map(c => c.position);
-            // Reverse alphabetical order
-            expect(positions[0]).toBe('Volunteer');
-            expect(positions[positions.length - 1]).toBe('Head Coach');
+          const coach2 = await Coach.create({
+            first_name: 'Second',
+            last_name: 'Coach',
+            school_name: 'School 2',
+            position: 'Head Coach',
+            status: 'active',
+            team_id: testTeam.id,
+            created_by: testUser.id
           });
+
+          const response = await request(app)
+            .get('/api/v1/coaches')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(200);
+
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(2);
+          expect(response.body.data[0].first_name).toBe('Second');
+          expect(response.body.data[1].first_name).toBe('First');
         });
 
-        describe('GET /api/coaches - Sorting by last_contact_date', () => {
-          it('should sort by last_contact_date ASC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=last_contact_date&sortDirection=ASC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
+        it('should reject invalid status values', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?status=invalid')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(400);
 
-            expect(response.body.success).toBe(true);
-            const dates = response.body.data.map(c => new Date(c.last_contact_date).getTime());
-            for (let i = 1; i < dates.length; i++) {
-              expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
-            }
-          });
-
-          it('should sort by last_contact_date DESC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=last_contact_date&sortDirection=DESC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            const dates = response.body.data.map(c => new Date(c.last_contact_date).getTime());
-            for (let i = 1; i < dates.length; i++) {
-              expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
-            }
-          });
+          expect(response.body.success).toBe(false);
+          expect(response.body.error).toBe('Validation failed');
         });
 
-        describe('GET /api/coaches - Sorting by next_contact_date', () => {
-          it('should sort by next_contact_date ASC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=next_contact_date&sortDirection=ASC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
+        it('should reject invalid position values', async () => {
+          const response = await request(app)
+            .get('/api/v1/coaches?position=Invalid Position')
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(400);
 
-            expect(response.body.success).toBe(true);
-            const dates = response.body.data.map(c => new Date(c.next_contact_date).getTime());
-            for (let i = 1; i < dates.length; i++) {
-              expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
-            }
-          });
-
-          it('should sort by next_contact_date DESC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=next_contact_date&sortDirection=DESC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            const dates = response.body.data.map(c => new Date(c.next_contact_date).getTime());
-            for (let i = 1; i < dates.length; i++) {
-              expect(dates[i]).toBeLessThanOrEqual(dates[i - 1]);
-            }
-          });
+          expect(response.body.success).toBe(false);
+          expect(response.body.error).toBe('Validation failed');
         });
+      });
 
-        describe('GET /api/coaches - Sorting by status', () => {
-          it('should sort by status ASC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=status&sortDirection=ASC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            const statuses = response.body.data.map(c => c.status);
-            // Alphabetical order: active comes before inactive
-            const activeCount = statuses.filter(s => s === 'active').length;
-            const inactiveCount = statuses.filter(s => s === 'inactive').length;
-            expect(activeCount).toBe(3);
-            expect(inactiveCount).toBe(2);
-            expect(statuses[0]).toBe('active');
-            expect(statuses[statuses.length - 1]).toBe('inactive');
-          });
-
-          it('should sort by status DESC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=status&sortDirection=DESC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            const statuses = response.body.data.map(c => c.status);
-            // Reverse alphabetical order: inactive comes before active
-            expect(statuses[0]).toBe('inactive');
-            expect(statuses[statuses.length - 1]).toBe('active');
-          });
-        });
-
-        describe('GET /api/coaches - Sorting by created_at', () => {
-          it('should sort by created_at ASC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=created_at&sortDirection=ASC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            const timestamps = response.body.data.map(c => new Date(c.created_at).getTime());
-            for (let i = 1; i < timestamps.length; i++) {
-              expect(timestamps[i]).toBeGreaterThanOrEqual(timestamps[i - 1]);
-            }
-          });
-
-          it('should sort by created_at DESC', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=created_at&sortDirection=DESC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            const timestamps = response.body.data.map(c => new Date(c.created_at).getTime());
-            for (let i = 1; i < timestamps.length; i++) {
-              expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
-            }
-          });
-        });
-
-        describe('GET /api/coaches - Validation', () => {
-          it('should return 400 for invalid orderBy column', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=invalid_column&sortDirection=ASC')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(400);
-
-            expect(response.body.success).toBe(false);
-            expect(response.body.error).toBe('Validation failed');
-            expect(response.body.details).toBeDefined();
-            expect(response.body.details.length).toBeGreaterThan(0);
-          });
-
-          it('should return 400 for invalid sortDirection', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=first_name&sortDirection=INVALID')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(400);
-
-            expect(response.body.success).toBe(false);
-            expect(response.body.error).toBe('Validation failed');
-            expect(response.body.details).toBeDefined();
-          });
-
-          it('should return 400 for both invalid orderBy and sortDirection', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=bad_column&sortDirection=BAD_DIR')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(400);
-
-            expect(response.body.success).toBe(false);
-            expect(response.body.error).toBe('Validation failed');
-            expect(response.body.details).toBeDefined();
-            expect(response.body.details.length).toBeGreaterThan(0);
-          });
-        });
-
-        describe('GET /api/coaches - Sorting with Filters', () => {
-          it('should sort filtered results by first_name', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?status=active&orderBy=first_name&sortDirection=ASC')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            expect(response.body.data.length).toBe(3); // 3 active coaches
-            const names = response.body.data.map(c => c.first_name);
-            expect(names).toEqual(['Alice', 'Charlie', 'Diana']);
-          });
-
-          it('should sort filtered results by position', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?position=Head Coach&orderBy=last_name&sortDirection=ASC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            expect(response.body.data.length).toBe(2); // 2 Head Coaches
-            const names = response.body.data.map(c => c.last_name);
-            expect(names).toEqual(['Anderson', 'Evans']);
-          });
-
-          it('should sort search results', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?search=high&orderBy=school_name&sortDirection=ASC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            // Coaches with 'high' in name, school, or email
-            expect(response.body.data.length).toBeGreaterThan(0);
-            const schools = response.body.data.map(c => c.school_name);
-            // Verify ascending order
-            for (let i = 1; i < schools.length; i++) {
-              expect(schools[i].localeCompare(schools[i - 1])).toBeGreaterThanOrEqual(0);
-            }
-          });
-        });
-
-        describe('GET /api/coaches - Sorting with Pagination', () => {
-          it('should sort and paginate correctly', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC&page=1&limit=2&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            expect(response.body.data).toHaveLength(2);
-            expect(response.body.pagination.page).toBe(1);
-            expect(response.body.pagination.limit).toBe(2);
-            expect(response.body.pagination.total).toBe(5);
-
-            // First page should have Alice and Bob
-            const names = response.body.data.map(c => c.first_name);
-            expect(names).toEqual(['Alice', 'Bob']);
-          });
-
-          it('should sort second page correctly', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC&page=2&limit=2&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            expect(response.body.data).toHaveLength(2);
-
-            // Second page should have Charlie and Diana
-            const names = response.body.data.map(c => c.first_name);
-            expect(names).toEqual(['Charlie', 'Diana']);
-          });
-        });
-
-        describe('GET /api/coaches - Edge Cases', () => {
-          it('should handle sorting with only orderBy parameter (use default sortDirection)', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?orderBy=first_name&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            const names = response.body.data.map(c => c.first_name);
-            // Default sortDirection is DESC
-            expect(names).toEqual(['Edward', 'Diana', 'Charlie', 'Bob', 'Alice']);
-          });
-
-          it('should handle sorting with only sortDirection parameter (use default orderBy)', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?sortDirection=ASC&status=')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            // Default orderBy is created_at, so should be oldest first
-            const timestamps = response.body.data.map(c => new Date(c.created_at).getTime());
-            for (let i = 1; i < timestamps.length; i++) {
-              expect(timestamps[i]).toBeGreaterThanOrEqual(timestamps[i - 1]);
-            }
-          });
-        });
-
-        describe('GET /api/coaches - Authentication', () => {
-          it('should return 401 without authentication', async () => {
-            await request(app)
-              .get('/api/v1/coaches?orderBy=first_name&sortDirection=ASC')
-              .expect(401);
-          });
-        });
-
-        describe('GET /api/coaches - Team Isolation', () => {
-          it('should only return and sort coaches from the authenticated user\'s team', async () => {
-            // Create another team and coach
-            const otherTeam = await Team.create({
-              name: 'Other Team',
-              program_name: 'Other Program',
-              school: 'Other University',
-              division: 'D1',
-              conference: 'Other Conference',
-              city: 'Other City',
-              state: 'OT'
-            });
-
-            await Coach.create({
-              first_name: 'Zack',
-              last_name: 'Zimmerman',
-              school_name: 'Zebra High School',
-              position: 'Head Coach',
-              email: 'zack@zebra.edu',
-              phone: '555-9999',
-              last_contact_date: new Date('2024-01-01'),
-              next_contact_date: new Date('2024-02-01'),
-              status: 'active',
-              team_id: otherTeam.id,
-              created_by: otherUser.id
-            });
-          });
-
-          it('should include Creator information in response', async () => {
-            await Coach.create({
-              first_name: 'Test',
-              last_name: 'Coach',
-              school_name: 'Test School',
-              position: 'Head Coach',
-              status: 'active',
-              team_id: testTeam.id,
-              created_by: testUser.id
-            });
-
-            const response = await request(app)
-              .get('/api/v1/coaches')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            expect(response.body.data[0].Creator).toBeDefined();
-            expect(response.body.data[0].Creator.id).toBe(testUser.id);
-            expect(response.body.data[0].Creator.first_name).toBe('Coaches');
-          });
-
-          it('should sort coaches by created_at DESC (newest first)', async () => {
-            // Create coaches with slight delays to ensure different timestamps
-            const coach1 = await Coach.create({
-              first_name: 'First',
-              last_name: 'Coach',
-              school_name: 'School 1',
-              position: 'Head Coach',
-              status: 'active',
-              team_id: testTeam.id,
-              created_by: testUser.id
-            });
-
-            await new Promise(resolve => setTimeout(resolve, 10));
-
-            const coach2 = await Coach.create({
-              first_name: 'Second',
-              last_name: 'Coach',
-              school_name: 'School 2',
-              position: 'Head Coach',
-              status: 'active',
-              team_id: testTeam.id,
-              created_by: testUser.id
-            });
-
-            const response = await request(app)
-              .get('/api/v1/coaches')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(200);
-
-            expect(response.body.success).toBe(true);
-            expect(response.body.data.length).toBe(2);
-            expect(response.body.data[0].first_name).toBe('Second');
-            expect(response.body.data[1].first_name).toBe('First');
-          });
-
-          it('should reject invalid status values', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?status=invalid')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(400);
-
-            expect(response.body.success).toBe(false);
-            expect(response.body.error).toBe('Validation failed');
-          });
-
-          it('should reject invalid position values', async () => {
-            const response = await request(app)
-              .get('/api/v1/coaches?position=Invalid Position')
-              .set('Authorization', `Bearer ${authToken}`)
-              .expect(400);
-
-            expect(response.body.success).toBe(false);
-            expect(response.body.error).toBe('Validation failed');
-          });
-        });
-
-        describe('GET /api/coaches/:id', () => {
+    describe('GET /api/coaches/:id', () => {
           it('should require authentication', async () => {
             const response = await request(app)
               .get('/api/v1/coaches/123e4567-e89b-12d3-a456-426614174000')
@@ -1181,8 +1184,9 @@ describe('Coaches API Tests', () => {
             expect(response.body.error).toBe('Coach not found');
           });
         });
+      }); // Close 'GET /api/coaches' describe block
 
-        describe('POST /api/coaches', () => {
+      describe('POST /api/coaches', () => {
           it('should require authentication', async () => {
             const { token, cookies } = await getCsrfToken(app);
             const response = await request(app)
@@ -2018,7 +2022,4 @@ describe('Coaches API Tests', () => {
             expect(coach.first_name).toBe('Other');
           });
         }); // Close 'DELETE /api/coaches/:id' describe block
-      });
-    });
-  }); // Close 'Coaches API Tests' describe block
-});
+    }); // Close 'Coaches API Tests' describe block
