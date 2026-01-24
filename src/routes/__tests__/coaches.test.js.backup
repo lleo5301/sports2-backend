@@ -169,21 +169,22 @@ describe('Coaches API Tests', () => {
     });
 
     describe('GET /api/coaches - Default Sorting', () => {
+      it('should sort by created_at DESC by default', async () => {
 
-      it('should return empty array when no coaches exist', async () => {
-        const response = await request(app)
+        it('should return empty array when no coaches exist', async () => {
+          const response = await request(app)
             .get('/api/v1/coaches')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(Array.isArray(response.body.data)).toBe(true);
-        expect(response.body.data.length).toBe(0);
+          expect(response.body.success).toBe(true);
+          expect(Array.isArray(response.body.data)).toBe(true);
+          expect(response.body.data.length).toBe(0);
         });
 
-      it('should return list of coaches for authenticated user team', async () => {
-        // Create test coaches
-        await Coach.create({
+        it('should return list of coaches for authenticated user team', async () => {
+          // Create test coaches
+          await Coach.create({
             first_name: 'John',
             last_name: 'Smith',
             school_name: 'Lincoln High School',
@@ -193,9 +194,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Mike',
             last_name: 'Johnson',
             school_name: 'Central High School',
@@ -205,22 +206,22 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(2);
-        expect(response.body.pagination).toBeDefined();
-        expect(response.body.pagination.total).toBe(2);
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(2);
+          expect(response.body.pagination).toBeDefined();
+          expect(response.body.pagination.total).toBe(2);
         });
 
-      it('should only return coaches for user team (team isolation)', async () => {
-        // Create coaches for different teams
-        await Coach.create({
+        it('should only return coaches for user team (team isolation)', async () => {
+          // Create coaches for different teams
+          await Coach.create({
             first_name: 'My',
             last_name: 'Coach',
             school_name: 'My School',
@@ -228,9 +229,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Other',
             last_name: 'Coach',
             school_name: 'Other School',
@@ -238,21 +239,21 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: otherTeam.id,
             created_by: otherUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].first_name).toBe('My');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].first_name).toBe('My');
         });
 
-      it('should filter coaches by status (active)', async () => {
-        // Create coaches with different statuses
-        await Coach.create({
+        it('should filter coaches by status (active)', async () => {
+          // Create coaches with different statuses
+          await Coach.create({
             first_name: 'Active',
             last_name: 'Coach',
             school_name: 'Active School',
@@ -260,9 +261,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Inactive',
             last_name: 'Coach',
             school_name: 'Inactive School',
@@ -270,21 +271,21 @@ describe('Coaches API Tests', () => {
             status: 'inactive',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches?status=active')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].status).toBe('active');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].status).toBe('active');
         });
 
-      it('should filter coaches by status (inactive)', async () => {
-        // Create coaches with different statuses
-        await Coach.create({
+        it('should filter coaches by status (inactive)', async () => {
+          // Create coaches with different statuses
+          await Coach.create({
             first_name: 'Active',
             last_name: 'Coach',
             school_name: 'Active School',
@@ -292,9 +293,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Inactive',
             last_name: 'Coach',
             school_name: 'Inactive School',
@@ -302,21 +303,21 @@ describe('Coaches API Tests', () => {
             status: 'inactive',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches?status=inactive')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].status).toBe('inactive');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].status).toBe('inactive');
         });
 
-      it('should default to active status filter', async () => {
-        // Create coaches with different statuses
-        await Coach.create({
+        it('should default to active status filter', async () => {
+          // Create coaches with different statuses
+          await Coach.create({
             first_name: 'Active',
             last_name: 'Coach',
             school_name: 'Active School',
@@ -324,9 +325,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Inactive',
             last_name: 'Coach',
             school_name: 'Inactive School',
@@ -334,21 +335,21 @@ describe('Coaches API Tests', () => {
             status: 'inactive',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].status).toBe('active');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].status).toBe('active');
         });
 
-      it('should filter coaches by position (Head Coach)', async () => {
-        // Create coaches with different positions
-        await Coach.create({
+        it('should filter coaches by position (Head Coach)', async () => {
+          // Create coaches with different positions
+          await Coach.create({
             first_name: 'Head',
             last_name: 'Coach',
             school_name: 'School A',
@@ -356,9 +357,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Recruiting',
             last_name: 'Coordinator',
             school_name: 'School B',
@@ -366,21 +367,21 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches?position=Head Coach')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].position).toBe('Head Coach');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].position).toBe('Head Coach');
         });
 
-      it('should filter coaches by position (Recruiting Coordinator)', async () => {
-        // Create coaches with different positions
-        await Coach.create({
+        it('should filter coaches by position (Recruiting Coordinator)', async () => {
+          // Create coaches with different positions
+          await Coach.create({
             first_name: 'Head',
             last_name: 'Coach',
             school_name: 'School A',
@@ -388,9 +389,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Recruiting',
             last_name: 'Coordinator',
             school_name: 'School B',
@@ -398,21 +399,21 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches?position=Recruiting Coordinator')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].position).toBe('Recruiting Coordinator');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].position).toBe('Recruiting Coordinator');
         });
 
-      it('should filter coaches by position (Pitching Coach)', async () => {
-        // Create coaches with different positions
-        await Coach.create({
+        it('should filter coaches by position (Pitching Coach)', async () => {
+          // Create coaches with different positions
+          await Coach.create({
             first_name: 'Pitching',
             last_name: 'Coach',
             school_name: 'School A',
@@ -420,9 +421,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Head',
             last_name: 'Coach',
             school_name: 'School B',
@@ -430,21 +431,21 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches?position=Pitching Coach')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].position).toBe('Pitching Coach');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].position).toBe('Pitching Coach');
         });
 
-      it('should filter coaches by position (Volunteer)', async () => {
-        // Create coaches with different positions
-        await Coach.create({
+        it('should filter coaches by position (Volunteer)', async () => {
+          // Create coaches with different positions
+          await Coach.create({
             first_name: 'Volunteer',
             last_name: 'Coach',
             school_name: 'School A',
@@ -452,9 +453,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Head',
             last_name: 'Coach',
             school_name: 'School B',
@@ -462,21 +463,21 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches?position=Volunteer')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].position).toBe('Volunteer');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].position).toBe('Volunteer');
         });
 
-      it('should search coaches by first name', async () => {
-        // Create test coaches
-        await Coach.create({
+        it('should search coaches by first name', async () => {
+          // Create test coaches
+          await Coach.create({
             first_name: 'John',
             last_name: 'Smith',
             school_name: 'Lincoln High School',
@@ -485,9 +486,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Mike',
             last_name: 'Johnson',
             school_name: 'Central High School',
@@ -496,21 +497,21 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches?search=john')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].first_name).toBe('John');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].first_name).toBe('John');
         });
 
-      it('should search coaches by last name', async () => {
-        // Create test coaches
-        await Coach.create({
+        it('should search coaches by last name', async () => {
+          // Create test coaches
+          await Coach.create({
             first_name: 'John',
             last_name: 'Smith',
             school_name: 'Lincoln High School',
@@ -519,9 +520,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Mike',
             last_name: 'Johnson',
             school_name: 'Central High School',
@@ -530,21 +531,21 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches?search=johnson')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].last_name).toBe('Johnson');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].last_name).toBe('Johnson');
         });
 
-      it('should search coaches by school name', async () => {
-        // Create test coaches
-        await Coach.create({
+        it('should search coaches by school name', async () => {
+          // Create test coaches
+          await Coach.create({
             first_name: 'John',
             last_name: 'Smith',
             school_name: 'Lincoln High School',
@@ -553,9 +554,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Mike',
             last_name: 'Johnson',
             school_name: 'Central High School',
@@ -564,21 +565,21 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches?search=lincoln')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data[0].school_name).toBe('Lincoln High School');
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data[0].school_name).toBe('Lincoln High School');
         });
 
-      it('should search coaches by email', async () => {
-        // Create test coaches
-        await Coach.create({
+        it('should search coaches by email', async () => {
+          // Create test coaches
+          await Coach.create({
             first_name: 'John',
             last_name: 'Smith',
             school_name: 'Lincoln High School',
@@ -587,9 +588,9 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        await Coach.create({
+          await Coach.create({
             first_name: 'Mike',
             last_name: 'Johnson',
             school_name: 'Central High School',
@@ -598,23 +599,24 @@ describe('Coaches API Tests', () => {
             status: 'active',
             team_id: testTeam.id,
             created_by: testUser.id
-        });
+          });
 
-        const response = await request(app)
+          const response = await request(app)
             .get('/api/v1/coaches?search=mjohnson')
             .set('Authorization', `Bearer ${authToken}`)
             .expect(200);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.length).toBe(1);
-        expect(response.body.data.length).toBeGreaterThan(0);
+          expect(response.body.success).toBe(true);
+          expect(response.body.data.length).toBe(1);
+          expect(response.body.data.length).toBeGreaterThan(0);
 
-        // Verify descending order by created_at (most recent first)
-        const timestamps = response.body.data.map(c => new Date(c.created_at).getTime());
-        for (let i = 1; i < timestamps.length; i++) {
+          // Verify descending order by created_at (most recent first)
+          const timestamps = response.body.data.map(c => new Date(c.created_at).getTime());
+          for (let i = 1; i < timestamps.length; i++) {
             expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
-        }
+          }
         });
+      });
 
       describe('GET /api/coaches - Sorting by first_name', () => {
         it('should sort by first_name ASC', async () => {

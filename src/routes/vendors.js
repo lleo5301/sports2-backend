@@ -94,6 +94,8 @@ const validateVendorList = [
   query('search').optional().isString(),
   query('vendor_type').optional().isIn(['Equipment', 'Apparel', 'Technology', 'Food Service', 'Transportation', 'Medical', 'Facilities', 'Other']),
   query('status').optional().isIn(['active', 'inactive', 'pending', 'expired']),
+  query('orderBy').optional().isIn(['company_name', 'contact_person', 'vendor_type', 'contract_value', 'contract_start_date', 'contract_end_date', 'last_contact_date', 'next_contact_date', 'status', 'created_at']),
+  query('sortDirection').optional().isIn(['ASC', 'DESC', 'asc', 'desc']),
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 })
 ];
@@ -257,6 +259,8 @@ router.get('/', validateVendorList, async (req, res) => {
       search,
       vendor_type,
       status = 'active',  // Default to showing only active vendors
+      orderBy = 'created_at',
+      sortDirection = 'DESC',
       page = 1,
       limit = 20
     } = req.query;
@@ -292,6 +296,9 @@ router.get('/', validateVendorList, async (req, res) => {
       ];
     }
 
+    // Determine sort order
+    const order = [[orderBy, sortDirection.toUpperCase()]];
+
     // Database: Fetch paginated vendors with creator association
     const { count, rows: vendors } = await Vendor.findAndCountAll({
       where: whereClause,
@@ -302,7 +309,7 @@ router.get('/', validateVendorList, async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: [['created_at', 'DESC']],  // Most recently created first
+      order,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });

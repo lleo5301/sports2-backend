@@ -211,7 +211,10 @@ User.hasMany(ScheduleEvent, { foreignKey: 'created_by' });
 
 // ScheduleEventDate associations
 ScheduleEventDate.belongsTo(ScheduleEvent, { foreignKey: 'schedule_event_id' });
-ScheduleEvent.hasMany(ScheduleEventDate, { foreignKey: 'schedule_event_id' });
+ScheduleEvent.hasMany(ScheduleEventDate, { foreignKey: 'schedule_event_id', as: 'EventDates' });
+ScheduleEventDate.belongsTo(Location, { foreignKey: 'location_id_override', as: 'OverrideLocation' });
+ScheduleEventDate.belongsTo(Team, { foreignKey: 'team_id' });
+ScheduleEventDate.belongsTo(User, { foreignKey: 'created_by' });
 
 module.exports = {
   sequelize,
