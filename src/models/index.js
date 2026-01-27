@@ -31,6 +31,8 @@ const PlayerSeasonStats = require('./PlayerSeasonStats');
 const PlayerCareerStats = require('./PlayerCareerStats');
 const SyncLog = require('./SyncLog');
 const IntegrationCredential = require('./IntegrationCredential');
+const NewsRelease = require('./NewsRelease');
+const PlayerVideo = require('./PlayerVideo');
 
 // Define associations
 
@@ -145,14 +147,14 @@ Game.belongsTo(User, { foreignKey: 'created_by', as: 'created_by_user' });
 User.hasMany(Game, { foreignKey: 'created_by' });
 
 // GameStatistic associations
-GameStatistic.belongsTo(Game, { foreignKey: 'game_id' });
-Game.hasMany(GameStatistic, { foreignKey: 'game_id' });
+GameStatistic.belongsTo(Game, { foreignKey: 'game_id', as: 'game' });
+Game.hasMany(GameStatistic, { foreignKey: 'game_id', as: 'statistics' });
 
-GameStatistic.belongsTo(Player, { foreignKey: 'player_id' });
-Player.hasMany(GameStatistic, { foreignKey: 'player_id' });
+GameStatistic.belongsTo(Player, { foreignKey: 'player_id', as: 'player' });
+Player.hasMany(GameStatistic, { foreignKey: 'player_id', as: 'gameStats' });
 
-GameStatistic.belongsTo(Team, { foreignKey: 'team_id' });
-Team.hasMany(GameStatistic, { foreignKey: 'team_id' });
+GameStatistic.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
+Team.hasMany(GameStatistic, { foreignKey: 'team_id', as: 'gameStatistics' });
 
 // Coach associations
 Coach.belongsTo(Team, { foreignKey: 'team_id' });
@@ -242,6 +244,20 @@ User.hasMany(SyncLog, { foreignKey: 'initiated_by' });
 IntegrationCredential.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
 Team.hasMany(IntegrationCredential, { foreignKey: 'team_id', as: 'integrations' });
 
+// NewsRelease associations
+NewsRelease.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
+Team.hasMany(NewsRelease, { foreignKey: 'team_id', as: 'newsReleases' });
+
+NewsRelease.belongsTo(Player, { foreignKey: 'player_id', as: 'player' });
+Player.hasMany(NewsRelease, { foreignKey: 'player_id', as: 'newsReleases' });
+
+// PlayerVideo associations
+PlayerVideo.belongsTo(Player, { foreignKey: 'player_id', as: 'player' });
+Player.hasMany(PlayerVideo, { foreignKey: 'player_id', as: 'videos' });
+
+PlayerVideo.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
+Team.hasMany(PlayerVideo, { foreignKey: 'team_id', as: 'playerVideos' });
+
 module.exports = {
   sequelize,
   User,
@@ -273,5 +289,7 @@ module.exports = {
   PlayerSeasonStats,
   PlayerCareerStats,
   SyncLog,
-  IntegrationCredential
+  IntegrationCredential,
+  NewsRelease,
+  PlayerVideo
 };

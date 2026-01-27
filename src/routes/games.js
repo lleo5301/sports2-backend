@@ -37,7 +37,7 @@ const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { protect } = require('../middleware/auth');
-const { Game, Team } = require('../models');
+const { Game, Team, GameStatistic, Player } = require('../models');
 
 const router = express.Router();
 
@@ -802,67 +802,399 @@ router.get('/player-stats/:playerId', async (req, res) => {
     const { playerId } = req.params;
     const { season } = req.query;
 
-    // Permission: Filter games to user's team only
-    const whereClause = {
-      team_id: req.user.team_id
-    };
-
-    // Business logic: Apply optional season filter
-    if (season) {
-      whereClause.season = season;
-    }
-
-    // Database: Fetch all team games
-    // Note: In a full implementation, this would join with a GamePlayerStats table
-    // to get per-player statistics for each game
-    const games = await Game.findAll({
-      where: whereClause,
-      include: [
-        {
-          model: Team,
-          as: 'team',
-          attributes: ['id', 'name']
-        }
-      ],
-      order: [['game_date', 'DESC']]
+    // Permission: Verify player belongs to user's team
+    const player = await Player.findOne({
+      where: {
+        id: playerId,
+        team_id: req.user.team_id
+      },
+      attributes: ['id', 'first_name', 'last_name', 'jersey_number', 'position']
     });
 
-    // Business logic: Format response with player context
-    // Note: This returns basic game data; actual player stats would require
-    // a GamePlayerStats model with per-game player statistics
-    const playerGameStats = {
-      player_id: parseInt(playerId),
-      total_games: games.length,
-      // Map games to simplified objects with key fields
-      games: games.map(game => ({
-        id: game.id,
-        opponent: game.opponent,
-        game_date: game.game_date,
-        home_away: game.home_away,
-        result: game.result,
-        team_score: game.team_score,
-        opponent_score: game.opponent_score,
-        location: game.location
-      })),
-      // Calculate summary statistics for quick reference
-      summary: {
-        wins: games.filter(g => g.result === 'W').length,
-        losses: games.filter(g => g.result === 'L').length,
-        ties: games.filter(g => g.result === 'T').length,
-        home_games: games.filter(g => g.home_away === 'home').length,
-        away_games: games.filter(g => g.home_away === 'away').length
+    if (!player) {
+      return res.status(404).json({
+        success: false,
+        error: 'Player not found or does not belong to your team'
+      });
+    }
+
+    // Build game filter for season if provided
+    const gameWhereClause = { team_id: req.user.team_id };
+    if (season) {
+      gameWhereClause.season = season;
+    }
+
+    // Database: Fetch actual game statistics for this player
+    const gameStats = await GameStatistic.findAll({
+      where: {
+        player_id: playerId,
+        team_id: req.user.team_id
+      },
+      include: [
+        {
+          model: Game,
+          as: 'game',
+          where: gameWhereClause,
+          attributes: [
+            'id', 'opponent', 'game_date', 'home_away', 'result',
+            'team_score', 'opponent_score', 'location', 'season', 'game_status'
+          ]
+        }
+      ],
+      order: [[{ model: Game, as: 'game' }, 'game_date', 'DESC']]
+    });
+
+    // Format per-game statistics with full stat breakdown
+    const gamesWithStats = gameStats.map(stat => ({
+      game: {
+        id: stat.game.id,
+        opponent: stat.game.opponent,
+        game_date: stat.game.game_date,
+        home_away: stat.game.home_away,
+        result: stat.game.result,
+        team_score: stat.game.team_score,
+        opponent_score: stat.game.opponent_score,
+        location: stat.game.location,
+        season: stat.game.season,
+        game_status: stat.game.game_status
+      },
+      position_played: stat.position_played,
+      batting: {
+        at_bats: stat.at_bats,
+        runs: stat.runs,
+        hits: stat.hits,
+        doubles: stat.doubles,
+        triples: stat.triples,
+        home_runs: stat.home_runs,
+        rbi: stat.rbi,
+        walks: stat.walks,
+        strikeouts: stat.strikeouts_batting,
+        stolen_bases: stat.stolen_bases,
+        caught_stealing: stat.caught_stealing,
+        hit_by_pitch: stat.hit_by_pitch,
+        sacrifice_flies: stat.sacrifice_flies,
+        sacrifice_bunts: stat.sacrifice_bunts
+      },
+      pitching: {
+        innings_pitched: stat.innings_pitched,
+        hits_allowed: stat.hits_allowed,
+        runs_allowed: stat.runs_allowed,
+        earned_runs: stat.earned_runs,
+        walks_allowed: stat.walks_allowed,
+        strikeouts: stat.strikeouts_pitching,
+        home_runs_allowed: stat.home_runs_allowed,
+        batters_faced: stat.batters_faced,
+        pitches_thrown: stat.pitches_thrown,
+        strikes_thrown: stat.strikes_thrown,
+        win: stat.win,
+        loss: stat.loss,
+        save: stat.getDataValue('save'),
+        hold: stat.hold
+      },
+      fielding: {
+        putouts: stat.putouts,
+        assists: stat.assists,
+        errors: stat.errors
+      }
+    }));
+
+    // Calculate aggregated totals across all games
+    const totals = {
+      batting: {
+        games: gameStats.length,
+        at_bats: gameStats.reduce((sum, s) => sum + (s.at_bats || 0), 0),
+        runs: gameStats.reduce((sum, s) => sum + (s.runs || 0), 0),
+        hits: gameStats.reduce((sum, s) => sum + (s.hits || 0), 0),
+        doubles: gameStats.reduce((sum, s) => sum + (s.doubles || 0), 0),
+        triples: gameStats.reduce((sum, s) => sum + (s.triples || 0), 0),
+        home_runs: gameStats.reduce((sum, s) => sum + (s.home_runs || 0), 0),
+        rbi: gameStats.reduce((sum, s) => sum + (s.rbi || 0), 0),
+        walks: gameStats.reduce((sum, s) => sum + (s.walks || 0), 0),
+        strikeouts: gameStats.reduce((sum, s) => sum + (s.strikeouts_batting || 0), 0),
+        stolen_bases: gameStats.reduce((sum, s) => sum + (s.stolen_bases || 0), 0),
+        caught_stealing: gameStats.reduce((sum, s) => sum + (s.caught_stealing || 0), 0),
+        hit_by_pitch: gameStats.reduce((sum, s) => sum + (s.hit_by_pitch || 0), 0),
+        sacrifice_flies: gameStats.reduce((sum, s) => sum + (s.sacrifice_flies || 0), 0),
+        sacrifice_bunts: gameStats.reduce((sum, s) => sum + (s.sacrifice_bunts || 0), 0)
+      },
+      pitching: {
+        games_pitched: gameStats.filter(s => parseFloat(s.innings_pitched) > 0).length,
+        innings_pitched: gameStats.reduce((sum, s) => sum + parseFloat(s.innings_pitched || 0), 0),
+        hits_allowed: gameStats.reduce((sum, s) => sum + (s.hits_allowed || 0), 0),
+        runs_allowed: gameStats.reduce((sum, s) => sum + (s.runs_allowed || 0), 0),
+        earned_runs: gameStats.reduce((sum, s) => sum + (s.earned_runs || 0), 0),
+        walks_allowed: gameStats.reduce((sum, s) => sum + (s.walks_allowed || 0), 0),
+        strikeouts: gameStats.reduce((sum, s) => sum + (s.strikeouts_pitching || 0), 0),
+        home_runs_allowed: gameStats.reduce((sum, s) => sum + (s.home_runs_allowed || 0), 0),
+        wins: gameStats.filter(s => s.win === true).length,
+        losses: gameStats.filter(s => s.loss === true).length,
+        saves: gameStats.filter(s => s.getDataValue('save') === true).length,
+        holds: gameStats.filter(s => s.hold === true).length
+      },
+      fielding: {
+        putouts: gameStats.reduce((sum, s) => sum + (s.putouts || 0), 0),
+        assists: gameStats.reduce((sum, s) => sum + (s.assists || 0), 0),
+        errors: gameStats.reduce((sum, s) => sum + (s.errors || 0), 0)
+      }
+    };
+
+    // Calculate derived statistics (batting average, ERA, fielding percentage)
+    const battingAvg = totals.batting.at_bats > 0
+      ? (totals.batting.hits / totals.batting.at_bats).toFixed(3)
+      : '.000';
+    const era = totals.pitching.innings_pitched > 0
+      ? ((totals.pitching.earned_runs * 9) / totals.pitching.innings_pitched).toFixed(2)
+      : '0.00';
+    const fieldingPct = (totals.fielding.putouts + totals.fielding.assists + totals.fielding.errors) > 0
+      ? ((totals.fielding.putouts + totals.fielding.assists) /
+         (totals.fielding.putouts + totals.fielding.assists + totals.fielding.errors)).toFixed(3)
+      : '1.000';
+
+    const playerGameStatsResponse = {
+      player: {
+        id: player.id,
+        first_name: player.first_name,
+        last_name: player.last_name,
+        jersey_number: player.jersey_number,
+        position: player.position
+      },
+      total_games: gamesWithStats.length,
+      games: gamesWithStats,
+      totals,
+      calculated: {
+        batting_average: battingAvg,
+        era,
+        fielding_percentage: fieldingPct,
+        slugging_percentage: totals.batting.at_bats > 0
+          ? ((totals.batting.hits - totals.batting.doubles - totals.batting.triples - totals.batting.home_runs +
+              totals.batting.doubles * 2 + totals.batting.triples * 3 + totals.batting.home_runs * 4) /
+             totals.batting.at_bats).toFixed(3)
+          : '.000',
+        on_base_percentage: (totals.batting.at_bats + totals.batting.walks +
+                             totals.batting.hit_by_pitch + totals.batting.sacrifice_flies) > 0
+          ? ((totals.batting.hits + totals.batting.walks + totals.batting.hit_by_pitch) /
+             (totals.batting.at_bats + totals.batting.walks + totals.batting.hit_by_pitch +
+              totals.batting.sacrifice_flies)).toFixed(3)
+          : '.000'
       }
     };
 
     res.json({
       success: true,
-      data: playerGameStats
+      data: playerGameStatsResponse
     });
   } catch (error) {
     console.error('Error fetching player game statistics:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch player game statistics'
+    });
+  }
+});
+
+/**
+ * @route GET /api/games/:gameId/stats
+ * @description Retrieves box score statistics for a specific game - all player stats for that game.
+ * @access Private - Requires authentication, game must belong to user's team
+ *
+ * @param {string} req.params.gameId - The game ID to get statistics for
+ *
+ * @returns {Object} response - JSON response
+ * @returns {boolean} response.success - Whether the request succeeded
+ * @returns {Object} response.data - Box score data
+ * @returns {Object} response.data.game - Game details (opponent, date, score, result)
+ * @returns {Array} response.data.batting - Array of batting statistics by player
+ * @returns {Array} response.data.pitching - Array of pitching statistics by player
+ * @returns {Array} response.data.fielding - Array of fielding statistics by player
+ * @returns {Object} response.data.team_totals - Aggregated team totals
+ */
+router.get('/:gameId/stats', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+
+    // Permission: Verify game belongs to user's team
+    const game = await Game.findOne({
+      where: {
+        id: gameId,
+        team_id: req.user.team_id
+      },
+      include: [
+        {
+          model: Team,
+          as: 'team',
+          attributes: ['id', 'name']
+        }
+      ]
+    });
+
+    if (!game) {
+      return res.status(404).json({
+        success: false,
+        error: 'Game not found or does not belong to your team'
+      });
+    }
+
+    // Database: Fetch all player statistics for this game
+    const gameStats = await GameStatistic.findAll({
+      where: {
+        game_id: gameId,
+        team_id: req.user.team_id
+      },
+      include: [
+        {
+          model: Player,
+          as: 'player',
+          attributes: ['id', 'first_name', 'last_name', 'jersey_number', 'position']
+        }
+      ],
+      order: [[{ model: Player, as: 'player' }, 'last_name', 'ASC']]
+    });
+
+    // Format batting statistics (players with at-bats or plate appearances)
+    const battingStats = gameStats
+      .filter(s => s.at_bats > 0 || s.walks > 0 || s.hit_by_pitch > 0 ||
+                   s.sacrifice_flies > 0 || s.sacrifice_bunts > 0)
+      .map(stat => ({
+        player: {
+          id: stat.player.id,
+          name: `${stat.player.first_name} ${stat.player.last_name}`,
+          jersey_number: stat.player.jersey_number,
+          position: stat.position_played || stat.player.position
+        },
+        ab: stat.at_bats || 0,
+        r: stat.runs || 0,
+        h: stat.hits || 0,
+        '2b': stat.doubles || 0,
+        '3b': stat.triples || 0,
+        hr: stat.home_runs || 0,
+        rbi: stat.rbi || 0,
+        bb: stat.walks || 0,
+        so: stat.strikeouts_batting || 0,
+        sb: stat.stolen_bases || 0,
+        cs: stat.caught_stealing || 0,
+        hbp: stat.hit_by_pitch || 0,
+        sf: stat.sacrifice_flies || 0,
+        sh: stat.sacrifice_bunts || 0,
+        avg: stat.at_bats > 0
+          ? (stat.hits / stat.at_bats).toFixed(3).replace(/^0/, '')
+          : '.000'
+      }));
+
+    // Format pitching statistics (players who pitched)
+    const pitchingStats = gameStats
+      .filter(s => parseFloat(s.innings_pitched) > 0)
+      .map(stat => ({
+        player: {
+          id: stat.player.id,
+          name: `${stat.player.first_name} ${stat.player.last_name}`,
+          jersey_number: stat.player.jersey_number
+        },
+        ip: stat.innings_pitched,
+        h: stat.hits_allowed || 0,
+        r: stat.runs_allowed || 0,
+        er: stat.earned_runs || 0,
+        bb: stat.walks_allowed || 0,
+        so: stat.strikeouts_pitching || 0,
+        hr: stat.home_runs_allowed || 0,
+        bf: stat.batters_faced || 0,
+        pitches: stat.pitches_thrown || 0,
+        strikes: stat.strikes_thrown || 0,
+        decision: stat.win ? 'W' : stat.loss ? 'L' : stat.getDataValue('save') ? 'SV' : stat.hold ? 'H' : null,
+        era: parseFloat(stat.innings_pitched) > 0
+          ? ((stat.earned_runs * 9) / parseFloat(stat.innings_pitched)).toFixed(2)
+          : '0.00'
+      }));
+
+    // Format fielding statistics
+    const fieldingStats = gameStats
+      .filter(s => s.putouts > 0 || s.assists > 0 || s.errors > 0)
+      .map(stat => ({
+        player: {
+          id: stat.player.id,
+          name: `${stat.player.first_name} ${stat.player.last_name}`,
+          jersey_number: stat.player.jersey_number,
+          position: stat.position_played || stat.player.position
+        },
+        po: stat.putouts || 0,
+        a: stat.assists || 0,
+        e: stat.errors || 0,
+        fpct: (stat.putouts + stat.assists + stat.errors) > 0
+          ? ((stat.putouts + stat.assists) / (stat.putouts + stat.assists + stat.errors)).toFixed(3)
+          : '1.000'
+      }));
+
+    // Calculate team totals
+    const teamTotals = {
+      batting: {
+        ab: gameStats.reduce((sum, s) => sum + (s.at_bats || 0), 0),
+        r: gameStats.reduce((sum, s) => sum + (s.runs || 0), 0),
+        h: gameStats.reduce((sum, s) => sum + (s.hits || 0), 0),
+        '2b': gameStats.reduce((sum, s) => sum + (s.doubles || 0), 0),
+        '3b': gameStats.reduce((sum, s) => sum + (s.triples || 0), 0),
+        hr: gameStats.reduce((sum, s) => sum + (s.home_runs || 0), 0),
+        rbi: gameStats.reduce((sum, s) => sum + (s.rbi || 0), 0),
+        bb: gameStats.reduce((sum, s) => sum + (s.walks || 0), 0),
+        so: gameStats.reduce((sum, s) => sum + (s.strikeouts_batting || 0), 0),
+        sb: gameStats.reduce((sum, s) => sum + (s.stolen_bases || 0), 0),
+        lob: 0 // Left on base - would need additional tracking
+      },
+      pitching: {
+        ip: gameStats.reduce((sum, s) => sum + parseFloat(s.innings_pitched || 0), 0),
+        h: gameStats.reduce((sum, s) => sum + (s.hits_allowed || 0), 0),
+        r: gameStats.reduce((sum, s) => sum + (s.runs_allowed || 0), 0),
+        er: gameStats.reduce((sum, s) => sum + (s.earned_runs || 0), 0),
+        bb: gameStats.reduce((sum, s) => sum + (s.walks_allowed || 0), 0),
+        so: gameStats.reduce((sum, s) => sum + (s.strikeouts_pitching || 0), 0),
+        hr: gameStats.reduce((sum, s) => sum + (s.home_runs_allowed || 0), 0)
+      },
+      fielding: {
+        po: gameStats.reduce((sum, s) => sum + (s.putouts || 0), 0),
+        a: gameStats.reduce((sum, s) => sum + (s.assists || 0), 0),
+        e: gameStats.reduce((sum, s) => sum + (s.errors || 0), 0)
+      }
+    };
+
+    // Calculate team batting average
+    teamTotals.batting.avg = teamTotals.batting.ab > 0
+      ? (teamTotals.batting.h / teamTotals.batting.ab).toFixed(3).replace(/^0/, '')
+      : '.000';
+
+    // Calculate team ERA
+    teamTotals.pitching.era = teamTotals.pitching.ip > 0
+      ? ((teamTotals.pitching.er * 9) / teamTotals.pitching.ip).toFixed(2)
+      : '0.00';
+
+    res.json({
+      success: true,
+      data: {
+        game: {
+          id: game.id,
+          opponent: game.opponent,
+          game_date: game.game_date,
+          game_time: game.game_time,
+          home_away: game.home_away,
+          location: game.location,
+          team_score: game.team_score,
+          opponent_score: game.opponent_score,
+          result: game.result,
+          game_status: game.game_status,
+          attendance: game.attendance,
+          weather: game.weather,
+          duration: game.game_duration,
+          team: game.team
+        },
+        batting: battingStats,
+        pitching: pitchingStats,
+        fielding: fieldingStats,
+        team_totals: teamTotals,
+        player_count: gameStats.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching game box score:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch game statistics'
     });
   }
 });

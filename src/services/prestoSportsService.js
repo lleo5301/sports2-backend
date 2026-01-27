@@ -215,6 +215,48 @@ class PrestoSportsService {
   }
 
   /**
+   * Get player photos
+   */
+  async getPlayerPhotos(token, playerId) {
+    return this.makeRequest(token, 'GET', `/player/${playerId}/photos`);
+  }
+
+  /**
+   * Get player videos
+   */
+  async getPlayerVideos(token, playerId) {
+    return this.makeRequest(token, 'GET', `/player/${playerId}/videos`);
+  }
+
+  /**
+   * Get player news/releases
+   */
+  async getPlayerReleases(token, playerId) {
+    return this.makeRequest(token, 'GET', `/player/${playerId}/releases`);
+  }
+
+  /**
+   * Get team press releases
+   */
+  async getTeamReleases(token, teamId) {
+    return this.makeRequest(token, 'GET', `/teams/${teamId}/releases`);
+  }
+
+  /**
+   * Get player career stats by season
+   */
+  async getPlayerCareerBySeason(token, playerId, criteria = {}) {
+    return this.makeRequest(token, 'GET', `/stats/player/${playerId}/career/season`, criteria);
+  }
+
+  /**
+   * Get live stats for an event
+   */
+  async getEventLiveStats(token, eventId) {
+    return this.makeRequest(token, 'GET', `/events/${eventId}/livestats`);
+  }
+
+  /**
    * Get player stats
    */
   async getPlayerStats(token, playerId, criteria = {}) {

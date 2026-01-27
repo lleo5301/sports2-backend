@@ -121,11 +121,14 @@ router.post('/presto/configure',
         IntegrationCredential.CREDENTIAL_TYPES.BASIC
       );
 
-      // If authentication returned a token, save it
-      if (testResult.authResult?.idToken) {
+      // If authentication returned tokens, save them (including refresh token)
+      if (testResult.token?.idToken) {
         await integrationCredentialService.saveTokens(req.user.team_id, PROVIDER, {
-          accessToken: testResult.authResult.idToken,
-          expiresIn: testResult.authResult.expiresIn || 3600
+          accessToken: testResult.token.idToken,
+          refreshToken: testResult.token.refreshToken,
+          expiresIn: testResult.token.expirationTimeInSeconds || 3600,
+          // PrestoSports refresh tokens typically last 30 days
+          refreshExpiresIn: 30 * 24 * 60 * 60
         });
       }
 
@@ -412,6 +415,155 @@ router.post('/presto/sync/career-stats', protect, checkIntegrationPermission, as
     res.status(500).json({
       success: false,
       message: error.message || 'Error syncing career stats'
+    });
+  }
+});
+
+// Sync player details (bio, hometown, high school, etc.)
+router.post('/presto/sync/player-details', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const results = await prestoSyncService.syncPlayerDetails(req.user.team_id, req.user.id);
+
+    res.json({
+      success: true,
+      message: `Player details synced: ${results.updated} updated, ${results.skipped} skipped`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing player details:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing player details'
+    });
+  }
+});
+
+// Sync player photos
+router.post('/presto/sync/player-photos', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const results = await prestoSyncService.syncPlayerPhotos(req.user.team_id, req.user.id);
+
+    res.json({
+      success: true,
+      message: `Player photos synced: ${results.updated} updated, ${results.skipped} skipped`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing player photos:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing player photos'
+    });
+  }
+});
+
+// Sync press releases/news
+router.post('/presto/sync/press-releases', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const results = await prestoSyncService.syncPressReleases(req.user.team_id, req.user.id);
+
+    res.json({
+      success: true,
+      message: `Press releases synced: ${results.created} created, ${results.updated} updated`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing press releases:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing press releases'
+    });
+  }
+});
+
+// Sync historical season-by-season stats
+router.post('/presto/sync/historical-stats', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const results = await prestoSyncService.syncHistoricalSeasonStats(req.user.team_id, req.user.id);
+
+    res.json({
+      success: true,
+      message: `Historical stats synced: ${results.created} created, ${results.updated} updated`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing historical stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing historical stats'
+    });
+  }
+});
+
+// Sync player videos/highlights
+router.post('/presto/sync/player-videos', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const results = await prestoSyncService.syncPlayerVideos(req.user.team_id, req.user.id);
+
+    res.json({
+      success: true,
+      message: `Player videos synced: ${results.created} created, ${results.updated} updated`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing player videos:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing player videos'
+    });
+  }
+});
+
+// Get games eligible for live stats (today's games or games with presto_event_id)
+router.get('/presto/games/live', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const games = await prestoSyncService.getLiveEligibleGames(req.user.team_id);
+
+    res.json({
+      success: true,
+      data: games,
+      count: games.length
+    });
+  } catch (error) {
+    console.error('Error getting live-eligible games:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error getting live-eligible games'
+    });
+  }
+});
+
+// Sync live stats for a specific game (real-time polling during games)
+router.post('/presto/sync/live-stats/:gameId', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.gameId, 10);
+    if (isNaN(gameId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid game ID'
+      });
+    }
+
+    const results = await prestoSyncService.syncLiveStats(req.user.team_id, gameId, req.user.id);
+
+    if (!results.success) {
+      return res.status(400).json({
+        success: false,
+        message: results.error || 'Failed to sync live stats',
+        data: results
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Live stats synced: ${results.statsCreated} created, ${results.statsUpdated} updated`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing live stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing live stats'
     });
   }
 });

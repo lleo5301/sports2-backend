@@ -247,6 +247,77 @@ const Player = sequelize.define('Player', {
     type: DataTypes.ENUM('FR', 'SO', 'JR', 'SR', 'GR'),
     allowNull: true,
     comment: 'Academic class year'
+  },
+  // Extended profile fields (from PrestoSports player details)
+  bio: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Player biography'
+  },
+  hometown: {
+    type: DataTypes.STRING(200),
+    allowNull: true,
+    comment: 'Player hometown (city, state, country)'
+  },
+  high_school: {
+    type: DataTypes.STRING(150),
+    allowNull: true,
+    comment: 'High school name'
+  },
+  high_school_city: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'High school city'
+  },
+  high_school_state: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    comment: 'High school state'
+  },
+  previous_school: {
+    type: DataTypes.STRING(150),
+    allowNull: true,
+    comment: 'Previous college (for transfers)'
+  },
+  country: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'Country of origin'
+  },
+  photo_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    comment: 'Profile photo URL'
+  },
+  social_links: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Social media links (twitter, instagram, etc.)'
+  },
+  bats: {
+    type: DataTypes.STRING(10),
+    allowNull: true,
+    comment: 'Batting handedness (L/R/S)'
+  },
+  throws: {
+    type: DataTypes.STRING(10),
+    allowNull: true,
+    comment: 'Throwing handedness (L/R)'
+  },
+  major: {
+    type: DataTypes.STRING(150),
+    allowNull: true,
+    comment: 'Academic major'
+  },
+  eligibility_year: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'Eligibility year (1-5)'
+  },
+  roster_notes: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Additional roster notes from PrestoSports'
   }
 }, {
   tableName: 'players',

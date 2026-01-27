@@ -280,7 +280,7 @@ class IntegrationCredentialService {
   async findCredentialsNeedingRefresh(bufferMinutes = 5) {
     const bufferTime = new Date(Date.now() + bufferMinutes * 60 * 1000);
 
-    return await IntegrationCredential.findAll({
+    return IntegrationCredential.findAll({
       where: {
         is_active: true,
         token_expires_at: {

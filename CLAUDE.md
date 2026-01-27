@@ -129,3 +129,47 @@ npm run db:migrate
 ```
 
 Never use `sequelize.sync({ alter: true })` in production—rely on migrations.
+
+## Docker Dev Server (dev server test)
+
+The primary development environment runs in Docker. **Always use Docker for testing, not local npm run dev.**
+
+```bash
+# Start all services
+docker compose up -d
+
+# Restart backend to pick up code changes (nodemon should auto-reload, but restart if needed)
+docker restart sports2_backend
+
+# View logs
+docker logs sports2_backend --tail 50 -f
+
+# Run migrations in Docker
+docker exec sports2_backend npm run db:migrate
+
+# Access container shell
+docker exec -it sports2_backend sh
+```
+
+### Services & Ports
+| Service | Container | Port | Description |
+|---------|-----------|------|-------------|
+| Backend API | `sports2_backend` | 5000 | Express server with nodemon |
+| PostgreSQL | `sports2_backend_db` | 5432 | Database (postgres/postgres123) |
+| pgAdmin | `sports2_backend_pgadmin` | 5050 | DB admin (admin@example.com/admin123) |
+
+### Key Environment Variables (from docker-compose.yml)
+```
+NODE_ENV=development
+PORT=5000
+DB_HOST=postgres (internal Docker network)
+DB_NAME=sports2
+DB_USER=postgres
+DB_PASSWORD=postgres123
+ENCRYPTION_KEY=60f5179292584b3e42e7edcebdde6d91f3cbbd6c8485edc15b594108ca5b20e8
+CORS_ORIGIN=http://localhost:3000,http://localhost:4000,http://localhost
+```
+
+### Volume Mounts
+- `.:/app` - Live code reload (nodemon watches for changes)
+- `./uploads:/app/uploads` - File uploads persist

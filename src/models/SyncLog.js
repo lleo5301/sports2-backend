@@ -16,7 +16,11 @@ const SyncLog = sequelize.define('SyncLog', {
     }
   },
   sync_type: {
-    type: DataTypes.ENUM('roster', 'schedule', 'stats', 'team_record', 'season_stats', 'career_stats', 'full'),
+    type: DataTypes.ENUM(
+      'roster', 'schedule', 'stats', 'team_record', 'season_stats', 'career_stats', 'full',
+      'player_details', 'player_photos', 'press_releases', 'historical_stats', 'historical_season_stats',
+      'player_videos', 'live_stats'
+    ),
     allowNull: false
   },
   source_system: {
