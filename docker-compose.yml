@@ -17,8 +17,10 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres123
       # These will be overridden by Infisical in production
-      - JWT_SECRET=dev_jwt_secret_change_in_production
+      - JWT_SECRET=dev_jwt_secret_change_in_production_must_be_32_chars
       - JWT_EXPIRES_IN=7d
+      - CSRF_SECRET=dev_csrf_secret_change_in_production_32_chars
+      - ENCRYPTION_KEY=60f5179292584b3e42e7edcebdde6d91f3cbbd6c8485edc15b594108ca5b20e8
       - CORS_ORIGIN=http://localhost:3000,http://localhost:4000,http://localhost
       - FRONTEND_URL=http://localhost:3000
       - APP_URL=http://localhost:3000
@@ -40,7 +42,7 @@ services:
         condition: service_healthy
     networks:
       - backend-network
-    command: npm start
+    command: npm run dev
 
   postgres:
     image: postgres:15-alpine
@@ -67,26 +69,26 @@ services:
     networks:
       - backend-network
 
-  # Optional: pgAdmin for database management
+  # pgAdmin for database management
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: sports2_backend_pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@sports2.local
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin123
       PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_CHECK_EMAIL_DELIVERABILITY: 'False'
     ports:
       - "5050:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin-servers.json:/pgadmin4/servers.json:ro
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - backend-network
-    profiles:
-      - tools  # Only start with: docker compose --profile tools up
 
 networks:
   backend-network:

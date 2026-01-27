@@ -16,7 +16,7 @@ const Game = sequelize.define('Game', {
   },
   game_date: {
     type: DataTypes.DATE,
-    allowNull: false
+    allowNull: true  // Allow null for TBD games (future season schedules)
   },
   home_away: {
     type: DataTypes.ENUM('home', 'away'),
@@ -77,7 +77,27 @@ const Game = sequelize.define('Game', {
       key: 'id'
     }
   },
+  // Enhanced game details
+  attendance: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  weather: {
+    type: DataTypes.STRING(200),
+    allowNull: true
+  },
+  game_duration: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    comment: 'Game duration in format like "2:45"'
+  },
   // PrestoSports sync fields
+  presto_event_id: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    unique: true,
+    comment: 'PrestoSports event ID for explicit source tracking'
+  },
   external_id: {
     type: DataTypes.STRING(100),
     allowNull: true,

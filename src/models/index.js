@@ -27,6 +27,10 @@ const GameStatistic = require('./GameStatistic');
 const Location = require('./Location');
 const ScheduleEvent = require('./ScheduleEvent');
 const ScheduleEventDate = require('./ScheduleEventDate');
+const PlayerSeasonStats = require('./PlayerSeasonStats');
+const PlayerCareerStats = require('./PlayerCareerStats');
+const SyncLog = require('./SyncLog');
+const IntegrationCredential = require('./IntegrationCredential');
 
 // Define associations
 
@@ -216,6 +220,28 @@ ScheduleEventDate.belongsTo(Location, { foreignKey: 'location_id_override', as: 
 ScheduleEventDate.belongsTo(Team, { foreignKey: 'team_id' });
 ScheduleEventDate.belongsTo(User, { foreignKey: 'created_by' });
 
+// PlayerSeasonStats associations
+PlayerSeasonStats.belongsTo(Player, { foreignKey: 'player_id', as: 'player' });
+Player.hasMany(PlayerSeasonStats, { foreignKey: 'player_id', as: 'seasonStats' });
+
+PlayerSeasonStats.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
+Team.hasMany(PlayerSeasonStats, { foreignKey: 'team_id' });
+
+// PlayerCareerStats associations
+PlayerCareerStats.belongsTo(Player, { foreignKey: 'player_id', as: 'player' });
+Player.hasOne(PlayerCareerStats, { foreignKey: 'player_id', as: 'careerStats' });
+
+// SyncLog associations
+SyncLog.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
+Team.hasMany(SyncLog, { foreignKey: 'team_id' });
+
+SyncLog.belongsTo(User, { foreignKey: 'initiated_by', as: 'initiator' });
+User.hasMany(SyncLog, { foreignKey: 'initiated_by' });
+
+// IntegrationCredential associations
+IntegrationCredential.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
+Team.hasMany(IntegrationCredential, { foreignKey: 'team_id', as: 'integrations' });
+
 module.exports = {
   sequelize,
   User,
@@ -243,5 +269,9 @@ module.exports = {
   TokenBlacklist,
   Location,
   ScheduleEvent,
-  ScheduleEventDate
+  ScheduleEventDate,
+  PlayerSeasonStats,
+  PlayerCareerStats,
+  SyncLog,
+  IntegrationCredential
 };

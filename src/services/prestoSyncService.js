@@ -1,45 +1,80 @@
-const { Game, Player, GameStatistic, Team } = require('../models');
+const { Game, Player, GameStatistic, Team, PlayerSeasonStats, PlayerCareerStats, SyncLog, IntegrationCredential } = require('../models');
 const prestoSportsService = require('./prestoSportsService');
-const encryptionService = require('./encryptionService');
+const integrationCredentialService = require('./integrationCredentialService');
+
+const PROVIDER = IntegrationCredential.PROVIDERS.PRESTO;
 
 class PrestoSyncService {
   /**
-   * Get decrypted credentials for a team
+   * Get decrypted credentials for a team using the new credential service
    */
   async getCredentials(teamId) {
-    const team = await Team.findByPk(teamId);
-    if (!team || !team.presto_credentials) {
+    const { credentials, config } = await integrationCredentialService.getCredentials(teamId, PROVIDER);
+
+    if (!credentials) {
       throw new Error('PrestoSports not configured for this team');
     }
 
-    try {
-      return encryptionService.decrypt(team.presto_credentials);
-    } catch (error) {
-      throw new Error('Failed to decrypt credentials');
-    }
+    return {
+      ...credentials,
+      teamId: config?.team_id,
+      seasonId: config?.season_id
+    };
   }
 
   /**
-   * Get an authenticated token for a team
+   * Get an authenticated token for a team with auto-refresh support
    */
   async getToken(teamId) {
-    // Check cache first
+    // Check cache first (still use in-memory cache for performance)
     const cached = prestoSportsService.getCachedToken(teamId);
     if (cached) {
       return cached.idToken;
     }
 
-    // Get credentials and authenticate
-    const credentials = await this.getCredentials(teamId);
+    // Try to get existing token from credential store
+    const { accessToken, isTokenExpired, credentials, config } =
+      await integrationCredentialService.getCredentials(teamId, PROVIDER);
+
+    // If we have a valid stored token, use it
+    if (accessToken && !isTokenExpired) {
+      // Cache it in memory for subsequent calls
+      prestoSportsService.cacheToken(teamId, { idToken: accessToken });
+      return accessToken;
+    }
+
+    // Token is expired or doesn't exist - authenticate fresh
+    if (!credentials) {
+      throw new Error('PrestoSports credentials not configured for this team');
+    }
+
     const authResult = await prestoSportsService.authenticate(
       credentials.username,
       credentials.password
     );
 
-    // Cache the token
+    // Save the new token to the credential store
+    await integrationCredentialService.saveTokens(teamId, PROVIDER, {
+      accessToken: authResult.idToken,
+      // PrestoSports tokens typically expire in 1 hour
+      expiresIn: authResult.expiresIn || 3600
+    });
+
+    // Also cache in memory for performance
     prestoSportsService.cacheToken(teamId, authResult);
 
     return authResult.idToken;
+  }
+
+  /**
+   * Get Presto config (team_id, season_id) from integration credentials
+   */
+  async getPrestoConfig(teamId) {
+    const { config } = await integrationCredentialService.getCredentials(teamId, PROVIDER);
+    return {
+      prestoTeamId: config?.team_id,
+      prestoSeasonId: config?.season_id
+    };
   }
 
   /**
@@ -109,6 +144,63 @@ class PrestoSyncService {
   }
 
   /**
+   * Safely get numeric value from a field
+   */
+  safeNumber(val) {
+    if (val === null || val === undefined) {
+      return 0;
+    }
+    if (typeof val === 'number') {
+      return val;
+    }
+    if (typeof val === 'string') {
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    // If it's an object or array, return 0
+    return 0;
+  }
+
+  /**
+   * Aggregate career stats from an array of season stats
+   */
+  aggregateCareerStats(seasons) {
+    if (!Array.isArray(seasons) || seasons.length === 0) {
+      return null;
+    }
+
+    const sumField = (field, altField) => {
+      return seasons.reduce((sum, s) => {
+        const val = s?.[field] ?? s?.[altField] ?? 0;
+        return sum + this.safeNumber(val);
+      }, 0);
+    };
+
+    return {
+      seasonsPlayed: seasons.length,
+      gp: sumField('gp', 'gamesPlayed'),
+      ab: sumField('ab', 'atBats'),
+      r: sumField('r', 'runs'),
+      h: sumField('h', 'hits'),
+      doubles: sumField('doubles', '2b'),
+      triples: sumField('triples', '3b'),
+      hr: sumField('hr', 'homeRuns'),
+      rbi: sumField('rbi', 'rbi'),
+      bb: sumField('bb', 'walks'),
+      so: sumField('so', 'strikeouts'),
+      sb: sumField('sb', 'stolenBases'),
+      app: sumField('app', 'appearances'),
+      ip: sumField('ip', 'inningsPitched'),
+      w: sumField('w', 'wins'),
+      l: sumField('l', 'losses'),
+      sv: sumField('sv', 'saves'),
+      er: sumField('er', 'earnedRuns'),
+      kp: sumField('kp', 'strikeoutsPitching')
+      // Note: Calculated stats (avg, era, etc.) will be computed after insert
+    };
+  }
+
+  /**
    * Determine game result from scores
    */
   determineResult(teamScore, opponentScore) {
@@ -128,158 +220,224 @@ class PrestoSyncService {
    * Sync roster (players) from PrestoSports
    */
   async syncRoster(teamId, userId) {
-    const team = await Team.findByPk(teamId);
-    if (!team.presto_team_id) {
+    const { prestoTeamId, prestoSeasonId } = await this.getPrestoConfig(teamId);
+    if (!prestoTeamId) {
       throw new Error('PrestoSports team ID not configured');
     }
 
-    const token = await this.getToken(teamId);
-    const response = await prestoSportsService.getTeamPlayers(token, team.presto_team_id);
+    const endpoint = `/api/v2/teams/${prestoTeamId}/players`;
+    const syncLog = await SyncLog.logStart(teamId, 'roster', userId, endpoint, {
+      presto_team_id: prestoTeamId,
+      presto_season_id: prestoSeasonId
+    });
 
-    const players = response.data || [];
-    const results = {
-      created: 0,
-      updated: 0,
-      errors: []
-    };
+    try {
+      const token = await this.getToken(teamId);
+      const team = await Team.findByPk(teamId);
+      const response = await prestoSportsService.getTeamPlayers(token, prestoTeamId);
 
-    for (const prestoPlayer of players) {
-      try {
-        const playerData = {
-          first_name: prestoPlayer.firstName || prestoPlayer.first_name,
-          last_name: prestoPlayer.lastName || prestoPlayer.last_name,
-          position: this.mapPosition(prestoPlayer.position),
-          height: this.parseHeight(prestoPlayer.height),
-          weight: prestoPlayer.weight ? parseInt(prestoPlayer.weight) : null,
-          jersey_number: prestoPlayer.jerseyNumber || prestoPlayer.jersey_number,
-          class_year: this.mapClassYear(prestoPlayer.classYear || prestoPlayer.class_year),
-          school: prestoPlayer.school || team.name,
-          school_type: 'COLL',
-          status: 'active',
-          external_id: String(prestoPlayer.id || prestoPlayer.playerId),
-          source_system: 'presto',
-          last_synced_at: new Date(),
-          team_id: teamId,
-          created_by: userId
-        };
+      const players = response.data || [];
+      const results = {
+        created: 0,
+        updated: 0,
+        errors: []
+      };
 
-        // Upsert by external_id
-        const [_player, created] = await Player.upsert(playerData, {
-          returning: true
-        });
+      for (const prestoPlayer of players) {
+        try {
+          const prestoPlayerId = String(prestoPlayer.id || prestoPlayer.playerId);
+          const playerData = {
+            first_name: prestoPlayer.firstName || prestoPlayer.first_name,
+            last_name: prestoPlayer.lastName || prestoPlayer.last_name,
+            position: this.mapPosition(prestoPlayer.position),
+            height: this.parseHeight(prestoPlayer.height),
+            weight: prestoPlayer.weight ? parseInt(prestoPlayer.weight) : null,
+            jersey_number: prestoPlayer.jerseyNumber || prestoPlayer.jersey_number,
+            class_year: this.mapClassYear(prestoPlayer.classYear || prestoPlayer.class_year),
+            school: prestoPlayer.school || team.name,
+            school_type: 'COLL',
+            status: 'active',
+            presto_player_id: prestoPlayerId,  // Explicit PrestoSports ID tracking
+            external_id: prestoPlayerId,
+            source_system: 'presto',
+            last_synced_at: new Date(),
+            team_id: teamId,
+            created_by: userId
+          };
 
-        if (created) {
-          results.created++;
-        } else {
-          results.updated++;
+          // Find existing player by external_id and update, or create new
+          const existingPlayer = await Player.findOne({
+            where: { external_id: prestoPlayerId, team_id: teamId }
+          });
+
+          if (existingPlayer) {
+            await existingPlayer.update(playerData);
+            results.updated++;
+          } else {
+            await Player.create(playerData);
+            results.created++;
+          }
+        } catch (error) {
+          results.errors.push({
+            item_id: prestoPlayer.id || prestoPlayer.playerId,
+            item_type: 'player',
+            name: `${prestoPlayer.firstName} ${prestoPlayer.lastName}`,
+            error: error.message
+          });
         }
-      } catch (error) {
-        results.errors.push({
-          player: `${prestoPlayer.firstName} ${prestoPlayer.lastName}`,
-          error: error.message
-        });
       }
+
+      // Update team's last sync time
+      await team.update({ presto_last_sync_at: new Date() });
+
+      // Log completion
+      await SyncLog.logComplete(syncLog.id, {
+        created: results.created,
+        updated: results.updated,
+        failed: results.errors.length,
+        summary: { players_processed: players.length },
+        itemErrors: results.errors.length > 0 ? results.errors : null
+      });
+
+      return results;
+    } catch (error) {
+      await SyncLog.logFailure(syncLog.id, error);
+      throw error;
     }
-
-    // Update team's last sync time
-    await team.update({ presto_last_sync_at: new Date() });
-
-    return results;
   }
 
   /**
    * Sync schedule (games/events) from PrestoSports
    */
   async syncSchedule(teamId, userId) {
-    const team = await Team.findByPk(teamId);
-    if (!team.presto_team_id) {
+    const { prestoTeamId, prestoSeasonId } = await this.getPrestoConfig(teamId);
+    if (!prestoTeamId) {
       throw new Error('PrestoSports team ID not configured');
     }
 
-    const token = await this.getToken(teamId);
-    const response = await prestoSportsService.getTeamEvents(token, team.presto_team_id);
+    const endpoint = `/api/v2/teams/${prestoTeamId}/events`;
+    const syncLog = await SyncLog.logStart(teamId, 'schedule', userId, endpoint, {
+      presto_team_id: prestoTeamId,
+      presto_season_id: prestoSeasonId
+    });
 
-    const events = response.data || [];
-    const results = {
-      created: 0,
-      updated: 0,
-      errors: []
-    };
+    try {
+      const token = await this.getToken(teamId);
+      const team = await Team.findByPk(teamId);
+      const response = await prestoSportsService.getTeamEvents(token, prestoTeamId);
 
-    for (const event of events) {
-      try {
-        // Determine opponent and home/away
-        let opponent, homeAway;
-        if (event.homeTeam && event.awayTeam) {
-          if (event.homeTeam.id === team.presto_team_id || event.homeTeam.name?.includes(team.name)) {
-            opponent = event.awayTeam.name || event.awayTeam.displayName;
-            homeAway = 'home';
+      const events = response.data || [];
+      const results = {
+        created: 0,
+        updated: 0,
+        errors: []
+      };
+
+      for (const event of events) {
+        try {
+          // Determine opponent and home/away
+          let opponent, homeAway;
+          if (event.homeTeam && event.awayTeam) {
+            if (event.homeTeam.id === prestoTeamId || event.homeTeam.name?.includes(team.name)) {
+              opponent = event.awayTeam.name || event.awayTeam.displayName;
+              homeAway = 'home';
+            } else {
+              opponent = event.homeTeam.name || event.homeTeam.displayName;
+              homeAway = 'away';
+            }
           } else {
-            opponent = event.homeTeam.name || event.homeTeam.displayName;
-            homeAway = 'away';
+            opponent = event.opponent || event.opponentName || 'TBD';
+            homeAway = event.homeAway?.toLowerCase() === 'home' ? 'home' : 'away';
           }
-        } else {
-          opponent = event.opponent || event.opponentName || 'TBD';
-          homeAway = event.homeAway?.toLowerCase() === 'home' ? 'home' : 'away';
-        }
 
-        // Parse scores
-        let teamScore = null;
-        let opponentScore = null;
+          // Parse scores
+          let teamScore = null;
+          let opponentScore = null;
 
-        if (event.result || event.score) {
-          const scoreData = event.result || event.score;
-          if (homeAway === 'home') {
-            teamScore = scoreData.homeScore ?? scoreData.teamScore ?? null;
-            opponentScore = scoreData.awayScore ?? scoreData.opponentScore ?? null;
+          if (event.result || event.score) {
+            const scoreData = event.result || event.score;
+            if (homeAway === 'home') {
+              teamScore = scoreData.homeScore ?? scoreData.teamScore ?? null;
+              opponentScore = scoreData.awayScore ?? scoreData.opponentScore ?? null;
+            } else {
+              teamScore = scoreData.awayScore ?? scoreData.teamScore ?? null;
+              opponentScore = scoreData.homeScore ?? scoreData.opponentScore ?? null;
+            }
+          }
+
+          // Parse date safely - handle null, undefined, or invalid dates
+          const rawDate = event.date || event.eventDate;
+          let gameDate = null;
+          if (rawDate) {
+            const parsed = new Date(rawDate);
+            if (!isNaN(parsed.getTime())) {
+              gameDate = parsed;
+            }
+          }
+
+          const prestoEventId = String(event.id || event.eventId);
+          const gameData = {
+            opponent,
+            game_date: gameDate,
+            game_time: event.time || event.startTime || null,
+            home_away: homeAway,
+            team_score: teamScore,
+            opponent_score: opponentScore,
+            result: this.determineResult(teamScore, opponentScore),
+            location: event.location || event.venue || null,
+            season: event.season || prestoSeasonId || null,
+            game_status: this.mapEventStatus(event.status),
+            // Enhanced game details
+            attendance: event.attendance || null,
+            weather: event.weather || null,
+            game_duration: event.duration || event.gameDuration || null,
+            // Source tracking
+            presto_event_id: prestoEventId,  // Explicit PrestoSports ID tracking
+            external_id: prestoEventId,
+            source_system: 'presto',
+            last_synced_at: new Date(),
+            team_id: teamId,
+            created_by: userId
+          };
+
+          // Find existing game by external_id
+          const existingGame = await Game.findOne({
+            where: { external_id: gameData.external_id }
+          });
+
+          if (existingGame) {
+            await existingGame.update(gameData);
+            results.updated++;
           } else {
-            teamScore = scoreData.awayScore ?? scoreData.teamScore ?? null;
-            opponentScore = scoreData.homeScore ?? scoreData.opponentScore ?? null;
+            await Game.create(gameData);
+            results.created++;
           }
+        } catch (error) {
+          results.errors.push({
+            item_id: event.id || event.eventId,
+            item_type: 'game',
+            error: error.message
+          });
         }
-
-        const gameData = {
-          opponent,
-          game_date: new Date(event.date || event.eventDate),
-          game_time: event.time || event.startTime || null,
-          home_away: homeAway,
-          team_score: teamScore,
-          opponent_score: opponentScore,
-          result: this.determineResult(teamScore, opponentScore),
-          location: event.location || event.venue || null,
-          season: event.season || team.presto_season_id || null,
-          game_status: this.mapEventStatus(event.status),
-          external_id: String(event.id || event.eventId),
-          source_system: 'presto',
-          last_synced_at: new Date(),
-          team_id: teamId,
-          created_by: userId
-        };
-
-        // Find existing game by external_id
-        const existingGame = await Game.findOne({
-          where: { external_id: gameData.external_id }
-        });
-
-        if (existingGame) {
-          await existingGame.update(gameData);
-          results.updated++;
-        } else {
-          await Game.create(gameData);
-          results.created++;
-        }
-      } catch (error) {
-        results.errors.push({
-          event: event.id || event.eventId,
-          error: error.message
-        });
       }
+
+      // Update team's last sync time
+      await team.update({ presto_last_sync_at: new Date() });
+
+      // Log completion
+      await SyncLog.logComplete(syncLog.id, {
+        created: results.created,
+        updated: results.updated,
+        failed: results.errors.length,
+        summary: { games_processed: events.length },
+        itemErrors: results.errors.length > 0 ? results.errors : null
+      });
+
+      return results;
+    } catch (error) {
+      await SyncLog.logFailure(syncLog.id, error);
+      throw error;
     }
-
-    // Update team's last sync time
-    await team.update({ presto_last_sync_at: new Date() });
-
-    return results;
   }
 
   /**
@@ -303,141 +461,513 @@ class PrestoSyncService {
    * Sync game statistics from PrestoSports
    */
   async syncStats(teamId, _userId) {
-    const team = await Team.findByPk(teamId);
-    if (!team.presto_team_id) {
+    const { prestoTeamId, prestoSeasonId } = await this.getPrestoConfig(teamId);
+    if (!prestoTeamId) {
       throw new Error('PrestoSports team ID not configured');
     }
 
-    const token = await this.getToken(teamId);
-
-    // Get all games synced from PrestoSports
-    const games = await Game.findAll({
-      where: {
-        team_id: teamId,
-        source_system: 'presto',
-        game_status: 'completed'
-      }
+    const endpoint = `/api/v2/events/{eventId}/stats`;
+    const syncLog = await SyncLog.logStart(teamId, 'stats', _userId, endpoint, {
+      presto_team_id: prestoTeamId,
+      presto_season_id: prestoSeasonId
     });
 
-    const results = {
-      gamesProcessed: 0,
-      statsCreated: 0,
-      statsUpdated: 0,
-      errors: []
-    };
+    try {
+      const token = await this.getToken(teamId);
 
-    for (const game of games) {
-      try {
-        const statsResponse = await prestoSportsService.getEventStats(token, game.external_id);
-        const eventStats = statsResponse.data || {};
-
-        // Process player stats for this game
-        const playerStats = eventStats.players || eventStats.playerStats || [];
-
-        for (const stat of playerStats) {
-          try {
-            // Find the player by external_id
-            const player = await Player.findOne({
-              where: {
-                external_id: String(stat.playerId || stat.id),
-                team_id: teamId
-              }
-            });
-
-            if (!player) {
-              // Skip stats for players not in our roster
-              continue;
-            }
-
-            const statData = {
-              game_id: game.id,
-              player_id: player.id,
-              team_id: teamId,
-              external_id: `${game.external_id}-${stat.playerId || stat.id}`,
-              source_system: 'presto',
-              last_synced_at: new Date(),
-              position_played: stat.position || null,
-
-              // Batting stats
-              at_bats: stat.ab ?? stat.atBats ?? 0,
-              runs: stat.r ?? stat.runs ?? 0,
-              hits: stat.h ?? stat.hits ?? 0,
-              doubles: stat.doubles ?? stat['2b'] ?? 0,
-              triples: stat.triples ?? stat['3b'] ?? 0,
-              home_runs: stat.hr ?? stat.homeRuns ?? 0,
-              rbi: stat.rbi ?? 0,
-              walks: stat.bb ?? stat.walks ?? 0,
-              strikeouts_batting: stat.so ?? stat.strikeouts ?? 0,
-              stolen_bases: stat.sb ?? stat.stolenBases ?? 0,
-              caught_stealing: stat.cs ?? stat.caughtStealing ?? 0,
-              hit_by_pitch: stat.hbp ?? 0,
-              sacrifice_flies: stat.sf ?? 0,
-              sacrifice_bunts: stat.sac ?? stat.sh ?? 0,
-
-              // Pitching stats
-              innings_pitched: stat.ip ?? stat.inningsPitched ?? 0,
-              hits_allowed: stat.ha ?? stat.hitsAllowed ?? 0,
-              runs_allowed: stat.ra ?? stat.runsAllowed ?? 0,
-              earned_runs: stat.er ?? stat.earnedRuns ?? 0,
-              walks_allowed: stat.bbp ?? stat.walksAllowed ?? 0,
-              strikeouts_pitching: stat.kp ?? stat.strikeoutsPitching ?? 0,
-              home_runs_allowed: stat.hra ?? stat.homeRunsAllowed ?? 0,
-              batters_faced: stat.bf ?? stat.battersFaced ?? 0,
-              pitches_thrown: stat.pc ?? stat.pitchCount ?? 0,
-              strikes_thrown: stat.st ?? stat.strikes ?? 0,
-              win: stat.w === 1 || stat.win === true,
-              loss: stat.l === 1 || stat.loss === true,
-              save: stat.sv === 1 || stat.save === true,
-              hold: stat.hld === 1 || stat.hold === true,
-
-              // Fielding stats
-              putouts: stat.po ?? stat.putouts ?? 0,
-              assists: stat.a ?? stat.assists ?? 0,
-              errors: stat.e ?? stat.errors ?? 0
-            };
-
-            // Upsert the stat record
-            const [_gameStat, created] = await GameStatistic.upsert(statData, {
-              returning: true
-            });
-
-            if (created) {
-              results.statsCreated++;
-            } else {
-              results.statsUpdated++;
-            }
-          } catch (error) {
-            results.errors.push({
-              game: game.id,
-              player: stat.playerId,
-              error: error.message
-            });
-          }
+      // Get all games synced from PrestoSports
+      const games = await Game.findAll({
+        where: {
+          team_id: teamId,
+          source_system: 'presto',
+          game_status: 'completed'
         }
+      });
 
-        results.gamesProcessed++;
-      } catch (error) {
-        results.errors.push({
-          game: game.id,
-          error: error.message
-        });
+      const results = {
+        gamesProcessed: 0,
+        statsCreated: 0,
+        statsUpdated: 0,
+        errors: []
+      };
+
+      for (const game of games) {
+        try {
+          const statsResponse = await prestoSportsService.getEventStats(token, game.external_id);
+          const eventStats = statsResponse.data || {};
+
+          // Process player stats for this game
+          const playerStats = eventStats.players || eventStats.playerStats || [];
+
+          for (const stat of playerStats) {
+            try {
+              // Find the player by external_id
+              const player = await Player.findOne({
+                where: {
+                  external_id: String(stat.playerId || stat.id),
+                  team_id: teamId
+                }
+              });
+
+              if (!player) {
+                // Skip stats for players not in our roster
+                continue;
+              }
+
+              const statData = {
+                game_id: game.id,
+                player_id: player.id,
+                team_id: teamId,
+                external_id: `${game.external_id}-${stat.playerId || stat.id}`,
+                source_system: 'presto',
+                last_synced_at: new Date(),
+                position_played: stat.position || null,
+
+                // Batting stats
+                at_bats: stat.ab ?? stat.atBats ?? 0,
+                runs: stat.r ?? stat.runs ?? 0,
+                hits: stat.h ?? stat.hits ?? 0,
+                doubles: stat.doubles ?? stat['2b'] ?? 0,
+                triples: stat.triples ?? stat['3b'] ?? 0,
+                home_runs: stat.hr ?? stat.homeRuns ?? 0,
+                rbi: stat.rbi ?? 0,
+                walks: stat.bb ?? stat.walks ?? 0,
+                strikeouts_batting: stat.so ?? stat.strikeouts ?? 0,
+                stolen_bases: stat.sb ?? stat.stolenBases ?? 0,
+                caught_stealing: stat.cs ?? stat.caughtStealing ?? 0,
+                hit_by_pitch: stat.hbp ?? 0,
+                sacrifice_flies: stat.sf ?? 0,
+                sacrifice_bunts: stat.sac ?? stat.sh ?? 0,
+
+                // Pitching stats
+                innings_pitched: stat.ip ?? stat.inningsPitched ?? 0,
+                hits_allowed: stat.ha ?? stat.hitsAllowed ?? 0,
+                runs_allowed: stat.ra ?? stat.runsAllowed ?? 0,
+                earned_runs: stat.er ?? stat.earnedRuns ?? 0,
+                walks_allowed: stat.bbp ?? stat.walksAllowed ?? 0,
+                strikeouts_pitching: stat.kp ?? stat.strikeoutsPitching ?? 0,
+                home_runs_allowed: stat.hra ?? stat.homeRunsAllowed ?? 0,
+                batters_faced: stat.bf ?? stat.battersFaced ?? 0,
+                pitches_thrown: stat.pc ?? stat.pitchCount ?? 0,
+                strikes_thrown: stat.st ?? stat.strikes ?? 0,
+                win: stat.w === 1 || stat.win === true,
+                loss: stat.l === 1 || stat.loss === true,
+                save: stat.sv === 1 || stat.save === true,
+                hold: stat.hld === 1 || stat.hold === true,
+
+                // Fielding stats
+                putouts: stat.po ?? stat.putouts ?? 0,
+                assists: stat.a ?? stat.assists ?? 0,
+                errors: stat.e ?? stat.errors ?? 0
+              };
+
+              // Upsert the stat record
+              const [_gameStat, created] = await GameStatistic.upsert(statData, {
+                returning: true
+              });
+
+              if (created) {
+                results.statsCreated++;
+              } else {
+                results.statsUpdated++;
+              }
+            } catch (error) {
+              results.errors.push({
+                item_id: `${game.external_id}-${stat.playerId}`,
+                item_type: 'game_stat',
+                error: error.message
+              });
+            }
+          }
+
+          results.gamesProcessed++;
+        } catch (error) {
+          results.errors.push({
+            item_id: game.external_id,
+            item_type: 'game',
+            error: error.message
+          });
+        }
       }
+
+      // Update team's last sync time
+      await team.update({ presto_last_sync_at: new Date() });
+
+      // Log completion
+      await SyncLog.logComplete(syncLog.id, {
+        created: results.statsCreated,
+        updated: results.statsUpdated,
+        failed: results.errors.length,
+        summary: { games_processed: results.gamesProcessed, stats_synced: results.statsCreated + results.statsUpdated },
+        itemErrors: results.errors.length > 0 ? results.errors : null
+      });
+
+      return results;
+    } catch (error) {
+      await SyncLog.logFailure(syncLog.id, error);
+      throw error;
     }
-
-    // Update team's last sync time
-    await team.update({ presto_last_sync_at: new Date() });
-
-    return results;
   }
 
   /**
-   * Sync everything (roster, schedule, stats)
+   * Sync team record (W-L) from PrestoSports
+   */
+  async syncTeamRecord(teamId) {
+    const { prestoTeamId } = await this.getPrestoConfig(teamId);
+    if (!prestoTeamId) {
+      throw new Error('PrestoSports team ID not configured');
+    }
+
+    const endpoint = `/api/v2/teams/${prestoTeamId}/record`;
+    const syncLog = await SyncLog.logStart(teamId, 'team_record', null, endpoint, {
+      presto_team_id: prestoTeamId
+    });
+
+    try {
+      const token = await this.getToken(teamId);
+      const team = await Team.findByPk(teamId);
+      const response = await prestoSportsService.getTeamRecord(token, prestoTeamId);
+      const record = response.data || response;
+
+      // Update team with record data
+      await team.update({
+        wins: record.wins ?? record.w ?? 0,
+        losses: record.losses ?? record.l ?? 0,
+        ties: record.ties ?? record.t ?? 0,
+        conference_wins: record.conferenceWins ?? record.confW ?? 0,
+        conference_losses: record.conferenceLosses ?? record.confL ?? 0,
+        record_last_synced_at: new Date(),
+        source_system: 'presto'
+      });
+
+      const result = {
+        success: true,
+        record: {
+          wins: team.wins,
+          losses: team.losses,
+          ties: team.ties,
+          conference_wins: team.conference_wins,
+          conference_losses: team.conference_losses
+        }
+      };
+
+      // Log completion
+      await SyncLog.logComplete(syncLog.id, {
+        created: 0,
+        updated: 1,
+        failed: 0,
+        summary: result.record
+      });
+
+      return result;
+    } catch (error) {
+      await SyncLog.logFailure(syncLog.id, error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Sync player season stats from PrestoSports
+   */
+  async syncSeasonStats(teamId, _userId) {
+    const { prestoTeamId, prestoSeasonId } = await this.getPrestoConfig(teamId);
+    if (!prestoTeamId) {
+      throw new Error('PrestoSports team ID not configured');
+    }
+
+    const endpoint = `/api/v2/teams/${prestoTeamId}/players/stats`;
+    const syncLog = await SyncLog.logStart(teamId, 'season_stats', _userId, endpoint, {
+      presto_team_id: prestoTeamId,
+      presto_season_id: prestoSeasonId
+    });
+
+    const results = {
+      created: 0,
+      updated: 0,
+      errors: []
+    };
+
+    try {
+      const token = await this.getToken(teamId);
+      const response = await prestoSportsService.getTeamPlayerStats(token, prestoTeamId);
+      const playerStats = response.data || [];
+
+      for (const stats of playerStats) {
+        try {
+          // Find the player by external_id
+          const player = await Player.findOne({
+            where: {
+              external_id: String(stats.playerId || stats.id),
+              team_id: teamId
+            }
+          });
+
+          if (!player) {
+            continue;
+          }
+
+          const seasonData = {
+            player_id: player.id,
+            team_id: teamId,
+            season: prestoSeasonId || 'current',
+            presto_season_id: prestoSeasonId,
+
+            // Batting stats
+            games_played: stats.gp ?? stats.gamesPlayed ?? 0,
+            games_started: stats.gs ?? stats.gamesStarted ?? 0,
+            at_bats: stats.ab ?? stats.atBats ?? 0,
+            runs: stats.r ?? stats.runs ?? 0,
+            hits: stats.h ?? stats.hits ?? 0,
+            doubles: stats.doubles ?? stats['2b'] ?? 0,
+            triples: stats.triples ?? stats['3b'] ?? 0,
+            home_runs: stats.hr ?? stats.homeRuns ?? 0,
+            rbi: stats.rbi ?? 0,
+            walks: stats.bb ?? stats.walks ?? 0,
+            strikeouts: stats.so ?? stats.strikeouts ?? 0,
+            stolen_bases: stats.sb ?? stats.stolenBases ?? 0,
+            caught_stealing: stats.cs ?? stats.caughtStealing ?? 0,
+            hit_by_pitch: stats.hbp ?? 0,
+            sacrifice_flies: stats.sf ?? 0,
+            sacrifice_bunts: stats.sac ?? stats.sh ?? 0,
+
+            // Calculated batting (from API or calculate)
+            batting_average: stats.avg ?? stats.battingAverage ?? null,
+            on_base_percentage: stats.obp ?? stats.onBasePercentage ?? null,
+            slugging_percentage: stats.slg ?? stats.sluggingPercentage ?? null,
+            ops: stats.ops ?? null,
+
+            // Pitching stats
+            pitching_appearances: stats.app ?? stats.appearances ?? 0,
+            pitching_starts: stats.gs ?? stats.pitchingStarts ?? 0,
+            innings_pitched: stats.ip ?? stats.inningsPitched ?? 0,
+            pitching_wins: stats.w ?? stats.wins ?? 0,
+            pitching_losses: stats.l ?? stats.losses ?? 0,
+            saves: stats.sv ?? stats.saves ?? 0,
+            holds: stats.hld ?? stats.holds ?? 0,
+            hits_allowed: stats.ha ?? stats.hitsAllowed ?? 0,
+            runs_allowed: stats.ra ?? stats.runsAllowed ?? 0,
+            earned_runs: stats.er ?? stats.earnedRuns ?? 0,
+            walks_allowed: stats.bbp ?? stats.walksAllowed ?? 0,
+            strikeouts_pitching: stats.kp ?? stats.strikeoutsPitching ?? 0,
+            home_runs_allowed: stats.hra ?? stats.homeRunsAllowed ?? 0,
+
+            // Calculated pitching
+            era: stats.era ?? null,
+            whip: stats.whip ?? null,
+            k_per_9: stats.k9 ?? stats.kPer9 ?? null,
+            bb_per_9: stats.bb9 ?? stats.bbPer9 ?? null,
+
+            // Fielding
+            fielding_games: stats.fg ?? stats.fieldingGames ?? 0,
+            putouts: stats.po ?? stats.putouts ?? 0,
+            assists: stats.a ?? stats.assists ?? 0,
+            errors: stats.e ?? stats.errors ?? 0,
+            fielding_percentage: stats.fpct ?? stats.fieldingPercentage ?? null,
+
+            // Source tracking
+            external_id: `${prestoTeamId}-${stats.playerId || stats.id}-${prestoSeasonId}`,
+            source_system: 'presto',
+            last_synced_at: new Date()
+          };
+
+          // Upsert by player_id + season
+          const [seasonStat, created] = await PlayerSeasonStats.upsert(seasonData, {
+            returning: true
+          });
+
+          // Calculate stats if not provided
+          if (!seasonData.batting_average && seasonStat.at_bats > 0) {
+            seasonStat.calculateBattingStats();
+            seasonStat.calculatePitchingStats();
+            seasonStat.calculateFieldingStats();
+            await seasonStat.save();
+          }
+
+          if (created) {
+            results.created++;
+          } else {
+            results.updated++;
+          }
+        } catch (error) {
+          results.errors.push({
+            item_id: stats.playerId || stats.id,
+            item_type: 'season_stat',
+            error: error.message
+          });
+        }
+      }
+
+      // Log completion
+      await SyncLog.logComplete(syncLog.id, {
+        created: results.created,
+        updated: results.updated,
+        failed: results.errors.length,
+        summary: { players_processed: playerStats.length },
+        itemErrors: results.errors.length > 0 ? results.errors : null
+      });
+
+      return results;
+    } catch (error) {
+      await SyncLog.logFailure(syncLog.id, error);
+      results.errors.push({ error: error.message });
+      return results;
+    }
+  }
+
+  /**
+   * Sync player career stats from PrestoSports
+   */
+  async syncCareerStats(teamId, _userId) {
+    const { prestoTeamId } = await this.getPrestoConfig(teamId);
+    if (!prestoTeamId) {
+      throw new Error('PrestoSports team ID not configured');
+    }
+
+    const endpoint = `/api/v2/players/{playerId}/career-stats`;
+    const syncLog = await SyncLog.logStart(teamId, 'career_stats', _userId, endpoint, {
+      presto_team_id: prestoTeamId
+    });
+
+    const results = {
+      created: 0,
+      updated: 0,
+      errors: []
+    };
+
+    try {
+      const token = await this.getToken(teamId);
+
+      // Get all players from this team that came from PrestoSports
+      const players = await Player.findAll({
+        where: {
+          team_id: teamId,
+          source_system: 'presto'
+        }
+      });
+
+      for (const player of players) {
+        try {
+          const response = await prestoSportsService.getPlayerCareerStats(token, player.external_id);
+          const rawStats = response.data || response;
+
+          if (!rawStats || (Array.isArray(rawStats) && rawStats.length === 0)) {
+            continue;
+          }
+
+          // If API returns array of seasons, aggregate them into career totals
+          let stats = rawStats;
+          if (Array.isArray(rawStats)) {
+            stats = this.aggregateCareerStats(rawStats);
+          }
+
+          if (!stats || Object.keys(stats).length === 0) {
+            continue;
+          }
+
+          const careerData = {
+            player_id: player.id,
+
+            // Career batting - use safeNumber to handle any non-numeric values
+            seasons_played: this.safeNumber(stats.seasons ?? stats.seasonsPlayed) || (Array.isArray(rawStats) ? rawStats.length : 1),
+            career_games: this.safeNumber(stats.gp ?? stats.games),
+            career_at_bats: this.safeNumber(stats.ab ?? stats.atBats),
+            career_runs: this.safeNumber(stats.r ?? stats.runs),
+            career_hits: this.safeNumber(stats.h ?? stats.hits),
+            career_doubles: this.safeNumber(stats.doubles ?? stats['2b']),
+            career_triples: this.safeNumber(stats.triples ?? stats['3b']),
+            career_home_runs: this.safeNumber(stats.hr ?? stats.homeRuns),
+            career_rbi: this.safeNumber(stats.rbi),
+            career_walks: this.safeNumber(stats.bb ?? stats.walks),
+            career_strikeouts: this.safeNumber(stats.so ?? stats.strikeouts),
+            career_stolen_bases: this.safeNumber(stats.sb ?? stats.stolenBases),
+
+            // Calculated - these can be null if not provided
+            career_batting_average: this.safeNumber(stats.avg ?? stats.battingAverage) || null,
+            career_obp: this.safeNumber(stats.obp) || null,
+            career_slg: this.safeNumber(stats.slg) || null,
+            career_ops: this.safeNumber(stats.ops) || null,
+
+            // Career pitching
+            career_pitching_appearances: this.safeNumber(stats.app ?? stats.appearances),
+            career_innings_pitched: this.safeNumber(stats.ip ?? stats.inningsPitched),
+            career_wins: this.safeNumber(stats.w ?? stats.wins),
+            career_losses: this.safeNumber(stats.l ?? stats.losses),
+            career_saves: this.safeNumber(stats.sv ?? stats.saves),
+            career_earned_runs: this.safeNumber(stats.er ?? stats.earnedRuns),
+            career_strikeouts_pitching: this.safeNumber(stats.kp ?? stats.strikeoutsPitching),
+
+            career_era: this.safeNumber(stats.era) || null,
+            career_whip: this.safeNumber(stats.whip) || null,
+
+            // Source tracking
+            external_id: `career-${player.external_id}`,
+            source_system: 'presto',
+            last_synced_at: new Date()
+          };
+
+          // Upsert by player_id (unique)
+          const [careerStat, created] = await PlayerCareerStats.upsert(careerData, {
+            returning: true
+          });
+
+          // Calculate stats if not provided
+          if (!careerData.career_batting_average && careerStat.career_at_bats > 0) {
+            careerStat.calculateBattingStats();
+            careerStat.calculatePitchingStats();
+            await careerStat.save();
+          }
+
+          if (created) {
+            results.created++;
+          } else {
+            results.updated++;
+          }
+        } catch (error) {
+          results.errors.push({
+            item_id: player.external_id,
+            item_type: 'career_stat',
+            player_name: `${player.first_name} ${player.last_name}`,
+            error: error.message
+          });
+        }
+      }
+
+      // Log completion
+      await SyncLog.logComplete(syncLog.id, {
+        created: results.created,
+        updated: results.updated,
+        failed: results.errors.length,
+        summary: { players_processed: players.length },
+        itemErrors: results.errors.length > 0 ? results.errors : null
+      });
+
+      return results;
+    } catch (error) {
+      await SyncLog.logFailure(syncLog.id, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sync everything (roster, schedule, stats, record, season stats, career stats)
    */
   async syncAll(teamId, userId) {
+    const { prestoTeamId, prestoSeasonId } = await this.getPrestoConfig(teamId);
+    const syncLog = await SyncLog.logStart(teamId, 'full', userId, '/api/v2/sync/all', {
+      presto_team_id: prestoTeamId,
+      presto_season_id: prestoSeasonId
+    });
+
     const results = {
       roster: null,
       schedule: null,
       stats: null,
+      teamRecord: null,
+      seasonStats: null,
+      careerStats: null,
       errors: []
     };
 
@@ -458,6 +988,51 @@ class PrestoSyncService {
     } catch (error) {
       results.errors.push({ type: 'stats', error: error.message });
     }
+
+    try {
+      results.teamRecord = await this.syncTeamRecord(teamId);
+    } catch (error) {
+      results.errors.push({ type: 'teamRecord', error: error.message });
+    }
+
+    try {
+      results.seasonStats = await this.syncSeasonStats(teamId, userId);
+    } catch (error) {
+      results.errors.push({ type: 'seasonStats', error: error.message });
+    }
+
+    try {
+      results.careerStats = await this.syncCareerStats(teamId, userId);
+    } catch (error) {
+      results.errors.push({ type: 'careerStats', error: error.message });
+    }
+
+    // Calculate totals for the full sync log
+    const totalCreated = (results.roster?.created || 0) + (results.schedule?.created || 0) +
+      (results.stats?.statsCreated || 0) + (results.seasonStats?.created || 0) +
+      (results.careerStats?.created || 0);
+    const totalUpdated = (results.roster?.updated || 0) + (results.schedule?.updated || 0) +
+      (results.stats?.statsUpdated || 0) + (results.seasonStats?.updated || 0) +
+      (results.careerStats?.updated || 0) + (results.teamRecord?.success ? 1 : 0);
+    const totalFailed = results.errors.length +
+      (results.roster?.errors?.length || 0) + (results.schedule?.errors?.length || 0) +
+      (results.stats?.errors?.length || 0) + (results.seasonStats?.errors?.length || 0) +
+      (results.careerStats?.errors?.length || 0);
+
+    await SyncLog.logComplete(syncLog.id, {
+      created: totalCreated,
+      updated: totalUpdated,
+      failed: totalFailed,
+      summary: {
+        roster: results.roster ? { created: results.roster.created, updated: results.roster.updated } : null,
+        schedule: results.schedule ? { created: results.schedule.created, updated: results.schedule.updated } : null,
+        stats: results.stats ? { created: results.stats.statsCreated, updated: results.stats.statsUpdated } : null,
+        teamRecord: results.teamRecord?.record || null,
+        seasonStats: results.seasonStats ? { created: results.seasonStats.created, updated: results.seasonStats.updated } : null,
+        careerStats: results.careerStats ? { created: results.careerStats.created, updated: results.careerStats.updated } : null
+      },
+      itemErrors: results.errors.length > 0 ? results.errors : null
+    });
 
     return results;
   }

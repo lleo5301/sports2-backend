@@ -39,6 +39,13 @@ class PrestoSportsService {
   }
 
   /**
+   * Clear cached token for a team (used when disconnecting)
+   */
+  clearCachedToken(teamId) {
+    this.tokenCache.delete(teamId);
+  }
+
+  /**
    * Authenticate with PrestoSports API
    * @param {string} username - PrestoSports username
    * @param {string} password - PrestoSports password

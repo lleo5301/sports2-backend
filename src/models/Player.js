@@ -212,6 +212,12 @@ const Player = sequelize.define('Player', {
     comment: 'URL path to player video file'
   },
   // PrestoSports sync fields
+  presto_player_id: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    unique: true,
+    comment: 'PrestoSports player ID for explicit source tracking'
+  },
   external_id: {
     type: DataTypes.STRING(100),
     allowNull: true,

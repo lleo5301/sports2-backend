@@ -100,6 +100,47 @@ const Team = sequelize.define('Team', {
     type: DataTypes.DATE,
     allowNull: true,
     comment: 'Last successful sync with PrestoSports'
+  },
+  // Source tracking (standardized across all models)
+  external_id: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    unique: true
+  },
+  source_system: {
+    type: DataTypes.ENUM('manual', 'presto'),
+    allowNull: false,
+    defaultValue: 'manual'
+  },
+  // Team record fields
+  wins: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
+  },
+  losses: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
+  },
+  ties: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
+  },
+  conference_wins: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
+  },
+  conference_losses: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
+  },
+  record_last_synced_at: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 }, {
   tableName: 'teams'

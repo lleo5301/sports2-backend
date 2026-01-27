@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const { Team } = require('../models');
+const { Team, IntegrationCredential } = require('../models');
 const { protect } = require('../middleware/auth');
-const encryptionService = require('../services/encryptionService');
 const prestoSportsService = require('../services/prestoSportsService');
 const prestoSyncService = require('../services/prestoSyncService');
+const integrationCredentialService = require('../services/integrationCredentialService');
+
+const PROVIDER = IntegrationCredential.PROVIDERS.PRESTO;
 
 // Validation middleware
 const handleValidationErrors = (req, res, next) => {
@@ -50,16 +52,31 @@ router.get('/presto/status', protect, async (req, res) => {
       });
     }
 
-    const isConfigured = !!team.presto_credentials;
+    // Get integration status from credential service
+    let integrationData = null;
+    try {
+      const { credentials, config, isTokenExpired } = await integrationCredentialService.getCredentials(req.user.team_id, PROVIDER);
+      integrationData = {
+        isConfigured: !!credentials,
+        prestoTeamId: config?.team_id || null,
+        prestoSeasonId: config?.season_id || null,
+        lastSyncAt: team.presto_last_sync_at,
+        tokenStatus: credentials ? (isTokenExpired ? 'expired' : 'valid') : null
+      };
+    } catch (_err) {
+      // No credentials configured
+      integrationData = {
+        isConfigured: false,
+        prestoTeamId: null,
+        prestoSeasonId: null,
+        lastSyncAt: null,
+        tokenStatus: null
+      };
+    }
 
     res.json({
       success: true,
-      data: {
-        isConfigured,
-        prestoTeamId: team.presto_team_id,
-        prestoSeasonId: team.presto_season_id,
-        lastSyncAt: team.presto_last_sync_at
-      }
+      data: integrationData
     });
   } catch (error) {
     console.error('Error getting PrestoSports status:', error);
@@ -92,18 +109,25 @@ router.post('/presto/configure',
         });
       }
 
-      // Encrypt and save credentials
-      const encryptedCredentials = encryptionService.encrypt({
-        username,
-        password
-      });
+      // Save credentials using credential service
+      await integrationCredentialService.saveCredentials(
+        req.user.team_id,
+        PROVIDER,
+        { username, password },
+        {
+          team_id: prestoTeamId || null,
+          season_id: prestoSeasonId || null
+        },
+        IntegrationCredential.CREDENTIAL_TYPES.BASIC
+      );
 
-      const team = await Team.findByPk(req.user.team_id);
-      await team.update({
-        presto_credentials: encryptedCredentials,
-        presto_team_id: prestoTeamId || null,
-        presto_season_id: prestoSeasonId || null
-      });
+      // If authentication returned a token, save it
+      if (testResult.authResult?.idToken) {
+        await integrationCredentialService.saveTokens(req.user.team_id, PROVIDER, {
+          accessToken: testResult.authResult.idToken,
+          expiresIn: testResult.authResult.expiresIn || 3600
+        });
+      }
 
       res.json({
         success: true,
@@ -163,13 +187,19 @@ router.post('/presto/test',
 // Disconnect PrestoSports
 router.delete('/presto/disconnect', protect, checkIntegrationPermission, async (req, res) => {
   try {
+    // Delete credentials from credential service
+    await integrationCredentialService.deleteCredentials(req.user.team_id, PROVIDER);
+
+    // Also clear any cached tokens
+    prestoSportsService.clearCachedToken(req.user.team_id);
+
+    // Update team's last sync time to null
     const team = await Team.findByPk(req.user.team_id);
-    await team.update({
-      presto_credentials: null,
-      presto_team_id: null,
-      presto_season_id: null,
-      presto_last_sync_at: null
-    });
+    if (team) {
+      await team.update({
+        presto_last_sync_at: null
+      });
+    }
 
     res.json({
       success: true,
@@ -252,10 +282,10 @@ router.put('/presto/settings', protect, checkIntegrationPermission,
     try {
       const { prestoTeamId, prestoSeasonId } = req.body;
 
-      const team = await Team.findByPk(req.user.team_id);
-      await team.update({
-        presto_team_id: prestoTeamId,
-        presto_season_id: prestoSeasonId
+      // Update config in credential service
+      await integrationCredentialService.updateConfig(req.user.team_id, PROVIDER, {
+        team_id: prestoTeamId,
+        season_id: prestoSeasonId
       });
 
       res.json({
@@ -266,7 +296,7 @@ router.put('/presto/settings', protect, checkIntegrationPermission,
       console.error('Error updating PrestoSports settings:', error);
       res.status(500).json({
         success: false,
-        message: 'Error updating settings'
+        message: error.message || 'Error updating settings'
       });
     }
   }
@@ -329,6 +359,63 @@ router.post('/presto/sync/stats', protect, checkIntegrationPermission, async (re
   }
 });
 
+// Sync team record (W-L)
+router.post('/presto/sync/record', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const results = await prestoSyncService.syncTeamRecord(req.user.team_id);
+
+    res.json({
+      success: true,
+      message: results.success ? 'Team record synced successfully' : 'Failed to sync team record',
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing team record:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing team record'
+    });
+  }
+});
+
+// Sync season stats
+router.post('/presto/sync/season-stats', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const results = await prestoSyncService.syncSeasonStats(req.user.team_id, req.user.id);
+
+    res.json({
+      success: true,
+      message: `Season stats synced: ${results.created} created, ${results.updated} updated`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing season stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing season stats'
+    });
+  }
+});
+
+// Sync career stats
+router.post('/presto/sync/career-stats', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const results = await prestoSyncService.syncCareerStats(req.user.team_id, req.user.id);
+
+    res.json({
+      success: true,
+      message: `Career stats synced: ${results.created} created, ${results.updated} updated`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing career stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing career stats'
+    });
+  }
+});
+
 // Sync all
 router.post('/presto/sync/all', protect, checkIntegrationPermission, async (req, res) => {
   try {
@@ -343,6 +430,15 @@ router.post('/presto/sync/all', protect, checkIntegrationPermission, async (req,
     }
     if (results.stats) {
       messages.push(`Stats: ${results.stats.statsCreated} created, ${results.stats.statsUpdated} updated`);
+    }
+    if (results.teamRecord?.success) {
+      messages.push(`Record: ${results.teamRecord.record.wins}-${results.teamRecord.record.losses}`);
+    }
+    if (results.seasonStats) {
+      messages.push(`Season Stats: ${results.seasonStats.created} created, ${results.seasonStats.updated} updated`);
+    }
+    if (results.careerStats) {
+      messages.push(`Career Stats: ${results.careerStats.created} created, ${results.careerStats.updated} updated`);
     }
 
     res.json({
