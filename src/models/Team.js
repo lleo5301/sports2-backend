@@ -141,6 +141,11 @@ const Team = sequelize.define('Team', {
   record_last_synced_at: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  scouting_grade_scale: {
+    type: DataTypes.ENUM('20-80', 'letter'),
+    allowNull: false,
+    defaultValue: 'letter'
   }
 }, {
   tableName: 'teams'
