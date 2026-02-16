@@ -86,6 +86,9 @@ User.hasMany(DailyReport, { foreignKey: 'created_by' });
 PreferenceList.belongsTo(Player, { foreignKey: 'player_id' });
 Player.hasMany(PreferenceList, { foreignKey: 'player_id' });
 
+PreferenceList.belongsTo(Prospect, { foreignKey: 'prospect_id' });
+Prospect.hasMany(PreferenceList, { foreignKey: 'prospect_id' });
+
 PreferenceList.belongsTo(Team, { foreignKey: 'team_id' });
 Team.hasMany(PreferenceList, { foreignKey: 'team_id' });
 
