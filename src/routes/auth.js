@@ -22,7 +22,7 @@
 const express = require('express');
 const emailService = require('../services/emailService');
 const { body, validationResult } = require('express-validator');
-const { passwordValidator, newPasswordValidator } = require('../utils/passwordValidator');
+const { passwordValidator, newPasswordValidator, createPasswordValidator } = require('../utils/passwordValidator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const { User, Team } = require('../models');
@@ -34,6 +34,34 @@ const tokenBlacklistService = require('../services/tokenBlacklistService');
 const crypto = require('crypto');
 
 const router = express.Router();
+
+/**
+ * @description Generates a secure random password that meets all validation requirements.
+ *              Password will contain: uppercase, lowercase, digit, and special character.
+ * @returns {string} A random password meeting all requirements
+ */
+const generateSecurePassword = () => {
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const digits = '0123456789';
+  const special = '!@#$%^&*';
+  const all = uppercase + lowercase + digits + special;
+
+  // Ensure at least one of each required character type
+  let password = '';
+  password += uppercase[crypto.randomInt(uppercase.length)];
+  password += lowercase[crypto.randomInt(lowercase.length)];
+  password += digits[crypto.randomInt(digits.length)];
+  password += special[crypto.randomInt(special.length)];
+
+  // Fill remaining characters randomly (total 12 chars)
+  for (let i = 0; i < 8; i++) {
+    password += all[crypto.randomInt(all.length)];
+  }
+
+  // Shuffle the password to avoid predictable pattern
+  return password.split('').sort(() => crypto.randomInt(3) - 1).join('');
+};
 
 /**
  * @description Generates a signed JWT token for user authentication.
@@ -103,7 +131,7 @@ router.post('/register', [
   // Validation: Role must be one of the allowed values
   body('role').isIn(['head_coach', 'assistant_coach']),
   // Validation: Phone is optional but must be valid length if provided
-  body('phone').optional().isLength({ min: 10, max: 15 })
+  body('phone').optional({ checkFalsy: true }).isLength({ min: 10, max: 15 })
 ], async (req, res) => {
   try {
     // Validation: Check for validation errors from express-validator
@@ -453,7 +481,7 @@ router.put('/me', protect, [
   // Validation: Optional fields with length constraints
   body('first_name').optional().trim().isLength({ min: 1, max: 50 }),
   body('last_name').optional().trim().isLength({ min: 1, max: 50 }),
-  body('phone').optional().isLength({ min: 10, max: 15 })
+  body('phone').optional({ checkFalsy: true }).isLength({ min: 10, max: 15 })
 ], async (req, res) => {
   try {
     // Validation: Check for validation errors from express-validator
@@ -1032,6 +1060,510 @@ router.get('/admin/lockout-status/:userId', protect, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server error while fetching lockout status'
+    });
+  }
+});
+
+// ============================================================================
+// Admin User Management Routes
+// These routes allow super_admin users to manage all users in their team.
+// ============================================================================
+
+/**
+ * @route GET /api/auth/admin/users
+ * @description List all users in the admin's team with pagination and optional search.
+ * @access Private - Requires authentication and super_admin role
+ * @middleware protect - JWT authentication required
+ *
+ * @param {number} [req.query.page=1] - Page number for pagination
+ * @param {number} [req.query.limit=20] - Number of users per page
+ * @param {string} [req.query.search] - Search term for email, first_name, or last_name
+ * @param {string} [req.query.role] - Filter by role
+ * @param {boolean} [req.query.is_active] - Filter by active status
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Array<Object>} response.data - Array of user objects
+ * @returns {Object} response.pagination - Pagination info
+ *
+ * @throws {403} Only admins can list users - Non-admin attempted access
+ */
+router.get('/admin/users', protect, async (req, res) => {
+  try {
+    // Permission: Only super_admin can list users
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only admins can list users'
+      });
+    }
+
+    const { Op } = require('sequelize');
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const offset = (page - 1) * limit;
+    const { search, role, is_active } = req.query;
+
+    // Build where clause
+    const where = {
+      team_id: req.user.team_id // Multi-tenant: Only show users in admin's team
+    };
+
+    if (search) {
+      where[Op.or] = [
+        { email: { [Op.iLike]: `%${search}%` } },
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    if (role) {
+      where.role = role;
+    }
+
+    if (is_active !== undefined) {
+      where.is_active = is_active === 'true';
+    }
+
+    const { count, rows: users } = await User.findAndCountAll({
+      where,
+      include: [{
+        model: Team,
+        attributes: ['id', 'name']
+      }],
+      attributes: { exclude: ['password'] },
+      order: [['created_at', 'DESC']],
+      limit,
+      offset
+    });
+
+    res.json({
+      success: true,
+      data: users,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        pages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Admin list users error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while listing users'
+    });
+  }
+});
+
+/**
+ * @route GET /api/auth/admin/users/:userId
+ * @description Get a single user's details by ID.
+ * @access Private - Requires authentication and super_admin role
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.params.userId - The user ID to retrieve
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - User object with team info
+ *
+ * @throws {403} Only admins can view user details - Non-admin attempted access
+ * @throws {404} User not found - User doesn't exist or not in admin's team
+ */
+router.get('/admin/users/:userId', protect, async (req, res) => {
+  try {
+    // Permission: Only super_admin can view user details
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only admins can view user details'
+      });
+    }
+
+    const { userId } = req.params;
+    const user = await User.findOne({
+      where: {
+        id: userId,
+        team_id: req.user.team_id // Multi-tenant: Only allow viewing users in admin's team
+      },
+      include: [{
+        model: Team,
+        attributes: ['id', 'name', 'program_name']
+      }],
+      attributes: { exclude: ['password'] }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error('Admin get user error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching user'
+    });
+  }
+});
+
+/**
+ * @route POST /api/auth/admin/users
+ * @description Create a new user with any role. Super admins can create users
+ *              with any role including other super_admins.
+ * @access Private - Requires authentication and super_admin role
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.body.email - User's email address
+ * @param {string} req.body.password - User's password (min 6 chars)
+ * @param {string} req.body.first_name - User's first name
+ * @param {string} req.body.last_name - User's last name
+ * @param {string} req.body.role - User's role (super_admin, head_coach, assistant_coach)
+ * @param {string} [req.body.phone] - User's phone number
+ * @param {boolean} [req.body.is_active=true] - Whether account is active
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Created user object
+ *
+ * @throws {400} Validation failed - Invalid input data
+ * @throws {400} User with this email already exists - Duplicate email
+ * @throws {403} Only admins can create users - Non-admin attempted creation
+ */
+router.post('/admin/users', protect, [
+  body('email').isEmail().normalizeEmail(),
+  passwordValidator,
+  body('first_name').trim().isLength({ min: 1, max: 50 }),
+  body('last_name').trim().isLength({ min: 1, max: 50 }),
+  body('role').isIn(['super_admin', 'head_coach', 'assistant_coach']),
+  body('phone').optional({ checkFalsy: true }).isLength({ min: 10, max: 15 }),
+  body('is_active').optional().isBoolean()
+], async (req, res) => {
+  try {
+    // Permission: Only super_admin can create users
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only admins can create users'
+      });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { email, password, first_name, last_name, role, phone, is_active = true } = req.body;
+
+    // Check for duplicate email
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'User with this email already exists'
+      });
+    }
+
+    // Create user in admin's team
+    const user = await User.create({
+      email,
+      password,
+      first_name,
+      last_name,
+      role,
+      phone: phone || null, // Convert empty string to null for model validation
+      is_active,
+      team_id: req.user.team_id
+    });
+
+    // Fetch created user with team info (password excluded by findByPk with attributes)
+    const createdUser = await User.findByPk(user.id, {
+      include: [{
+        model: Team,
+        attributes: ['id', 'name']
+      }],
+      attributes: { exclude: ['password'] }
+    });
+
+    res.status(201).json({
+      success: true,
+      data: createdUser
+    });
+  } catch (error) {
+    console.error('Admin create user error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while creating user'
+    });
+  }
+});
+
+/**
+ * @route PUT /api/auth/admin/users/:userId
+ * @description Update an existing user's information. Can update role, status,
+ *              and profile information but not password (user must change their own).
+ * @access Private - Requires authentication and super_admin role
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.params.userId - The user ID to update
+ * @param {string} [req.body.email] - New email address
+ * @param {string} [req.body.first_name] - New first name
+ * @param {string} [req.body.last_name] - New last name
+ * @param {string} [req.body.role] - New role
+ * @param {string} [req.body.phone] - New phone number
+ * @param {boolean} [req.body.is_active] - New active status
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {Object} response.data - Updated user object
+ *
+ * @throws {400} Validation failed - Invalid input data
+ * @throws {400} Email already in use - Duplicate email
+ * @throws {403} Only admins can update users - Non-admin attempted update
+ * @throws {404} User not found - User doesn't exist or not in admin's team
+ */
+router.put('/admin/users/:userId', protect, [
+  body('email').optional().isEmail().normalizeEmail(),
+  body('first_name').optional().trim().isLength({ min: 1, max: 50 }),
+  body('last_name').optional().trim().isLength({ min: 1, max: 50 }),
+  body('role').optional().isIn(['super_admin', 'head_coach', 'assistant_coach']),
+  body('phone').optional({ checkFalsy: true }).isLength({ min: 10, max: 15 }),
+  body('is_active').optional().isBoolean()
+], async (req, res) => {
+  try {
+    // Permission: Only super_admin can update users
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only admins can update users'
+      });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { userId } = req.params;
+    const user = await User.findOne({
+      where: {
+        id: userId,
+        team_id: req.user.team_id // Multi-tenant: Only allow updating users in admin's team
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const { email, first_name, last_name, role, phone, is_active } = req.body;
+
+    // If changing email, check for duplicates
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          error: 'Email already in use'
+        });
+      }
+    }
+
+    // Update user fields (convert empty phone to null for model validation)
+    await user.update({
+      email: email !== undefined ? email : user.email,
+      first_name: first_name !== undefined ? first_name : user.first_name,
+      last_name: last_name !== undefined ? last_name : user.last_name,
+      role: role !== undefined ? role : user.role,
+      phone: phone !== undefined ? (phone || null) : user.phone,
+      is_active: is_active !== undefined ? is_active : user.is_active
+    });
+
+    // Fetch updated user with team info
+    const updatedUser = await User.findByPk(user.id, {
+      include: [{
+        model: Team,
+        attributes: ['id', 'name']
+      }],
+      attributes: { exclude: ['password'] }
+    });
+
+    res.json({
+      success: true,
+      data: updatedUser
+    });
+  } catch (error) {
+    console.error('Admin update user error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while updating user'
+    });
+  }
+});
+
+/**
+ * @route DELETE /api/auth/admin/users/:userId
+ * @description Delete a user from the system. Prevents self-deletion.
+ * @access Private - Requires authentication and super_admin role
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.params.userId - The user ID to delete
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Deletion confirmation
+ *
+ * @throws {400} Cannot delete your own account - Self-deletion attempted
+ * @throws {403} Only admins can delete users - Non-admin attempted deletion
+ * @throws {404} User not found - User doesn't exist or not in admin's team
+ */
+router.delete('/admin/users/:userId', protect, async (req, res) => {
+  try {
+    // Permission: Only super_admin can delete users
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only admins can delete users'
+      });
+    }
+
+    const { userId } = req.params;
+
+    // Prevent self-deletion
+    if (userId === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete your own account'
+      });
+    }
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+        team_id: req.user.team_id // Multi-tenant: Only allow deleting users in admin's team
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const userEmail = user.email;
+    await user.destroy();
+
+    res.json({
+      success: true,
+      message: `User ${userEmail} has been deleted`
+    });
+  } catch (error) {
+    console.error('Admin delete user error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while deleting user'
+    });
+  }
+});
+
+/**
+ * @route PUT /api/auth/admin/users/:userId/reset-password
+ * @description Admin endpoint to reset a user's password. Generates a temporary
+ *              password and revokes all existing sessions for the user.
+ * @access Private - Requires authentication and super_admin role
+ * @middleware protect - JWT authentication required
+ *
+ * @param {string} req.params.userId - The user ID to reset password for
+ * @param {string} [req.body.new_password] - Optional custom password (otherwise auto-generated)
+ *
+ * @returns {Object} response
+ * @returns {boolean} response.success - Operation success status
+ * @returns {string} response.message - Reset confirmation
+ * @returns {Object} response.data - Contains temporary password if auto-generated
+ *
+ * @throws {403} Only admins can reset passwords - Non-admin attempted reset
+ * @throws {404} User not found - User doesn't exist or not in admin's team
+ */
+router.put('/admin/users/:userId/reset-password', protect, [
+  createPasswordValidator('new_password').optional()
+], async (req, res) => {
+  try {
+    // Permission: Only super_admin can reset passwords
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only admins can reset passwords'
+      });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { userId } = req.params;
+    const user = await User.findOne({
+      where: {
+        id: userId,
+        team_id: req.user.team_id
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Generate or use provided password (auto-generated meets all requirements)
+    const newPassword = req.body.new_password || generateSecurePassword();
+
+    // Update password (hashed by model hook)
+    user.password = newPassword;
+    await user.save();
+
+    // Revoke all existing sessions
+    await tokenBlacklistService.revokeAllUserTokens(user.id, 'admin_password_reset');
+
+    // Reset any lockout state
+    await user.resetFailedAttempts();
+
+    res.json({
+      success: true,
+      message: `Password reset for ${user.email}`,
+      data: {
+        temporaryPassword: req.body.new_password ? undefined : newPassword
+      }
+    });
+  } catch (error) {
+    console.error('Admin reset password error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while resetting password'
     });
   }
 });
