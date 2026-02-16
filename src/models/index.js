@@ -34,6 +34,7 @@ const IntegrationCredential = require('./IntegrationCredential');
 const NewsRelease = require('./NewsRelease');
 const PlayerVideo = require('./PlayerVideo');
 const Prospect = require('./Prospect');
+const ProspectMedia = require('./ProspectMedia');
 
 // Define associations
 
@@ -266,6 +267,13 @@ Team.hasMany(Prospect, { foreignKey: 'team_id' });
 Prospect.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
 User.hasMany(Prospect, { foreignKey: 'created_by' });
 
+// ProspectMedia associations
+ProspectMedia.belongsTo(Prospect, { foreignKey: 'prospect_id' });
+Prospect.hasMany(ProspectMedia, { foreignKey: 'prospect_id', as: 'media' });
+
+ProspectMedia.belongsTo(User, { foreignKey: 'uploaded_by', as: 'UploadedBy' });
+User.hasMany(ProspectMedia, { foreignKey: 'uploaded_by' });
+
 module.exports = {
   sequelize,
   User,
@@ -300,5 +308,6 @@ module.exports = {
   IntegrationCredential,
   NewsRelease,
   PlayerVideo,
-  Prospect
+  Prospect,
+  ProspectMedia
 };
