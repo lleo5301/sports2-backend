@@ -47,8 +47,25 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
-const { Report, Player, Team, ScoutingReport, User } = require('../models');
+const { Report, Player, Team, ScoutingReport, User, Prospect } = require('../models');
 const { Op } = require('sequelize');
+const { convertReportGrades, toNumericGrade, GRADE_FIELDS } = require('../utils/gradeConverter');
+
+/**
+ * @description Converts letter grade strings in request body to numeric 20-80 values.
+ *              Leaves numeric values and non-grade fields untouched.
+ * @param {Object} body - Request body with potential letter grade fields
+ * @returns {Object} Body with letter grades converted to numeric values
+ */
+const convertInputGrades = (body) => {
+  const converted = { ...body };
+  for (const field of GRADE_FIELDS) {
+    if (field in converted && typeof converted[field] === 'string') {
+      converted[field] = toNumericGrade(converted[field]);
+    }
+  }
+  return converted;
+};
 
 const router = express.Router();
 
@@ -224,9 +241,6 @@ router.get('/', async (req, res) => {
  */
 router.get('/scouting', async (req, res) => {
   try {
-    console.log('Scouting reports request - user team_id:', req.user.team_id);
-    console.log('Scouting reports request - query params:', req.query);
-
     // Pagination: Parse page and limit with defaults
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -240,6 +254,11 @@ router.get('/scouting', async (req, res) => {
       whereClause.player_id = req.query.player_id;
     }
 
+    // Filter: Optionally filter by specific prospect
+    if (req.query.prospect_id) {
+      whereClause.prospect_id = req.query.prospect_id;
+    }
+
     // Filter: Optionally filter by date range (both dates required for range)
     if (req.query.start_date && req.query.end_date) {
       whereClause.report_date = {
@@ -247,15 +266,36 @@ router.get('/scouting', async (req, res) => {
       };
     }
 
+    // Team isolation: get IDs of entities belonging to this team
+    const teamPlayerIds = await Player.findAll({
+      where: { team_id: req.user.team_id },
+      attributes: ['id'],
+      raw: true
+    });
+    const teamProspectIds = await Prospect.findAll({
+      where: { team_id: req.user.team_id },
+      attributes: ['id'],
+      raw: true
+    });
+
+    whereClause[Op.or] = [
+      { player_id: teamPlayerIds.map((p) => p.id) },
+      { prospect_id: teamProspectIds.map((p) => p.id) }
+    ];
+
     // Database: Fetch scouting reports with pagination
     const { count, rows: reports } = await ScoutingReport.findAndCountAll({
       where: whereClause,
       include: [
         {
           model: Player,
-          // Permission: Multi-tenant isolation enforced via Player's team_id
-          where: { team_id: req.user.team_id },
-          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+          attributes: ['id', 'first_name', 'last_name', 'position', 'school'],
+          required: false
+        },
+        {
+          model: Prospect,
+          attributes: ['id', 'first_name', 'last_name', 'primary_position', 'school_name'],
+          required: false
         }
       ],
       // Business logic: Most recent reports first
@@ -264,9 +304,14 @@ router.get('/scouting', async (req, res) => {
       offset
     });
 
+    // Convert grades for display using team's scale
+    const team = await Team.findByPk(req.user.team_id, { attributes: ['scouting_grade_scale'] });
+    const scale = team ? team.scouting_grade_scale : '20-80';
+    const convertedReports = reports.map((r) => convertReportGrades(r.toJSON(), scale));
+
     res.json({
       success: true,
-      data: reports,
+      data: convertedReports,
       pagination: {
         page,
         limit,
@@ -1444,29 +1489,54 @@ router.post('/export-excel', checkPermission('reports_create'), async (req, res)
  */
 router.post('/scouting', async (req, res) => {
   try {
-    console.log('Create scouting report request:', req.body);
-    console.log('User team_id:', req.user.team_id);
+    const { player_id, prospect_id } = req.body;
 
-    // Validation: Ensure player exists and belongs to user's team
-    // This enforces multi-tenant isolation for scouting reports
-    const player = await Player.findOne({
-      where: {
-        id: req.body.player_id,
-        team_id: req.user.team_id
-      }
-    });
-
-    if (!player) {
-      return res.status(404).json({
+    // Validation: Must provide exactly one of player_id or prospect_id
+    if (!player_id && !prospect_id) {
+      return res.status(400).json({
         success: false,
-        message: 'Player not found or does not belong to your team'
+        message: 'Either player_id or prospect_id is required'
       });
     }
 
+    if (player_id && prospect_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Provide either player_id or prospect_id, not both'
+      });
+    }
+
+    // Validate the target entity belongs to user's team
+    if (player_id) {
+      const player = await Player.findOne({
+        where: { id: player_id, team_id: req.user.team_id }
+      });
+      if (!player) {
+        return res.status(404).json({
+          success: false,
+          message: 'Player not found or does not belong to your team'
+        });
+      }
+    }
+
+    if (prospect_id) {
+      const prospectRecord = await Prospect.findOne({
+        where: { id: prospect_id, team_id: req.user.team_id }
+      });
+      if (!prospectRecord) {
+        return res.status(404).json({
+          success: false,
+          message: 'Prospect not found or does not belong to your team'
+        });
+      }
+    }
+
+    // Convert letter grades to numeric on input
+    const convertedBody = convertInputGrades(req.body);
+
     // Database: Create the scouting report
     const scoutingReport = await ScoutingReport.create({
-      ...req.body,
-      // Business logic: Track who created the report
+      ...convertedBody,
       created_by: req.user.id
     });
 
@@ -1475,7 +1545,13 @@ router.post('/scouting', async (req, res) => {
       include: [
         {
           model: Player,
-          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+          attributes: ['id', 'first_name', 'last_name', 'position', 'school'],
+          required: false
+        },
+        {
+          model: Prospect,
+          attributes: ['id', 'first_name', 'last_name', 'primary_position', 'school_name'],
+          required: false
         },
         {
           model: User,
@@ -1484,10 +1560,15 @@ router.post('/scouting', async (req, res) => {
       ]
     });
 
+    // Convert grades for display using team's scale
+    const team = await Team.findByPk(req.user.team_id, { attributes: ['scouting_grade_scale'] });
+    const scale = team ? team.scouting_grade_scale : '20-80';
+    const displayReport = convertReportGrades(createdReport.toJSON(), scale);
+
     res.status(201).json({
       success: true,
       message: 'Scouting report created successfully',
-      data: createdReport
+      data: displayReport
     });
   } catch (error) {
     // Error: Database creation failure or validation error
@@ -1531,15 +1612,19 @@ router.post('/scouting', async (req, res) => {
  */
 router.get('/scouting/:id', async (req, res) => {
   try {
-    // Database: Find report with team scoping via Player association
+    // Database: Find report with both Player and Prospect associations (both optional)
     const report = await ScoutingReport.findOne({
       where: { id: req.params.id },
       include: [
         {
           model: Player,
-          // Permission: Multi-tenant isolation via Player's team_id
-          where: { team_id: req.user.team_id },
-          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+          attributes: ['id', 'first_name', 'last_name', 'position', 'school'],
+          required: false
+        },
+        {
+          model: Prospect,
+          attributes: ['id', 'first_name', 'last_name', 'primary_position', 'school_name'],
+          required: false
         },
         {
           model: User,
@@ -1548,7 +1633,7 @@ router.get('/scouting/:id', async (req, res) => {
       ]
     });
 
-    // Validation: Report must exist and player must belong to user's team
+    // Validation: Report must exist
     if (!report) {
       return res.status(404).json({
         success: false,
@@ -1556,9 +1641,31 @@ router.get('/scouting/:id', async (req, res) => {
       });
     }
 
+    // Permission: Team isolation - verify report belongs to user's team
+    let belongsToTeam = false;
+    if (report.player_id) {
+      const player = await Player.findOne({ where: { id: report.player_id, team_id: req.user.team_id } });
+      belongsToTeam = !!player;
+    } else if (report.prospect_id) {
+      const prospectRecord = await Prospect.findOne({ where: { id: report.prospect_id, team_id: req.user.team_id } });
+      belongsToTeam = !!prospectRecord;
+    }
+
+    if (!belongsToTeam) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scouting report not found'
+      });
+    }
+
+    // Convert grades for display using team's scale
+    const team = await Team.findByPk(req.user.team_id, { attributes: ['scouting_grade_scale'] });
+    const scale = team ? team.scouting_grade_scale : '20-80';
+    const displayReport = convertReportGrades(report.toJSON(), scale);
+
     res.json({
       success: true,
-      data: report
+      data: displayReport
     });
   } catch (error) {
     // Error: Database query failure
@@ -1600,20 +1707,10 @@ router.get('/scouting/:id', async (req, res) => {
  */
 router.put('/scouting/:id', async (req, res) => {
   try {
-    console.log('Update scouting report request:', req.params.id, req.body);
+    // Database: Find existing report
+    const existingReport = await ScoutingReport.findByPk(req.params.id);
 
-    // Database: Find existing report with team validation via Player
-    const existingReport = await ScoutingReport.findOne({
-      where: { id: req.params.id },
-      include: [{
-        model: Player,
-        // Permission: Multi-tenant isolation via Player's team_id
-        where: { team_id: req.user.team_id },
-        attributes: ['id', 'first_name', 'last_name', 'position', 'school']
-      }]
-    });
-
-    // Validation: Report must exist and belong to user's team
+    // Validation: Report must exist
     if (!existingReport) {
       return res.status(404).json({
         success: false,
@@ -1621,16 +1718,32 @@ router.put('/scouting/:id', async (req, res) => {
       });
     }
 
+    // Permission: Team isolation - verify report belongs to user's team via Player or Prospect
+    let belongsToTeam = false;
+    if (existingReport.player_id) {
+      const player = await Player.findOne({
+        where: { id: existingReport.player_id, team_id: req.user.team_id }
+      });
+      belongsToTeam = !!player;
+    } else if (existingReport.prospect_id) {
+      const prospectRecord = await Prospect.findOne({
+        where: { id: existingReport.prospect_id, team_id: req.user.team_id }
+      });
+      belongsToTeam = !!prospectRecord;
+    }
+
+    if (!belongsToTeam) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scouting report not found or does not belong to your team'
+      });
+    }
+
     // Validation: If changing player_id, verify new player belongs to user's team
-    // This prevents reassigning reports to players from other teams
     if (req.body.player_id && req.body.player_id !== existingReport.player_id) {
       const player = await Player.findOne({
-        where: {
-          id: req.body.player_id,
-          team_id: req.user.team_id
-        }
+        where: { id: req.body.player_id, team_id: req.user.team_id }
       });
-
       if (!player) {
         return res.status(404).json({
           success: false,
@@ -1639,15 +1752,37 @@ router.put('/scouting/:id', async (req, res) => {
       }
     }
 
+    // Validation: If changing prospect_id, verify new prospect belongs to user's team
+    if (req.body.prospect_id && req.body.prospect_id !== existingReport.prospect_id) {
+      const prospectRecord = await Prospect.findOne({
+        where: { id: req.body.prospect_id, team_id: req.user.team_id }
+      });
+      if (!prospectRecord) {
+        return res.status(404).json({
+          success: false,
+          message: 'Prospect not found or does not belong to your team'
+        });
+      }
+    }
+
+    // Convert letter grades to numeric on input
+    const convertedBody = convertInputGrades(req.body);
+
     // Database: Apply partial update with provided fields
-    await existingReport.update(req.body);
+    await existingReport.update(convertedBody);
 
     // Database: Fetch updated report with associations for response
     const updatedReport = await ScoutingReport.findByPk(existingReport.id, {
       include: [
         {
           model: Player,
-          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+          attributes: ['id', 'first_name', 'last_name', 'position', 'school'],
+          required: false
+        },
+        {
+          model: Prospect,
+          attributes: ['id', 'first_name', 'last_name', 'primary_position', 'school_name'],
+          required: false
         },
         {
           model: User,
@@ -1656,10 +1791,15 @@ router.put('/scouting/:id', async (req, res) => {
       ]
     });
 
+    // Convert grades for display using team's scale
+    const team = await Team.findByPk(req.user.team_id, { attributes: ['scouting_grade_scale'] });
+    const scale = team ? team.scouting_grade_scale : '20-80';
+    const displayReport = convertReportGrades(updatedReport.toJSON(), scale);
+
     res.json({
       success: true,
       message: 'Scouting report updated successfully',
-      data: updatedReport
+      data: displayReport
     });
   } catch (error) {
     // Error: Database update failure

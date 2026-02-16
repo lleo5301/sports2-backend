@@ -9,9 +9,17 @@ const PreferenceList = sequelize.define('PreferenceList', {
   },
   player_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'players',
+      key: 'id'
+    }
+  },
+  prospect_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'prospects',
       key: 'id'
     }
   },
@@ -24,7 +32,7 @@ const PreferenceList = sequelize.define('PreferenceList', {
     }
   },
   list_type: {
-    type: DataTypes.ENUM('new_players', 'overall_pref_list', 'hs_pref_list', 'college_transfers'),
+    type: DataTypes.ENUM('new_players', 'overall_pref_list', 'hs_pref_list', 'college_transfers', 'pitchers_pref_list'),
     allowNull: false
   },
   priority: {
@@ -113,10 +121,6 @@ const PreferenceList = sequelize.define('PreferenceList', {
 }, {
   tableName: 'preference_lists',
   indexes: [
-    {
-      unique: true,
-      fields: ['player_id', 'team_id', 'list_type']
-    },
     {
       fields: ['team_id', 'list_type', 'priority']
     }

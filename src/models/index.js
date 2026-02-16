@@ -33,6 +33,8 @@ const SyncLog = require('./SyncLog');
 const IntegrationCredential = require('./IntegrationCredential');
 const NewsRelease = require('./NewsRelease');
 const PlayerVideo = require('./PlayerVideo');
+const Prospect = require('./Prospect');
+const ProspectMedia = require('./ProspectMedia');
 
 // Define associations
 
@@ -72,6 +74,9 @@ Player.hasMany(ScoutingReport, { foreignKey: 'player_id' });
 ScoutingReport.belongsTo(User, { foreignKey: 'created_by' });
 User.hasMany(ScoutingReport, { foreignKey: 'created_by' });
 
+ScoutingReport.belongsTo(Prospect, { foreignKey: 'prospect_id' });
+Prospect.hasMany(ScoutingReport, { foreignKey: 'prospect_id' });
+
 DailyReport.belongsTo(Team, { foreignKey: 'team_id' });
 Team.hasMany(DailyReport, { foreignKey: 'team_id' });
 
@@ -80,6 +85,9 @@ User.hasMany(DailyReport, { foreignKey: 'created_by' });
 
 PreferenceList.belongsTo(Player, { foreignKey: 'player_id' });
 Player.hasMany(PreferenceList, { foreignKey: 'player_id' });
+
+PreferenceList.belongsTo(Prospect, { foreignKey: 'prospect_id' });
+Prospect.hasMany(PreferenceList, { foreignKey: 'prospect_id' });
 
 PreferenceList.belongsTo(Team, { foreignKey: 'team_id' });
 Team.hasMany(PreferenceList, { foreignKey: 'team_id' });
@@ -258,6 +266,20 @@ Player.hasMany(PlayerVideo, { foreignKey: 'player_id', as: 'videos' });
 PlayerVideo.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
 Team.hasMany(PlayerVideo, { foreignKey: 'team_id', as: 'playerVideos' });
 
+// Prospect associations
+Prospect.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(Prospect, { foreignKey: 'team_id' });
+
+Prospect.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(Prospect, { foreignKey: 'created_by' });
+
+// ProspectMedia associations
+ProspectMedia.belongsTo(Prospect, { foreignKey: 'prospect_id' });
+Prospect.hasMany(ProspectMedia, { foreignKey: 'prospect_id', as: 'media' });
+
+ProspectMedia.belongsTo(User, { foreignKey: 'uploaded_by', as: 'UploadedBy' });
+User.hasMany(ProspectMedia, { foreignKey: 'uploaded_by' });
+
 module.exports = {
   sequelize,
   User,
@@ -291,5 +313,7 @@ module.exports = {
   SyncLog,
   IntegrationCredential,
   NewsRelease,
-  PlayerVideo
+  PlayerVideo,
+  Prospect,
+  ProspectMedia
 };
