@@ -2,6 +2,7 @@ require('dotenv').config();
 require('express-async-errors');
 
 const logger = require('./utils/logger');
+const SyncScheduler = require('./services/syncScheduler');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -189,6 +190,13 @@ const startServer = async () => {
       logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
       logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
+
+      // Start sync scheduler in production and development (not test)
+      if (process.env.NODE_ENV !== 'test') {
+        const syncScheduler = new SyncScheduler();
+        syncScheduler.start();
+        app.locals.syncScheduler = syncScheduler;
+      }
     });
   } catch (error) {
     logger.error('❌ Unable to start server:', error);
@@ -207,12 +215,18 @@ module.exports = app;
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('🛑 SIGTERM received, shutting down gracefully');
+  if (app.locals.syncScheduler) {
+    app.locals.syncScheduler.stop();
+  }
   await sequelize.close();
   process.exit(0); // eslint-disable-line no-process-exit
 });
 
 process.on('SIGINT', async () => {
   logger.info('🛑 SIGINT received, shutting down gracefully');
+  if (app.locals.syncScheduler) {
+    app.locals.syncScheduler.stop();
+  }
   await sequelize.close();
   process.exit(0); // eslint-disable-line no-process-exit
 });

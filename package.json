@@ -45,6 +45,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.0",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
     "passport": "^0.7.0",
     "passport-apple": "^2.0.2",
