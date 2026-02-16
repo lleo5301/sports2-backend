@@ -5,7 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const { body, query, param, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
-const { Prospect, ProspectMedia, User } = require('../models');
+const { Prospect, ProspectMedia, User, ScoutingReport, Team } = require('../models');
+const { convertReportGrades, toNumericGrade, GRADE_FIELDS } = require('../utils/gradeConverter');
 const { protect } = require('../middleware/auth');
 const { uploadProspectMedia, handleUploadError } = require('../middleware/upload');
 const logger = require('../utils/logger');
@@ -201,6 +202,99 @@ router.delete('/:id', [
   } catch (error) {
     logger.error('Delete prospect error:', error);
     res.status(500).json({ success: false, error: 'Server error while deleting prospect' });
+  }
+});
+
+// POST /:id/scouting-reports -- create scouting report for prospect
+router.post('/:id/scouting-reports', [
+  param('id').isInt({ min: 1 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+
+    // Verify prospect exists and belongs to team
+    const prospect = await Prospect.findOne({
+      where: { id: req.params.id, team_id: req.user.team_id }
+    });
+
+    if (!prospect) {
+      return res.status(404).json({ success: false, error: 'Prospect not found' });
+    }
+
+    // Convert letter grades to numeric on input
+    const convertedBody = { ...req.body };
+    for (const field of GRADE_FIELDS) {
+      if (field in convertedBody && typeof convertedBody[field] === 'string') {
+        convertedBody[field] = toNumericGrade(convertedBody[field]);
+      }
+    }
+
+    // Create the scouting report
+    const scoutingReport = await ScoutingReport.create({
+      ...convertedBody,
+      prospect_id: prospect.id,
+      player_id: null,
+      created_by: req.user.id
+    });
+
+    // Fetch with associations for response
+    const createdReport = await ScoutingReport.findByPk(scoutingReport.id, {
+      include: [
+        { model: User, attributes: ['id', 'first_name', 'last_name'] }
+      ]
+    });
+
+    // Convert grades for display using team's scale
+    const team = await Team.findByPk(req.user.team_id, { attributes: ['scouting_grade_scale'] });
+    const scale = team ? team.scouting_grade_scale : '20-80';
+    const displayReport = convertReportGrades(createdReport.toJSON(), scale);
+
+    res.status(201).json({ success: true, data: displayReport });
+  } catch (error) {
+    logger.error('Create prospect scouting report error:', error);
+    res.status(500).json({ success: false, error: 'Server error while creating scouting report' });
+  }
+});
+
+// GET /:id/scouting-reports -- list scouting reports for prospect
+router.get('/:id/scouting-reports', [
+  param('id').isInt({ min: 1 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+
+    // Verify prospect exists and belongs to team
+    const prospect = await Prospect.findOne({
+      where: { id: req.params.id, team_id: req.user.team_id }
+    });
+
+    if (!prospect) {
+      return res.status(404).json({ success: false, error: 'Prospect not found' });
+    }
+
+    const reports = await ScoutingReport.findAll({
+      where: { prospect_id: prospect.id },
+      include: [
+        { model: User, attributes: ['id', 'first_name', 'last_name'] }
+      ],
+      order: [['report_date', 'DESC']]
+    });
+
+    // Convert grades for display using team's scale
+    const team = await Team.findByPk(req.user.team_id, { attributes: ['scouting_grade_scale'] });
+    const scale = team ? team.scouting_grade_scale : '20-80';
+    const convertedReports = reports.map((r) => convertReportGrades(r.toJSON(), scale));
+
+    res.json({ success: true, data: convertedReports });
+  } catch (error) {
+    logger.error('Get prospect scouting reports error:', error);
+    res.status(500).json({ success: false, error: 'Server error while fetching scouting reports' });
   }
 });
 
