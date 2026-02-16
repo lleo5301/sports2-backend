@@ -2,7 +2,6 @@
 
 const express = require('express');
 const fs = require('fs');
-const path = require('path');
 const { body, query, param, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Prospect, ProspectMedia, User, ScoutingReport, Team } = require('../models');
@@ -75,9 +74,15 @@ router.get('/', [
 
     const whereClause = { team_id: req.user.team_id };
 
-    if (school_type) { whereClause.school_type = school_type; }
-    if (primary_position) { whereClause.primary_position = primary_position; }
-    if (status) { whereClause.status = status; }
+    if (school_type) {
+      whereClause.school_type = school_type;
+    }
+    if (primary_position) {
+      whereClause.primary_position = primary_position;
+    }
+    if (status) {
+      whereClause.status = status;
+    }
 
     if (search) {
       whereClause[Op.or] = [
@@ -300,9 +305,15 @@ router.get('/:id/scouting-reports', [
 
 // Helper to detect media_type from MIME type
 const detectMediaType = (mimetype) => {
-  if (mimetype.startsWith('video/')) return 'video';
-  if (mimetype.startsWith('image/')) return 'photo';
-  if (mimetype === 'application/pdf') return 'document';
+  if (mimetype.startsWith('video/')) {
+    return 'video';
+  }
+  if (mimetype.startsWith('image/')) {
+    return 'photo';
+  }
+  if (mimetype === 'application/pdf') {
+    return 'document';
+  }
   return 'document';
 };
 
