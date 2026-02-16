@@ -33,6 +33,7 @@ const SyncLog = require('./SyncLog');
 const IntegrationCredential = require('./IntegrationCredential');
 const NewsRelease = require('./NewsRelease');
 const PlayerVideo = require('./PlayerVideo');
+const Prospect = require('./Prospect');
 
 // Define associations
 
@@ -258,6 +259,13 @@ Player.hasMany(PlayerVideo, { foreignKey: 'player_id', as: 'videos' });
 PlayerVideo.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
 Team.hasMany(PlayerVideo, { foreignKey: 'team_id', as: 'playerVideos' });
 
+// Prospect associations
+Prospect.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(Prospect, { foreignKey: 'team_id' });
+
+Prospect.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(Prospect, { foreignKey: 'created_by' });
+
 module.exports = {
   sequelize,
   User,
@@ -291,5 +299,6 @@ module.exports = {
   SyncLog,
   IntegrationCredential,
   NewsRelease,
-  PlayerVideo
+  PlayerVideo,
+  Prospect
 };
