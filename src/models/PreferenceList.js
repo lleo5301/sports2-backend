@@ -24,7 +24,7 @@ const PreferenceList = sequelize.define('PreferenceList', {
     }
   },
   list_type: {
-    type: DataTypes.ENUM('new_players', 'overall_pref_list', 'hs_pref_list', 'college_transfers'),
+    type: DataTypes.ENUM('new_players', 'overall_pref_list', 'hs_pref_list', 'college_transfers', 'pitchers_pref_list'),
     allowNull: false
   },
   priority: {
