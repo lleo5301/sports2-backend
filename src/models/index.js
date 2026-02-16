@@ -74,6 +74,9 @@ Player.hasMany(ScoutingReport, { foreignKey: 'player_id' });
 ScoutingReport.belongsTo(User, { foreignKey: 'created_by' });
 User.hasMany(ScoutingReport, { foreignKey: 'created_by' });
 
+ScoutingReport.belongsTo(Prospect, { foreignKey: 'prospect_id' });
+Prospect.hasMany(ScoutingReport, { foreignKey: 'prospect_id' });
+
 DailyReport.belongsTo(Team, { foreignKey: 'team_id' });
 Team.hasMany(DailyReport, { foreignKey: 'team_id' });
 
