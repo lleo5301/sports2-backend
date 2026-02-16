@@ -1,10 +1,13 @@
 'use strict';
 
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const { body, query, param, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Prospect, ProspectMedia, User } = require('../models');
 const { protect } = require('../middleware/auth');
+const { uploadProspectMedia, handleUploadError } = require('../middleware/upload');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -198,6 +201,134 @@ router.delete('/:id', [
   } catch (error) {
     logger.error('Delete prospect error:', error);
     res.status(500).json({ success: false, error: 'Server error while deleting prospect' });
+  }
+});
+
+// Helper to detect media_type from MIME type
+const detectMediaType = (mimetype) => {
+  if (mimetype.startsWith('video/')) return 'video';
+  if (mimetype.startsWith('image/')) return 'photo';
+  if (mimetype === 'application/pdf') return 'document';
+  return 'document';
+};
+
+// POST /:id/media — upload file or add external URL
+router.post('/:id/media', [
+  param('id').isInt({ min: 1 })
+], (req, res, next) => {
+  // Try multer upload first; if no file, continue to JSON handler
+  uploadProspectMedia(req, res, (err) => {
+    if (err) {
+      return handleUploadError(err, req, res, next);
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+
+    // Verify prospect exists and belongs to team
+    const prospect = await Prospect.findOne({
+      where: { id: req.params.id, team_id: req.user.team_id }
+    });
+
+    if (!prospect) {
+      // Clean up uploaded file if prospect not found
+      if (req.file) {
+        fs.unlink(req.file.path, () => {});
+      }
+      return res.status(404).json({ success: false, error: 'Prospect not found' });
+    }
+
+    let mediaData;
+
+    if (req.file) {
+      // File upload mode
+      mediaData = {
+        prospect_id: prospect.id,
+        uploaded_by: req.user.id,
+        media_type: detectMediaType(req.file.mimetype),
+        file_path: req.file.path,
+        title: req.body.title || req.file.originalname,
+        description: req.body.description || null
+      };
+    } else {
+      // External URL mode
+      const { url, media_type, title, description } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ success: false, error: 'Either a file or url is required' });
+      }
+
+      if (!media_type || !['video', 'photo', 'document'].includes(media_type)) {
+        return res.status(400).json({ success: false, error: 'Valid media_type (video, photo, document) is required for URL media' });
+      }
+
+      mediaData = {
+        prospect_id: prospect.id,
+        uploaded_by: req.user.id,
+        media_type,
+        url,
+        title: title || null,
+        description: description || null
+      };
+    }
+
+    const media = await ProspectMedia.create(mediaData);
+
+    res.status(201).json({ success: true, data: media });
+  } catch (error) {
+    logger.error('Upload prospect media error:', error);
+    res.status(500).json({ success: false, error: 'Server error while uploading media' });
+  }
+});
+
+// DELETE /:id/media/:mediaId — delete media
+router.delete('/:id/media/:mediaId', [
+  param('id').isInt({ min: 1 }),
+  param('mediaId').isInt({ min: 1 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+
+    // Find media where the prospect belongs to user's team
+    const prospect = await Prospect.findOne({
+      where: { id: req.params.id, team_id: req.user.team_id }
+    });
+
+    if (!prospect) {
+      return res.status(404).json({ success: false, error: 'Prospect not found' });
+    }
+
+    const media = await ProspectMedia.findOne({
+      where: { id: req.params.mediaId, prospect_id: prospect.id }
+    });
+
+    if (!media) {
+      return res.status(404).json({ success: false, error: 'Media not found' });
+    }
+
+    // Delete file from disk if it was an uploaded file
+    if (media.file_path) {
+      fs.unlink(media.file_path, (err) => {
+        if (err && err.code !== 'ENOENT') {
+          logger.error('Error deleting media file:', err);
+        }
+      });
+    }
+
+    await media.destroy();
+
+    res.json({ success: true, message: 'Media deleted successfully' });
+  } catch (error) {
+    logger.error('Delete prospect media error:', error);
+    res.status(500).json({ success: false, error: 'Server error while deleting media' });
   }
 });
 
