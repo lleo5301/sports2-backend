@@ -35,6 +35,8 @@ const NewsRelease = require('./NewsRelease');
 const PlayerVideo = require('./PlayerVideo');
 const Prospect = require('./Prospect');
 const ProspectMedia = require('./ProspectMedia');
+const Roster = require('./Roster');
+const RosterEntry = require('./RosterEntry');
 
 // Define associations
 
@@ -280,6 +282,22 @@ Prospect.hasMany(ProspectMedia, { foreignKey: 'prospect_id', as: 'media' });
 ProspectMedia.belongsTo(User, { foreignKey: 'uploaded_by', as: 'UploadedBy' });
 User.hasMany(ProspectMedia, { foreignKey: 'uploaded_by' });
 
+// Roster associations
+Roster.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasMany(Roster, { foreignKey: 'team_id' });
+
+Roster.belongsTo(Game, { foreignKey: 'game_id' });
+Game.hasMany(Roster, { foreignKey: 'game_id', as: 'rosters' });
+
+Roster.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(Roster, { foreignKey: 'created_by' });
+
+Roster.hasMany(RosterEntry, { foreignKey: 'roster_id', as: 'entries' });
+RosterEntry.belongsTo(Roster, { foreignKey: 'roster_id' });
+
+RosterEntry.belongsTo(Player, { foreignKey: 'player_id' });
+Player.hasMany(RosterEntry, { foreignKey: 'player_id' });
+
 module.exports = {
   sequelize,
   User,
@@ -315,5 +333,7 @@ module.exports = {
   NewsRelease,
   PlayerVideo,
   Prospect,
-  ProspectMedia
+  ProspectMedia,
+  Roster,
+  RosterEntry
 };
