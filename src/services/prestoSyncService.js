@@ -2034,22 +2034,15 @@ class PrestoSyncService {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Find today's games or games marked as in-progress
+    // Find today's games only — must have a PrestoSports event ID
     const games = await Game.findAll({
       where: {
         team_id: teamId,
-        [Op.or]: [
-          // Today's games
-          {
-            game_date: {
-              [Op.gte]: today,
-              [Op.lt]: tomorrow
-            }
-          },
-          // Or games marked as scheduled (might be in progress)
-          { game_status: 'scheduled' }
-        ],
-        // Must have a PrestoSports event ID to fetch live stats
+        game_date: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow
+        },
+        game_status: { [Op.ne]: 'completed' },
         [Op.or]: [
           { presto_event_id: { [Op.ne]: null } },
           { external_id: { [Op.ne]: null } }
