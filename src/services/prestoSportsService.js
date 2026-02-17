@@ -118,7 +118,10 @@ class PrestoSportsService {
       const response = await axios(config);
       return response.data;
     } catch (error) {
-      console.error(`PrestoSports API error (${endpoint}):`, error.response?.data || error.message);
+      // Don't log 404s as errors — callers handle them (e.g. livestats for games not yet started)
+      if (error.response?.status !== 404) {
+        console.error(`PrestoSports API error (${endpoint}):`, error.response?.data || error.message);
+      }
       throw error;
     }
   }
@@ -251,9 +254,12 @@ class PrestoSportsService {
 
   /**
    * Get live stats for an event
+   * @param {string} token - JWT token
+   * @param {string} eventId - PrestoSports event ID
+   * @param {string} homeTeamId - PrestoSports home team ID (required by API as 'h' param)
    */
-  async getEventLiveStats(token, eventId) {
-    return this.makeRequest(token, 'GET', `/events/${eventId}/livestats`);
+  async getEventLiveStats(token, eventId, homeTeamId) {
+    return this.makeRequest(token, 'GET', `/events/${eventId}/livestats`, { h: homeTeamId });
   }
 
   /**

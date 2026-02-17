@@ -1901,8 +1901,27 @@ class PrestoSyncService {
         home_away: game.home_away
       };
 
+      // Get the home team ID required by the livestats API ('h' param)
+      const eventDetails = await prestoSportsService.getEvent(token, eventId);
+      const eventData = eventDetails.data || eventDetails;
+      const homeTeamId = eventData.teams?.homeTeam?.teamId;
+      if (!homeTeamId) {
+        throw new Error('Could not determine home team ID from event details');
+      }
+
       // Fetch live stats from PrestoSports
-      const liveData = await prestoSportsService.getEventLiveStats(token, eventId);
+      let liveData;
+      try {
+        liveData = await prestoSportsService.getEventLiveStats(token, eventId, homeTeamId);
+      } catch (liveErr) {
+        if (liveErr.response?.status === 404) {
+          // 404 = no stats yet (game hasn't started) — not an error
+          results.success = true;
+          results.gameState = { status: 'not_started' };
+          return results;
+        }
+        throw liveErr;
+      }
 
       // Extract game state
       results.gameState = {
