@@ -194,40 +194,69 @@ class PrestoSyncService {
   /**
    * Aggregate career stats from an array of season stats
    */
-  aggregateCareerStats(seasons) {
-    if (!Array.isArray(seasons) || seasons.length === 0) {
+  aggregateCareerStats(seasonEntries) {
+    if (!Array.isArray(seasonEntries) || seasonEntries.length === 0) {
       return null;
     }
 
-    const sumField = (field, altField) => {
-      return seasons.reduce((sum, s) => {
-        const val = s?.[field] ?? s?.[altField] ?? 0;
-        return sum + this.safeNumber(val);
+    // Extract nested stats — handle both players[] array and player object formats
+    const statsList = seasonEntries
+      .map(entry => {
+        // players[] array format (career-by-season endpoint)
+        if (entry?.players?.length) {
+          return entry.players[0]?.stats;
+        }
+        // player object format
+        if (entry?.player?.stats) {
+          return entry.player.stats;
+        }
+        // flat stats
+        return entry?.stats || entry;
+      })
+      .filter(s => s && typeof s === 'object');
+
+    if (statsList.length === 0) {
+      return null;
+    }
+
+    const sumField = (field) => {
+      return statsList.reduce((sum, s) => {
+        return sum + this.safeNumber(s?.[field]);
       }, 0);
     };
 
-    return {
-      seasonsPlayed: seasons.length,
-      gp: sumField('gp', 'gamesPlayed'),
-      ab: sumField('ab', 'atBats'),
-      r: sumField('r', 'runs'),
-      h: sumField('h', 'hits'),
-      doubles: sumField('doubles', '2b'),
-      triples: sumField('triples', '3b'),
-      hr: sumField('hr', 'homeRuns'),
-      rbi: sumField('rbi', 'rbi'),
-      bb: sumField('bb', 'walks'),
-      so: sumField('so', 'strikeouts'),
-      sb: sumField('sb', 'stolenBases'),
-      app: sumField('app', 'appearances'),
-      ip: sumField('ip', 'inningsPitched'),
-      w: sumField('w', 'wins'),
-      l: sumField('l', 'losses'),
-      sv: sumField('sv', 'saves'),
-      er: sumField('er', 'earnedRuns'),
-      kp: sumField('kp', 'strikeoutsPitching')
-      // Note: Calculated stats (avg, era, etc.) will be computed after insert
+    const aggregated = {
+      seasonsPlayed: seasonEntries.length,
+      gp: sumField('gp'),
+      ab: sumField('ab'),
+      r: sumField('r'),
+      h: sumField('h'),
+      '2b': sumField('dsk') || sumField('2b'),
+      '3b': sumField('3b'),
+      hr: sumField('hr'),
+      rbi: sumField('rbi'),
+      bb: sumField('bb'),
+      k: sumField('k'),
+      sb: sumField('sb'),
+      pgp: sumField('pgp'),
+      ip: sumField('ip'),
+      pw: sumField('pw'),
+      pl: sumField('pl'),
+      sv: sumField('sv'),
+      er: sumField('er'),
+      pk: sumField('pk')
     };
+
+    // Calculate career averages from aggregated totals
+    if (aggregated.ab > 0) {
+      aggregated.avg = (aggregated.h / aggregated.ab).toFixed(3);
+    }
+    const ip = parseFloat(aggregated.ip) || 0;
+    if (ip > 0) {
+      aggregated.era = ((aggregated.er * 9) / ip).toFixed(2);
+    }
+
+    return aggregated;
   }
 
   /**
@@ -902,12 +931,22 @@ class PrestoSyncService {
       const response = await prestoSportsService.getTeamPlayerStats(token, prestoTeamId);
       const playerStats = response.data || [];
 
-      for (const stats of playerStats) {
+      // Fetch season name from Presto API
+      let seasonName = null;
+      if (prestoSeasonId) {
+        try {
+          const seasonResp = await prestoSportsService.getSeasonTeams(token, prestoSeasonId);
+          const teamEntry = (seasonResp.data || []).find(t => t.teamId === prestoTeamId);
+          seasonName = teamEntry?.season?.seasonName || null;
+        } catch (_e) { /* non-critical */ }
+      }
+
+      for (const playerItem of playerStats) {
         try {
           // Find the player by external_id
           const player = await Player.findOne({
             where: {
-              external_id: String(stats.playerId || stats.id),
+              external_id: String(playerItem.playerId || playerItem.id),
               team_id: teamId
             }
           });
@@ -916,66 +955,78 @@ class PrestoSyncService {
             continue;
           }
 
+          // Stats are nested inside playerItem.stats as string values
+          const s = playerItem.stats || {};
+          const n = (v) => this.safeNumber(v);
+          const d = (v) => {
+            if (v === null || v === undefined || v === '' || v === '-') {
+              return null;
+            }
+            const num = parseFloat(v);
+            return isNaN(num) ? null : num;
+          };
+
           const seasonData = {
             player_id: player.id,
             team_id: teamId,
             season: prestoSeasonId || 'current',
+            season_name: seasonName,
             presto_season_id: prestoSeasonId,
 
             // Batting stats
-            games_played: stats.gp ?? stats.gamesPlayed ?? 0,
-            games_started: stats.gs ?? stats.gamesStarted ?? 0,
-            at_bats: stats.ab ?? stats.atBats ?? 0,
-            runs: stats.r ?? stats.runs ?? 0,
-            hits: stats.h ?? stats.hits ?? 0,
-            doubles: stats.doubles ?? stats['2b'] ?? 0,
-            triples: stats.triples ?? stats['3b'] ?? 0,
-            home_runs: stats.hr ?? stats.homeRuns ?? 0,
-            rbi: stats.rbi ?? 0,
-            walks: stats.bb ?? stats.walks ?? 0,
-            strikeouts: stats.so ?? stats.strikeouts ?? 0,
-            stolen_bases: stats.sb ?? stats.stolenBases ?? 0,
-            caught_stealing: stats.cs ?? stats.caughtStealing ?? 0,
-            hit_by_pitch: stats.hbp ?? 0,
-            sacrifice_flies: stats.sf ?? 0,
-            sacrifice_bunts: stats.sac ?? stats.sh ?? 0,
+            games_played: n(s.gp),
+            games_started: n(s.gs),
+            at_bats: n(s.ab),
+            runs: n(s.r),
+            hits: n(s.h),
+            doubles: n(s.dsk) || n(s['2b']),
+            triples: n(s['3b']),
+            home_runs: n(s.hr),
+            rbi: n(s.rbi),
+            walks: n(s.bb),
+            strikeouts: n(s.k),
+            stolen_bases: n(s.sb),
+            caught_stealing: n(s.cs),
+            hit_by_pitch: n(s.hbp),
+            sacrifice_flies: n(s.sf),
+            sacrifice_bunts: n(s.sh),
 
-            // Calculated batting (from API or calculate)
-            batting_average: stats.avg ?? stats.battingAverage ?? null,
-            on_base_percentage: stats.obp ?? stats.onBasePercentage ?? null,
-            slugging_percentage: stats.slg ?? stats.sluggingPercentage ?? null,
-            ops: stats.ops ?? null,
+            // Calculated batting (from API)
+            batting_average: d(s.avg),
+            on_base_percentage: d(s.obp),
+            slugging_percentage: d(s.slg),
+            ops: d(s.ops),
 
             // Pitching stats
-            pitching_appearances: stats.app ?? stats.appearances ?? 0,
-            pitching_starts: stats.gs ?? stats.pitchingStarts ?? 0,
-            innings_pitched: stats.ip ?? stats.inningsPitched ?? 0,
-            pitching_wins: stats.w ?? stats.wins ?? 0,
-            pitching_losses: stats.l ?? stats.losses ?? 0,
-            saves: stats.sv ?? stats.saves ?? 0,
-            holds: stats.hld ?? stats.holds ?? 0,
-            hits_allowed: stats.ha ?? stats.hitsAllowed ?? 0,
-            runs_allowed: stats.ra ?? stats.runsAllowed ?? 0,
-            earned_runs: stats.er ?? stats.earnedRuns ?? 0,
-            walks_allowed: stats.bbp ?? stats.walksAllowed ?? 0,
-            strikeouts_pitching: stats.kp ?? stats.strikeoutsPitching ?? 0,
-            home_runs_allowed: stats.hra ?? stats.homeRunsAllowed ?? 0,
+            pitching_appearances: n(s.pgp),
+            pitching_starts: n(s.pgs),
+            innings_pitched: d(s.ip) ?? 0,
+            pitching_wins: n(s.pw),
+            pitching_losses: n(s.pl),
+            saves: n(s.sv),
+            holds: n(s.hd),
+            hits_allowed: n(s.ph),
+            runs_allowed: n(s.pr),
+            earned_runs: n(s.er),
+            walks_allowed: n(s.pbb),
+            strikeouts_pitching: n(s.pk),
+            home_runs_allowed: n(s.phr),
 
             // Calculated pitching
-            era: stats.era ?? null,
-            whip: stats.whip ?? null,
-            k_per_9: stats.k9 ?? stats.kPer9 ?? null,
-            bb_per_9: stats.bb9 ?? stats.bbPer9 ?? null,
+            era: d(s.era),
+            whip: d(s.whip),
+            k_per_9: d(s.kavg),
+            bb_per_9: d(s.bbavg),
 
             // Fielding
-            fielding_games: stats.fg ?? stats.fieldingGames ?? 0,
-            putouts: stats.po ?? stats.putouts ?? 0,
-            assists: stats.a ?? stats.assists ?? 0,
-            errors: stats.e ?? stats.errors ?? 0,
-            fielding_percentage: stats.fpct ?? stats.fieldingPercentage ?? null,
+            fielding_games: n(s.gp),
+            putouts: n(s.po),
+            assists: n(s.a),
+            errors: n(s.e),
+            fielding_percentage: d(s.fpct),
 
             // Source tracking
-            external_id: `${prestoTeamId}-${stats.playerId || stats.id}-${prestoSeasonId}`,
+            external_id: `${prestoTeamId}-${playerItem.playerId || playerItem.id}-${prestoSeasonId}`,
             source_system: 'presto',
             last_synced_at: new Date()
           };
@@ -1000,7 +1051,7 @@ class PrestoSyncService {
           }
         } catch (error) {
           results.errors.push({
-            item_id: stats.playerId || stats.id,
+            item_id: playerItem.playerId || playerItem.id,
             item_type: 'season_stat',
             error: error.message
           });
@@ -1058,56 +1109,61 @@ class PrestoSyncService {
       for (const player of players) {
         try {
           const response = await prestoSportsService.getPlayerCareerStats(token, player.external_id);
-          const rawStats = response.data || response;
+          const rawData = response.data || response;
 
-          if (!rawStats || (Array.isArray(rawStats) && rawStats.length === 0)) {
+          // Presto returns { seasons: [ { player: { stats: {...} }, ... } ] }
+          const seasonEntries = rawData.seasons || (Array.isArray(rawData) ? rawData : []);
+          if (!seasonEntries.length) {
             continue;
           }
 
-          // If API returns array of seasons, aggregate them into career totals
-          let stats = rawStats;
-          if (Array.isArray(rawStats)) {
-            stats = this.aggregateCareerStats(rawStats);
-          }
-
+          // Aggregate stats across all seasons from the nested player.stats objects
+          const stats = this.aggregateCareerStats(seasonEntries);
           if (!stats || Object.keys(stats).length === 0) {
             continue;
           }
 
+          const n = (v) => this.safeNumber(v);
+          const d = (v) => {
+            if (v === null || v === undefined || v === '' || v === '-') {
+              return null;
+            }
+            const num = parseFloat(v);
+            return isNaN(num) ? null : num;
+          };
+
           const careerData = {
             player_id: player.id,
 
-            // Career batting - use safeNumber to handle any non-numeric values
-            seasons_played: this.safeNumber(stats.seasons ?? stats.seasonsPlayed) || (Array.isArray(rawStats) ? rawStats.length : 1),
-            career_games: this.safeNumber(stats.gp ?? stats.games),
-            career_at_bats: this.safeNumber(stats.ab ?? stats.atBats),
-            career_runs: this.safeNumber(stats.r ?? stats.runs),
-            career_hits: this.safeNumber(stats.h ?? stats.hits),
-            career_doubles: this.safeNumber(stats.doubles ?? stats['2b']),
-            career_triples: this.safeNumber(stats.triples ?? stats['3b']),
-            career_home_runs: this.safeNumber(stats.hr ?? stats.homeRuns),
-            career_rbi: this.safeNumber(stats.rbi),
-            career_walks: this.safeNumber(stats.bb ?? stats.walks),
-            career_strikeouts: this.safeNumber(stats.so ?? stats.strikeouts),
-            career_stolen_bases: this.safeNumber(stats.sb ?? stats.stolenBases),
+            seasons_played: stats.seasonsPlayed || seasonEntries.length,
+            career_games: n(stats.gp),
+            career_at_bats: n(stats.ab),
+            career_runs: n(stats.r),
+            career_hits: n(stats.h),
+            career_doubles: n(stats['2b']),
+            career_triples: n(stats['3b']),
+            career_home_runs: n(stats.hr),
+            career_rbi: n(stats.rbi),
+            career_walks: n(stats.bb),
+            career_strikeouts: n(stats.k),
+            career_stolen_bases: n(stats.sb),
 
-            // Calculated - these can be null if not provided
-            career_batting_average: this.safeNumber(stats.avg ?? stats.battingAverage) || null,
-            career_obp: this.safeNumber(stats.obp) || null,
-            career_slg: this.safeNumber(stats.slg) || null,
-            career_ops: this.safeNumber(stats.ops) || null,
+            career_batting_average: d(stats.avg),
+            career_obp: d(stats.obp),
+            career_slg: d(stats.slg),
+            career_ops: d(stats.ops),
 
             // Career pitching
-            career_pitching_appearances: this.safeNumber(stats.app ?? stats.appearances),
-            career_innings_pitched: this.safeNumber(stats.ip ?? stats.inningsPitched),
-            career_wins: this.safeNumber(stats.w ?? stats.wins),
-            career_losses: this.safeNumber(stats.l ?? stats.losses),
-            career_saves: this.safeNumber(stats.sv ?? stats.saves),
-            career_earned_runs: this.safeNumber(stats.er ?? stats.earnedRuns),
-            career_strikeouts_pitching: this.safeNumber(stats.kp ?? stats.strikeoutsPitching),
+            career_pitching_appearances: n(stats.pgp),
+            career_innings_pitched: d(stats.ip) || 0,
+            career_wins: n(stats.pw),
+            career_losses: n(stats.pl),
+            career_saves: n(stats.sv),
+            career_earned_runs: n(stats.er),
+            career_strikeouts_pitching: n(stats.pk),
 
-            career_era: this.safeNumber(stats.era) || null,
-            career_whip: this.safeNumber(stats.whip) || null,
+            career_era: d(stats.era),
+            career_whip: d(stats.whip),
 
             // Source tracking
             external_id: `career-${player.external_id}`,
@@ -1413,7 +1469,7 @@ class PrestoSyncService {
     }
 
     const endpoint = `/api/stats/player/{playerId}/career/season`;
-    const syncLog = await SyncLog.logStart(teamId, 'historical_season_stats', _userId, endpoint, {
+    const syncLog = await SyncLog.logStart(teamId, 'historical_stats', _userId, endpoint, {
       presto_team_id: prestoTeamId
     });
 
@@ -1437,56 +1493,73 @@ class PrestoSyncService {
       for (const player of players) {
         try {
           const response = await prestoSportsService.getPlayerCareerBySeason(token, player.external_id);
-          const seasons = response.data || response || [];
+          const rawData = response.data || response;
+          // Presto returns { seasons: [ { seasonId, seasonName, players: [...] } ] }
+          const seasons = rawData.seasons || (Array.isArray(rawData) ? rawData : []);
 
-          if (!Array.isArray(seasons) || seasons.length === 0) {
+          if (!seasons.length) {
             continue;
           }
 
-          for (const seasonStats of seasons) {
-            const seasonYear = seasonStats.season || seasonStats.year || seasonStats.seasonId;
+          for (const seasonEntry of seasons) {
+            const seasonYear = seasonEntry.seasonId || seasonEntry.season || seasonEntry.year;
             if (!seasonYear) {
               continue;
             }
+
+            // Find this player's stats in the season — may be in players[] array or player object
+            const playerData = seasonEntry?.players?.find(
+              p => p.playerId === player.external_id || p.firstName === player.first_name
+            ) || seasonEntry?.player;
+            const s = playerData?.stats || seasonEntry?.stats || {};
+            const n = (v) => this.safeNumber(v);
+            const d = (v) => {
+              if (v === null || v === undefined || v === '' || v === '-') {
+                return null;
+              }
+              const num = parseFloat(v);
+              return isNaN(num) ? null : num;
+            };
 
             const seasonData = {
               player_id: player.id,
               team_id: teamId,
               season: String(seasonYear),
-              presto_season_id: seasonStats.seasonId || seasonYear,
+              season_name: seasonEntry.seasonName || null,
+              presto_season_id: seasonEntry.seasonId || seasonYear,
 
               // Batting stats
-              games_played: this.safeNumber(seasonStats.gp ?? seasonStats.gamesPlayed),
-              games_started: this.safeNumber(seasonStats.gs ?? seasonStats.gamesStarted),
-              at_bats: this.safeNumber(seasonStats.ab ?? seasonStats.atBats),
-              runs: this.safeNumber(seasonStats.r ?? seasonStats.runs),
-              hits: this.safeNumber(seasonStats.h ?? seasonStats.hits),
-              doubles: this.safeNumber(seasonStats.doubles ?? seasonStats['2b']),
-              triples: this.safeNumber(seasonStats.triples ?? seasonStats['3b']),
-              home_runs: this.safeNumber(seasonStats.hr ?? seasonStats.homeRuns),
-              rbi: this.safeNumber(seasonStats.rbi),
-              walks: this.safeNumber(seasonStats.bb ?? seasonStats.walks),
-              strikeouts: this.safeNumber(seasonStats.so ?? seasonStats.strikeouts),
-              stolen_bases: this.safeNumber(seasonStats.sb ?? seasonStats.stolenBases),
+              games_played: n(s.gp),
+              games_started: n(s.gs),
+              at_bats: n(s.ab),
+              runs: n(s.r),
+              hits: n(s.h),
+              doubles: n(s.dsk) || n(s['2b']),
+              triples: n(s['3b']),
+              home_runs: n(s.hr),
+              rbi: n(s.rbi),
+              walks: n(s.bb),
+              strikeouts: n(s.k),
+              stolen_bases: n(s.sb),
 
               // Calculated batting
-              batting_average: this.safeNumber(seasonStats.avg ?? seasonStats.battingAverage) || null,
-              on_base_percentage: this.safeNumber(seasonStats.obp) || null,
-              slugging_percentage: this.safeNumber(seasonStats.slg) || null,
-              ops: this.safeNumber(seasonStats.ops) || null,
+              batting_average: d(s.avg),
+              on_base_percentage: d(s.obp),
+              slugging_percentage: d(s.slg),
+              ops: d(s.ops),
 
               // Pitching stats
-              pitching_appearances: this.safeNumber(seasonStats.app ?? seasonStats.appearances),
-              innings_pitched: this.safeNumber(seasonStats.ip ?? seasonStats.inningsPitched),
-              pitching_wins: this.safeNumber(seasonStats.w ?? seasonStats.wins),
-              pitching_losses: this.safeNumber(seasonStats.l ?? seasonStats.losses),
-              saves: this.safeNumber(seasonStats.sv ?? seasonStats.saves),
-              earned_runs: this.safeNumber(seasonStats.er ?? seasonStats.earnedRuns),
-              strikeouts_pitching: this.safeNumber(seasonStats.kp ?? seasonStats.strikeoutsPitching),
+              pitching_appearances: n(s.pgp),
+              innings_pitched: d(s.ip) ?? 0,
+              pitching_wins: n(s.pw),
+              pitching_losses: n(s.pl),
+              saves: n(s.sv),
+              earned_runs: n(s.er),
+              strikeouts_pitching: n(s.pk),
 
               // Calculated pitching
-              era: this.safeNumber(seasonStats.era) || null,
-              whip: this.safeNumber(seasonStats.whip) || null,
+              era: d(s.era),
+              whip: d(s.whip),
 
               // Source tracking
               external_id: `${player.external_id}-${seasonYear}-historical`,

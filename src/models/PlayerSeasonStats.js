@@ -33,6 +33,10 @@ const PlayerSeasonStats = sequelize.define('PlayerSeasonStats', {
     type: DataTypes.STRING(100),
     allowNull: true
   },
+  season_name: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
 
   // Batting stats
   games_played: { type: DataTypes.INTEGER, defaultValue: 0 },
