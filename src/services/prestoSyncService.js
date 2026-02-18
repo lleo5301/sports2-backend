@@ -1968,6 +1968,55 @@ class PrestoSyncService {
   }
 
   /**
+   * Sync team aggregate stats (batting/pitching/fielding) from Presto.
+   */
+  async syncTeamAggregateStats(teamId) {
+    const { prestoTeamId } = await this.getPrestoConfig(teamId);
+    if (!prestoTeamId) {
+      throw new Error('PrestoSports team ID not configured');
+    }
+
+    const token = await this.getToken(teamId);
+    const response = await prestoSportsService.getTeamStats(token, prestoTeamId);
+    const allStats = response.data?.stats || response.data || {};
+
+    // Split the flat stats object into batting/pitching/fielding groups
+    const battingKeys = ['ab', 'r', 'h', 'hr', 'rbi', 'bb', 'k', 'sb', 'cs', 'hbp', 'sf', 'sh',
+      'avg', 'obp', 'slg', 'ops', 'tb', 'xbh', 'dp', 'gdp', 'pa', 'lob',
+      'runspergame', 'homerunspergame', 'stolenbasespergame', 'doublespergame', 'triplespergame',
+      'hittingvsleftpct', 'hittingvsrightpct', 'hittingwrunnerspct', 'hittingw2outspct',
+      'hittingadvopspct', 'hittingleadoffpct', 'hittingwloadedpct', 'hittingrbi3rdpct',
+      'hittingemptypct', 'hittingtotalhabpct', 'score'];
+    const pitchingKeys = ['era', 'whip', 'ip', 'ipraw', 'pw', 'pl', 'sv', 'cg', 'sho', 'hd',
+      'bf', 'ph', 'pr', 'er', 'phr', 'pbb', 'pk', 'bk', 'wp', 'ibb',
+      'pavg', 'kavg', 'bbavg', 'strikeoutspergame', 'walkspergame',
+      'pitchingvsleftpct', 'pitchingvsrightpct', 'pitchingw2outspct',
+      'pitchingwrunnerspct', 'pitchingwloadedpct', 'pitchingleadoffpct',
+      'pitchingemptypct', 'pitchingtotalhabpct', 'pitchingflygnd',
+      'eraplus', 'kbbrate', 'pbbrate', 'ipapp'];
+    const fieldingKeys = ['e', 'a', 'po', 'tc', 'fpct', 'dp', 'ci', 'pb', 'rcs', 'stlata', 'sba', 'sbpct'];
+
+    const pick = (keys) => {
+      const obj = {};
+      for (const k of keys) {
+        if (allStats[k] !== undefined) obj[k] = allStats[k];
+      }
+      return obj;
+    };
+
+    await Team.update({
+      team_batting_stats: pick(battingKeys),
+      team_pitching_stats: pick(pitchingKeys),
+      team_fielding_stats: pick(fieldingKeys),
+      stats_last_synced_at: new Date()
+    }, {
+      where: { id: teamId }
+    });
+
+    return { success: true };
+  }
+
+  /**
    * Sync everything (roster, schedule, stats, record, season stats, career stats)
    */
   async syncAll(teamId, userId) {
