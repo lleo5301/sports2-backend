@@ -49,6 +49,7 @@ const integrationRoutes = require('./routes/integrations');
 const prospectRoutes = require('./routes/prospects');
 const rosterRoutes = require('./routes/rosters');
 const newsRoutes = require('./routes/news');
+const teamStatsRoutes = require('./routes/teams/stats');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -123,6 +124,7 @@ app.get('/api/v1/health', (req, res) => {
 // API v1 routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/players', playerRoutes);
+app.use('/api/v1/teams', teamStatsRoutes);
 app.use('/api/v1/teams', teamRoutes);
 app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/recruits', recruitRoutes);
