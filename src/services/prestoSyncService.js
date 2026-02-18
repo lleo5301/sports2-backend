@@ -2017,6 +2017,62 @@ class PrestoSyncService {
   }
 
   /**
+   * Sync per-game team stats from Presto's getTeamEventStats endpoint.
+   * Matches Presto events to local games by presto_event_id.
+   */
+  async syncGameLog(teamId) {
+    const { prestoTeamId } = await this.getPrestoConfig(teamId);
+    if (!prestoTeamId) {
+      throw new Error('PrestoSports team ID not configured');
+    }
+
+    const token = await this.getToken(teamId);
+    const response = await prestoSportsService.getTeamEventStats(token, prestoTeamId);
+    const events = response.data || [];
+
+    const results = { updated: 0, skipped: 0, errors: [] };
+
+    for (const event of events) {
+      try {
+        if (!event.eventId) {
+          results.skipped++;
+          continue;
+        }
+
+        // Find the local game by presto_event_id
+        const game = await Game.findOne({
+          where: {
+            team_id: teamId,
+            [Op.or]: [
+              { presto_event_id: event.eventId },
+              { external_id: event.eventId }
+            ]
+          }
+        });
+
+        if (!game) {
+          results.skipped++;
+          continue;
+        }
+
+        await game.update({
+          team_stats: event.stats || null,
+          game_summary: event.resultWinnerLoser || event.resultUsOpponent || null,
+          running_record: event.currentRecord || null,
+          running_conference_record: event.currentRecordConference || null,
+          last_synced_at: new Date()
+        });
+
+        results.updated++;
+      } catch (error) {
+        results.errors.push({ event: event.eventId, error: error.message });
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Sync everything (roster, schedule, stats, record, season stats, career stats)
    */
   async syncAll(teamId, userId) {
@@ -2030,6 +2086,7 @@ class PrestoSyncService {
       roster: null,
       schedule: null,
       stats: null,
+      gameLog: null,
       teamRecord: null,
       seasonStats: null,
       splitStats: null,
@@ -2058,6 +2115,12 @@ class PrestoSyncService {
       results.stats = await this.syncStats(teamId, userId);
     } catch (error) {
       results.errors.push({ type: 'stats', error: error.message });
+    }
+
+    try {
+      results.gameLog = await this.syncGameLog(teamId);
+    } catch (error) {
+      results.errors.push({ type: 'gameLog', error: error.message });
     }
 
     try {
@@ -2121,14 +2184,15 @@ class PrestoSyncService {
       (results.playerPhotos?.updated || 0) + (results.historicalStats?.created || 0) +
       (results.playerVideos?.created || 0) + (results.pressReleases?.created || 0);
     const totalUpdated = (results.roster?.updated || 0) + (results.schedule?.updated || 0) +
-      (results.stats?.statsUpdated || 0) + (results.seasonStats?.updated || 0) +
-      (results.splitStats?.updated || 0) +
+      (results.stats?.statsUpdated || 0) + (results.gameLog?.updated || 0) +
+      (results.seasonStats?.updated || 0) + (results.splitStats?.updated || 0) +
       (results.careerStats?.updated || 0) + (results.teamRecord?.success ? 1 : 0) +
       (results.historicalStats?.updated || 0) + (results.playerVideos?.updated || 0) +
       (results.pressReleases?.updated || 0);
     const totalFailed = results.errors.length +
       (results.roster?.errors?.length || 0) + (results.schedule?.errors?.length || 0) +
-      (results.stats?.errors?.length || 0) + (results.seasonStats?.errors?.length || 0) +
+      (results.stats?.errors?.length || 0) + (results.gameLog?.errors?.length || 0) +
+      (results.seasonStats?.errors?.length || 0) +
       (results.splitStats?.errors?.length || 0) +
       (results.careerStats?.errors?.length || 0) + (results.playerDetails?.errors?.length || 0) +
       (results.playerPhotos?.errors?.length || 0) + (results.historicalStats?.errors?.length || 0) +
@@ -2142,6 +2206,7 @@ class PrestoSyncService {
         roster: results.roster ? { created: results.roster.created, updated: results.roster.updated } : null,
         schedule: results.schedule ? { created: results.schedule.created, updated: results.schedule.updated } : null,
         stats: results.stats ? { created: results.stats.statsCreated, updated: results.stats.statsUpdated } : null,
+        gameLog: results.gameLog ? { updated: results.gameLog.updated, skipped: results.gameLog.skipped } : null,
         teamRecord: results.teamRecord?.record || null,
         seasonStats: results.seasonStats ? { created: results.seasonStats.created, updated: results.seasonStats.updated } : null,
         splitStats: results.splitStats ? { updated: results.splitStats.updated } : null,
