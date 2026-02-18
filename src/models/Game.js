@@ -123,6 +123,33 @@ const Game = sequelize.define('Game', {
     type: DataTypes.ENUM('scheduled', 'completed', 'cancelled', 'postponed'),
     defaultValue: 'scheduled',
     comment: 'Game status'
+  },
+
+  // Extended Presto game stats
+  team_stats: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Per-game team stats from Presto'
+  },
+  opponent_stats: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Per-game opponent stats'
+  },
+  game_summary: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'e.g. "W, 5-3"'
+  },
+  running_record: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    comment: 'Team record at time of game'
+  },
+  running_conference_record: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    comment: 'Conference record at time of game'
   }
 }, {
   tableName: 'games',

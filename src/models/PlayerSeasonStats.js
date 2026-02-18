@@ -104,6 +104,18 @@ const PlayerSeasonStats = sequelize.define('PlayerSeasonStats', {
   last_synced_at: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+
+  // Extended Presto stats
+  raw_stats: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Full Presto stats object (214 keys)'
+  },
+  split_stats: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Keyed by split type: home, away, conference, vs_lhp, vs_rhp, risp, two_outs, bases_loaded, bases_empty, leadoff, with_runners'
   }
 }, {
   tableName: 'player_season_stats',

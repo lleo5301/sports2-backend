@@ -146,6 +146,28 @@ const Team = sequelize.define('Team', {
     type: DataTypes.ENUM('20-80', 'letter'),
     allowNull: false,
     defaultValue: 'letter'
+  },
+
+  // Aggregate team stats from Presto
+  team_batting_stats: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Aggregate team batting from Presto'
+  },
+  team_pitching_stats: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Aggregate team pitching'
+  },
+  team_fielding_stats: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Aggregate team fielding'
+  },
+  stats_last_synced_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When team stats were last refreshed'
   }
 }, {
   tableName: 'teams'
