@@ -1787,6 +1787,11 @@ class PrestoSyncService {
       teamRecord: null,
       seasonStats: null,
       careerStats: null,
+      playerDetails: null,
+      playerPhotos: null,
+      historicalStats: null,
+      playerVideos: null,
+      pressReleases: null,
       errors: []
     };
 
@@ -1826,17 +1831,53 @@ class PrestoSyncService {
       results.errors.push({ type: 'careerStats', error: error.message });
     }
 
+    try {
+      results.playerDetails = await this.syncPlayerDetails(teamId, userId);
+    } catch (error) {
+      results.errors.push({ type: 'playerDetails', error: error.message });
+    }
+
+    try {
+      results.playerPhotos = await this.syncPlayerPhotos(teamId, userId);
+    } catch (error) {
+      results.errors.push({ type: 'playerPhotos', error: error.message });
+    }
+
+    try {
+      results.historicalStats = await this.syncHistoricalSeasonStats(teamId, userId);
+    } catch (error) {
+      results.errors.push({ type: 'historicalStats', error: error.message });
+    }
+
+    try {
+      results.playerVideos = await this.syncPlayerVideos(teamId, userId);
+    } catch (error) {
+      results.errors.push({ type: 'playerVideos', error: error.message });
+    }
+
+    try {
+      results.pressReleases = await this.syncPressReleases(teamId, userId);
+    } catch (error) {
+      results.errors.push({ type: 'pressReleases', error: error.message });
+    }
+
     // Calculate totals for the full sync log
     const totalCreated = (results.roster?.created || 0) + (results.schedule?.created || 0) +
       (results.stats?.statsCreated || 0) + (results.seasonStats?.created || 0) +
-      (results.careerStats?.created || 0);
+      (results.careerStats?.created || 0) + (results.playerDetails?.updated || 0) +
+      (results.playerPhotos?.updated || 0) + (results.historicalStats?.created || 0) +
+      (results.playerVideos?.created || 0) + (results.pressReleases?.created || 0);
     const totalUpdated = (results.roster?.updated || 0) + (results.schedule?.updated || 0) +
       (results.stats?.statsUpdated || 0) + (results.seasonStats?.updated || 0) +
-      (results.careerStats?.updated || 0) + (results.teamRecord?.success ? 1 : 0);
+      (results.careerStats?.updated || 0) + (results.teamRecord?.success ? 1 : 0) +
+      (results.historicalStats?.updated || 0) + (results.playerVideos?.updated || 0) +
+      (results.pressReleases?.updated || 0);
     const totalFailed = results.errors.length +
       (results.roster?.errors?.length || 0) + (results.schedule?.errors?.length || 0) +
       (results.stats?.errors?.length || 0) + (results.seasonStats?.errors?.length || 0) +
-      (results.careerStats?.errors?.length || 0);
+      (results.careerStats?.errors?.length || 0) + (results.playerDetails?.errors?.length || 0) +
+      (results.playerPhotos?.errors?.length || 0) + (results.historicalStats?.errors?.length || 0) +
+      (results.playerVideos?.errors?.length || 0) + (results.pressReleases?.errors?.length || 0);
 
     await SyncLog.logComplete(syncLog.id, {
       created: totalCreated,
@@ -1848,7 +1889,12 @@ class PrestoSyncService {
         stats: results.stats ? { created: results.stats.statsCreated, updated: results.stats.statsUpdated } : null,
         teamRecord: results.teamRecord?.record || null,
         seasonStats: results.seasonStats ? { created: results.seasonStats.created, updated: results.seasonStats.updated } : null,
-        careerStats: results.careerStats ? { created: results.careerStats.created, updated: results.careerStats.updated } : null
+        careerStats: results.careerStats ? { created: results.careerStats.created, updated: results.careerStats.updated } : null,
+        playerDetails: results.playerDetails ? { updated: results.playerDetails.updated } : null,
+        playerPhotos: results.playerPhotos ? { updated: results.playerPhotos.updated } : null,
+        historicalStats: results.historicalStats ? { created: results.historicalStats.created, updated: results.historicalStats.updated } : null,
+        playerVideos: results.playerVideos ? { created: results.playerVideos.created, updated: results.playerVideos.updated } : null,
+        pressReleases: results.pressReleases ? { created: results.pressReleases.created, updated: results.pressReleases.updated } : null
       },
       itemErrors: results.errors.length > 0 ? results.errors : null
     });

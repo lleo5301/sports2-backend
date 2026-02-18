@@ -37,7 +37,7 @@ const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { protect } = require('../middleware/auth');
-const { Game, Team, GameStatistic, Player } = require('../models');
+const { Game, Team, GameStatistic, Player, PlayerSeasonStats } = require('../models');
 
 const router = express.Router();
 
@@ -988,6 +988,118 @@ router.get('/player-stats/:playerId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch player game statistics'
+    });
+  }
+});
+
+// ─── Leaderboard Stats Whitelist ──────────────────────────────────
+const LEADERBOARD_STATS = {
+  batting_average:      { qualifier: 'at_bats', defaultMin: 10, order: 'DESC' },
+  on_base_percentage:   { qualifier: 'at_bats', defaultMin: 10, order: 'DESC' },
+  slugging_percentage:  { qualifier: 'at_bats', defaultMin: 10, order: 'DESC' },
+  ops:                  { qualifier: 'at_bats', defaultMin: 10, order: 'DESC' },
+  home_runs:            { qualifier: null, defaultMin: 0, order: 'DESC' },
+  rbi:                  { qualifier: null, defaultMin: 0, order: 'DESC' },
+  hits:                 { qualifier: null, defaultMin: 0, order: 'DESC' },
+  runs:                 { qualifier: null, defaultMin: 0, order: 'DESC' },
+  stolen_bases:         { qualifier: null, defaultMin: 0, order: 'DESC' },
+  walks:                { qualifier: null, defaultMin: 0, order: 'DESC' },
+  doubles:              { qualifier: null, defaultMin: 0, order: 'DESC' },
+  triples:              { qualifier: null, defaultMin: 0, order: 'DESC' },
+  era:                  { qualifier: 'innings_pitched', defaultMin: 5, order: 'ASC' },
+  whip:                 { qualifier: 'innings_pitched', defaultMin: 5, order: 'ASC' },
+  k_per_9:              { qualifier: 'innings_pitched', defaultMin: 5, order: 'DESC' },
+  bb_per_9:             { qualifier: 'innings_pitched', defaultMin: 5, order: 'ASC' },
+  strikeouts_pitching:  { qualifier: null, defaultMin: 0, order: 'DESC' },
+  pitching_wins:        { qualifier: null, defaultMin: 0, order: 'DESC' },
+  saves:                { qualifier: null, defaultMin: 0, order: 'DESC' },
+  innings_pitched:      { qualifier: null, defaultMin: 0, order: 'DESC' },
+  fielding_percentage:  { qualifier: 'fielding_games', defaultMin: 3, order: 'DESC' }
+};
+
+/**
+ * @route GET /api/games/leaderboard
+ * @description Returns ranked player leaders for a given stat from PlayerSeasonStats.
+ * @access Private - Requires authentication
+ *
+ * @param {string} req.query.stat - Stat column to rank by (must be in LEADERBOARD_STATS)
+ * @param {string} [req.query.season] - Season filter (defaults to most recent)
+ * @param {number} [req.query.limit=10] - Number of leaders (max 50)
+ * @param {number} [req.query.min_qualifier] - Override minimum qualifying value
+ *
+ * @throws {400} Missing or invalid stat param
+ * @throws {500} Server error
+ */
+router.get('/leaderboard', [
+  query('stat').isIn(Object.keys(LEADERBOARD_STATS)).withMessage('Invalid or missing stat parameter'),
+  query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be 1-50'),
+  query('min_qualifier').optional().isInt({ min: 0 }).withMessage('min_qualifier must be a non-negative integer'),
+  handleValidationErrors
+], async (req, res) => {
+  try {
+    const { stat } = req.query;
+    const config = LEADERBOARD_STATS[stat];
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const minQualifier = req.query.min_qualifier !== undefined
+      ? parseInt(req.query.min_qualifier)
+      : config.defaultMin;
+
+    // Determine season: use query param or find most recent for this team
+    let season = req.query.season;
+    if (!season) {
+      const latest = await PlayerSeasonStats.findOne({
+        where: { team_id: req.user.team_id },
+        order: [['season', 'DESC']],
+        attributes: ['season']
+      });
+      season = latest ? latest.season : null;
+    }
+
+    if (!season) {
+      return res.json({
+        success: true,
+        data: { stat, season: null, leaders: [] }
+      });
+    }
+
+    // Build WHERE clause with qualifier filter
+    const where = {
+      team_id: req.user.team_id,
+      season,
+      [stat]: { [Op.not]: null }
+    };
+
+    if (config.qualifier && minQualifier > 0) {
+      where[config.qualifier] = { [Op.gte]: minQualifier };
+    }
+
+    const rows = await PlayerSeasonStats.findAll({
+      where,
+      order: [[stat, config.order]],
+      limit,
+      include: [{
+        model: Player,
+        as: 'player',
+        attributes: ['id', 'first_name', 'last_name', 'position', 'jersey_number', 'photo_url']
+      }]
+    });
+
+    const leaders = rows.map((row, idx) => ({
+      rank: idx + 1,
+      player: row.player,
+      value: row[stat],
+      qualifier_value: config.qualifier ? row[config.qualifier] : null
+    }));
+
+    res.json({
+      success: true,
+      data: { stat, season, leaders }
+    });
+  } catch (error) {
+    console.error('Get leaderboard error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching leaderboard'
     });
   }
 });

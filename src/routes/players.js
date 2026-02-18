@@ -15,7 +15,7 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
-const { Player, Team, User, ScoutingReport } = require('../models');
+const { Player, Team, User, ScoutingReport, PlayerSeasonStats, PlayerCareerStats, PlayerVideo } = require('../models');
 const { protect } = require('../middleware/auth');
 const { sequelize } = require('../config/database');
 const { uploadVideo, handleUploadError } = require('../middleware/upload');
@@ -631,51 +631,37 @@ router.get('/stats/summary', async (req, res) => {
 
 /**
  * @route GET /api/players/byId/:id/stats
- * @description Retrieves detailed batting and pitching statistics for a specific player.
- *              Returns all statistical fields with defaults for null values.
- *              Only returns stats for players belonging to the authenticated user's team.
+ * @description Retrieves season and career statistics for a specific player from
+ *              PlayerSeasonStats and PlayerCareerStats tables (populated by PrestoSports sync).
+ *              Optionally filters by season.
  * @access Private - Requires authentication
  * @middleware protect - JWT authentication required
  *
- * @param {string} req.params.id - Player UUID
+ * @param {string} req.params.id - Player ID
+ * @param {string} [req.query.season] - Filter to a specific season (e.g. "2025-26")
  *
  * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Player statistics
- * @returns {string} response.data.id - Player UUID
- * @returns {string} response.data.name - Player full name
- * @returns {string} response.data.position - Player position
- * @returns {string} response.data.school_type - School type (HS/COLL)
- * @returns {Object} response.data.batting - Batting statistics (avg, obp, slg, ops, runs, hits, etc.)
- * @returns {Object} response.data.pitching - Pitching statistics (era, wins, losses, saves, etc.)
+ * @returns {boolean} response.success
+ * @returns {Object} response.data.player - Basic player info
+ * @returns {Object|null} response.data.current_season - Most recent season stats
+ * @returns {Array} response.data.seasons - All season stats (DESC)
+ * @returns {Object|null} response.data.career - Career stats
  *
- * @throws {404} Not found - Player doesn't exist or doesn't belong to user's team
- * @throws {500} Server error - Database query failure
+ * @throws {404} Player not found or not on user's team
+ * @throws {500} Server error
  */
 router.get('/byId/:id/stats', async (req, res) => {
   try {
-    // Database: Fetch player with only statistical attributes for efficiency
+    // Permission: Team isolation
     const player = await Player.findOne({
       where: {
         id: req.params.id,
-        // Permission: Only return stats for players within user's team
         team_id: req.user.team_id
       },
-      // Performance: Select only required attributes to minimize data transfer
-      attributes: [
-        'id', 'first_name', 'last_name', 'position', 'school_type',
-        // Batting statistics
-        'batting_avg', 'on_base_pct', 'slugging_pct', 'ops',
-        'runs', 'hits', 'doubles', 'triples', 'home_runs', 'rbis',
-        'walks', 'strikeouts', 'stolen_bases', 'caught_stealing',
-        // Pitching statistics
-        'era', 'wins', 'losses', 'saves', 'innings_pitched',
-        'hits_allowed', 'runs_allowed', 'earned_runs', 'walks_allowed',
-        'strikeouts_pitched', 'whip', 'batting_avg_against'
-      ]
+      attributes: ['id', 'first_name', 'last_name', 'position', 'jersey_number',
+        'class_year', 'bats', 'throws', 'photo_url']
     });
 
-    // Error: Return 404 if player not found (also handles unauthorized team access)
     if (!player) {
       return res.status(404).json({
         success: false,
@@ -683,56 +669,104 @@ router.get('/byId/:id/stats', async (req, res) => {
       });
     }
 
-    // Business logic: Format statistics with sensible defaults for null values
-    // Separates batting and pitching stats into distinct objects for UI consumption
-    const stats = {
-      id: player.id,
-      name: `${player.first_name} ${player.last_name}`,
-      position: player.position,
-      school_type: player.school_type,
-      // Batting statistics with defaults
-      batting: {
-        avg: player.batting_avg || '.000',
-        obp: player.on_base_pct || '.000',
-        slg: player.slugging_pct || '.000',
-        ops: player.ops || '.000',
-        runs: player.runs || 0,
-        hits: player.hits || 0,
-        doubles: player.doubles || 0,
-        triples: player.triples || 0,
-        home_runs: player.home_runs || 0,
-        rbis: player.rbis || 0,
-        walks: player.walks || 0,
-        strikeouts: player.strikeouts || 0,
-        stolen_bases: player.stolen_bases || 0,
-        caught_stealing: player.caught_stealing || 0
-      },
-      // Pitching statistics with defaults
-      pitching: {
-        era: player.era || 0.00,
-        wins: player.wins || 0,
-        losses: player.losses || 0,
-        saves: player.saves || 0,
-        innings_pitched: player.innings_pitched || 0,
-        hits_allowed: player.hits_allowed || 0,
-        runs_allowed: player.runs_allowed || 0,
-        earned_runs: player.earned_runs || 0,
-        walks_allowed: player.walks_allowed || 0,
-        strikeouts_pitched: player.strikeouts_pitched || 0,
-        whip: player.whip || 0.00,
-        batting_avg_against: player.batting_avg_against || '.000'
-      }
-    };
+    // Build season query with optional season filter
+    const seasonWhere = { player_id: player.id };
+    if (req.query.season) {
+      seasonWhere.season = req.query.season;
+    }
+
+    const seasons = await PlayerSeasonStats.findAll({
+      where: seasonWhere,
+      order: [['season', 'DESC']]
+    });
+
+    const career = await PlayerCareerStats.findOne({
+      where: { player_id: player.id }
+    });
 
     res.json({
       success: true,
-      data: stats
+      data: {
+        player,
+        current_season: seasons.length > 0 ? seasons[0] : null,
+        seasons,
+        career: career || null
+      }
     });
   } catch (error) {
     console.error('Get player stats error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error while fetching player statistics'
+    });
+  }
+});
+
+/**
+ * @route GET /api/players/byId/:id/videos
+ * @description Retrieves videos for a specific player with pagination and optional type filter.
+ * @access Private - Requires authentication
+ *
+ * @param {string} req.params.id - Player ID
+ * @param {string} [req.query.video_type] - Filter by type (highlight, game, interview, training, promotional, other)
+ * @param {number} [req.query.page=1] - Page number
+ * @param {number} [req.query.limit=20] - Items per page (max 50)
+ *
+ * @throws {404} Player not found or not on user's team
+ * @throws {500} Server error
+ */
+router.get('/byId/:id/videos', async (req, res) => {
+  try {
+    const player = await Player.findOne({
+      where: {
+        id: req.params.id,
+        team_id: req.user.team_id
+      },
+      attributes: ['id']
+    });
+
+    if (!player) {
+      return res.status(404).json({
+        success: false,
+        error: 'Player not found'
+      });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const offset = (page - 1) * limit;
+
+    const videoWhere = {
+      player_id: player.id,
+      team_id: req.user.team_id
+    };
+
+    if (req.query.video_type) {
+      videoWhere.video_type = req.query.video_type;
+    }
+
+    const { count, rows: videos } = await PlayerVideo.findAndCountAll({
+      where: videoWhere,
+      order: [['published_at', 'DESC']],
+      limit,
+      offset
+    });
+
+    res.json({
+      success: true,
+      data: videos,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        pages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get player videos error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching player videos'
     });
   }
 });

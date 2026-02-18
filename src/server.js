@@ -48,6 +48,7 @@ const highSchoolCoachRoutes = require('./routes/highSchoolCoaches');
 const integrationRoutes = require('./routes/integrations');
 const prospectRoutes = require('./routes/prospects');
 const rosterRoutes = require('./routes/rosters');
+const newsRoutes = require('./routes/news');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -139,6 +140,7 @@ app.use('/api/v1/high-school-coaches', highSchoolCoachRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/prospects', prospectRoutes);
 app.use('/api/v1/rosters', rosterRoutes);
+app.use('/api/v1/news', newsRoutes);
 
 // Error handling middleware
 app.use(csrfErrorHandler); // Handle CSRF validation errors

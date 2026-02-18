@@ -18,6 +18,10 @@ info:
     ## Scouting System
     See `docs/api/scouting-system-api.md` for the scouting system redesign including Prospects,
     20-80 grading scale, present/future grades, and recruiting pipeline.
+
+    ## Stats & Analytics
+    See `docs/api/stats-analytics-api.md` for player season/career stats, videos, leaderboards,
+    and news releases (all populated by PrestoSports sync).
   version: 1.0.0
   contact:
     name: Sports2 Team
@@ -377,15 +381,85 @@ paths:
 
   /api/v1/players/byId/{id}/stats:
     get:
-      summary: Get player statistics
+      summary: Get player season & career statistics
+      description: |
+        Returns data from PlayerSeasonStats and PlayerCareerStats tables (populated by PrestoSports sync).
+        Optionally filter to a specific season. The `current_season` field is the most recent season row.
       parameters:
         - name: id
           in: path
           required: true
           schema: { type: integer }
+        - name: season
+          in: query
+          description: Filter to a specific season (e.g. "2025-26")
+          schema: { type: string }
       responses:
         '200':
-          description: Player stats
+          description: Player stats with seasons and career
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      player:
+                        type: object
+                        properties:
+                          id: { type: integer }
+                          first_name: { type: string }
+                          last_name: { type: string }
+                          position: { type: string }
+                          jersey_number: { type: integer }
+                          class_year: { type: string }
+                          bats: { type: string }
+                          throws: { type: string }
+                          photo_url: { type: string }
+                      current_season: { $ref: '#/components/schemas/PlayerSeasonStats' }
+                      seasons:
+                        type: array
+                        items: { $ref: '#/components/schemas/PlayerSeasonStats' }
+                      career: { $ref: '#/components/schemas/PlayerCareerStats' }
+        '404':
+          description: Player not found or not on user's team
+
+  /api/v1/players/byId/{id}/videos:
+    get:
+      summary: Get player videos
+      description: Returns paginated videos from PlayerVideo table (populated by PrestoSports sync).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: video_type
+          in: query
+          description: Filter by type
+          schema: { type: string, enum: [highlight, game, interview, training, promotional, other] }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 50 }
+      responses:
+        '200':
+          description: Paginated player videos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/PlayerVideo' }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+        '404':
+          description: Player not found or not on user's team
 
   /api/v1/players/stats/summary:
     get:
@@ -1811,6 +1885,94 @@ paths:
         '200':
           description: Player statistics
 
+  /api/v1/games/leaderboard:
+    get:
+      summary: Player stat leaderboard
+      description: |
+        Returns ranked player leaders for a given stat from PlayerSeasonStats.
+        Stat must be from a whitelisted set. Qualifier minimums filter out small sample sizes.
+
+        **Batting stats (DESC):** batting_average, on_base_percentage, slugging_percentage, ops,
+        home_runs, rbi, hits, runs, stolen_bases, walks, doubles, triples
+
+        **Pitching stats:** era (ASC), whip (ASC), k_per_9 (DESC), bb_per_9 (ASC),
+        strikeouts_pitching (DESC), pitching_wins (DESC), saves (DESC), innings_pitched (DESC)
+
+        **Fielding:** fielding_percentage (DESC)
+      parameters:
+        - name: stat
+          in: query
+          required: true
+          description: Column from PlayerSeasonStats to rank by
+          schema:
+            type: string
+            enum:
+              - batting_average
+              - on_base_percentage
+              - slugging_percentage
+              - ops
+              - home_runs
+              - rbi
+              - hits
+              - runs
+              - stolen_bases
+              - walks
+              - doubles
+              - triples
+              - era
+              - whip
+              - k_per_9
+              - bb_per_9
+              - strikeouts_pitching
+              - pitching_wins
+              - saves
+              - innings_pitched
+              - fielding_percentage
+        - name: season
+          in: query
+          description: Season filter (defaults to team's most recent season)
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10, maximum: 50 }
+        - name: min_qualifier
+          in: query
+          description: Override minimum qualifying value (e.g. min at_bats for batting_average)
+          schema: { type: integer, minimum: 0 }
+      responses:
+        '200':
+          description: Ranked leaderboard
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      stat: { type: string }
+                      season: { type: string }
+                      leaders:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            rank: { type: integer }
+                            player:
+                              type: object
+                              properties:
+                                id: { type: integer }
+                                first_name: { type: string }
+                                last_name: { type: string }
+                                position: { type: string }
+                                jersey_number: { type: integer }
+                                photo_url: { type: string }
+                            value: { type: number }
+                            qualifier_value: { type: integer, nullable: true }
+        '400':
+          description: Missing or invalid stat parameter
+
   /api/v1/games/{gameId}/stats:
     get:
       summary: Game statistics
@@ -1822,6 +1984,68 @@ paths:
       responses:
         '200':
           description: Game stats
+
+  # ---- News Releases ----
+  /api/v1/news:
+    get:
+      summary: List news releases
+      description: |
+        Returns paginated news releases synced from PrestoSports.
+        The list view excludes the full `content` field for performance.
+      parameters:
+        - name: category
+          in: query
+          description: Filter by category (e.g. recap, awards, announcement, preview)
+          schema: { type: string }
+        - name: player_id
+          in: query
+          description: Filter by associated player
+          schema: { type: integer }
+        - name: search
+          in: query
+          description: ILIKE search across title and summary
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 50 }
+      responses:
+        '200':
+          description: Paginated news releases (content excluded)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/NewsReleaseSummary' }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+
+  /api/v1/news/byId/{id}:
+    get:
+      summary: Get news release by ID
+      description: Returns the full news release including the `content` field.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Full news release
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/NewsRelease' }
+        '404':
+          description: News release not found or not on user's team
 
   # ---- Coaches, Scouts, Vendors, High School Coaches ----
   /api/v1/coaches:
@@ -2587,3 +2811,144 @@ components:
         overall_present: { type: [integer, string] }
         overall_future: { type: [integer, string] }
         notes: { type: string }
+
+    PlayerSeasonStats:
+      type: object
+      description: Season statistics from PrestoSports sync
+      properties:
+        id: { type: integer }
+        player_id: { type: integer }
+        team_id: { type: integer }
+        season: { type: string, example: "2025-26" }
+        # Batting
+        games_played: { type: integer }
+        games_started: { type: integer }
+        at_bats: { type: integer }
+        runs: { type: integer }
+        hits: { type: integer }
+        doubles: { type: integer }
+        triples: { type: integer }
+        home_runs: { type: integer }
+        rbi: { type: integer }
+        walks: { type: integer }
+        strikeouts: { type: integer }
+        stolen_bases: { type: integer }
+        caught_stealing: { type: integer }
+        hit_by_pitch: { type: integer }
+        sacrifice_flies: { type: integer }
+        sacrifice_bunts: { type: integer }
+        batting_average: { type: number, format: decimal, example: 0.345 }
+        on_base_percentage: { type: number, format: decimal, example: 0.410 }
+        slugging_percentage: { type: number, format: decimal, example: 0.580 }
+        ops: { type: number, format: decimal, example: 0.990 }
+        # Pitching
+        pitching_appearances: { type: integer }
+        pitching_starts: { type: integer }
+        innings_pitched: { type: number, format: decimal, example: 60.0 }
+        pitching_wins: { type: integer }
+        pitching_losses: { type: integer }
+        saves: { type: integer }
+        holds: { type: integer }
+        hits_allowed: { type: integer }
+        runs_allowed: { type: integer }
+        earned_runs: { type: integer }
+        walks_allowed: { type: integer }
+        strikeouts_pitching: { type: integer }
+        home_runs_allowed: { type: integer }
+        era: { type: number, format: decimal, example: 3.50 }
+        whip: { type: number, format: decimal, example: 1.20 }
+        k_per_9: { type: number, format: decimal, example: 10.50 }
+        bb_per_9: { type: number, format: decimal, example: 2.50 }
+        # Fielding
+        fielding_games: { type: integer }
+        putouts: { type: integer }
+        assists: { type: integer }
+        errors: { type: integer }
+        fielding_percentage: { type: number, format: decimal, example: 0.975 }
+        # Meta
+        source_system: { type: string, enum: [manual, presto] }
+        last_synced_at: { type: string, format: date-time, nullable: true }
+
+    PlayerCareerStats:
+      type: object
+      description: Career totals from PrestoSports sync
+      properties:
+        id: { type: integer }
+        player_id: { type: integer }
+        seasons_played: { type: integer }
+        career_games: { type: integer }
+        career_at_bats: { type: integer }
+        career_runs: { type: integer }
+        career_hits: { type: integer }
+        career_doubles: { type: integer }
+        career_triples: { type: integer }
+        career_home_runs: { type: integer }
+        career_rbi: { type: integer }
+        career_walks: { type: integer }
+        career_strikeouts: { type: integer }
+        career_stolen_bases: { type: integer }
+        career_batting_average: { type: number, format: decimal }
+        career_obp: { type: number, format: decimal }
+        career_slg: { type: number, format: decimal }
+        career_ops: { type: number, format: decimal }
+        career_pitching_appearances: { type: integer }
+        career_innings_pitched: { type: number, format: decimal }
+        career_wins: { type: integer }
+        career_losses: { type: integer }
+        career_saves: { type: integer }
+        career_earned_runs: { type: integer }
+        career_strikeouts_pitching: { type: integer }
+        career_era: { type: number, format: decimal }
+        career_whip: { type: number, format: decimal }
+        source_system: { type: string, enum: [manual, presto] }
+
+    PlayerVideo:
+      type: object
+      description: Player video from PrestoSports sync
+      properties:
+        id: { type: integer }
+        player_id: { type: integer }
+        team_id: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        url: { type: string }
+        thumbnail_url: { type: string }
+        embed_url: { type: string }
+        duration: { type: integer, description: Duration in seconds }
+        video_type: { type: string, enum: [highlight, game, interview, training, promotional, other] }
+        provider: { type: string, description: "youtube, vimeo, hudl, etc." }
+        published_at: { type: string, format: date-time }
+        view_count: { type: integer }
+        source_system: { type: string }
+        created_at: { type: string, format: date-time }
+
+    NewsReleaseSummary:
+      type: object
+      description: News release without full content (list view)
+      properties:
+        id: { type: integer }
+        team_id: { type: integer }
+        title: { type: string }
+        summary: { type: string }
+        author: { type: string }
+        publish_date: { type: string, format: date-time }
+        category: { type: string }
+        image_url: { type: string }
+        source_url: { type: string }
+        player_id: { type: integer, nullable: true }
+        player:
+          type: object
+          nullable: true
+          properties:
+            id: { type: integer }
+            first_name: { type: string }
+            last_name: { type: string }
+
+    NewsRelease:
+      type: object
+      description: Full news release including content
+      allOf:
+        - $ref: '#/components/schemas/NewsReleaseSummary'
+        - type: object
+          properties:
+            content: { type: string, description: Full HTML content }
