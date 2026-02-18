@@ -1847,6 +1847,127 @@ class PrestoSyncService {
   }
 
   /**
+   * Extract situational split stats from a Presto stats object.
+   * These fields are embedded in every response, not requiring separate API calls.
+   * @param {object} s - The Presto stats object
+   * @returns {object} Keyed by split type
+   */
+  extractSituationalSplits(s) {
+    return {
+      vs_lhp: {
+        ab: s.hittingvsleftab, h: s.hittingvslefth, pct: s.hittingvsleftpct,
+        pitching_ab: s.pitchingvsleftab, pitching_h: s.pitchingvslefth, pitching_pct: s.pitchingvsleftpct
+      },
+      vs_rhp: {
+        ab: s.hittingvsrightab, h: s.hittingvsrighth, pct: s.hittingvsrightpct,
+        pitching_ab: s.pitchingvsrightab, pitching_h: s.pitchingvsrighth, pitching_pct: s.pitchingvsrightpct
+      },
+      risp: {
+        record: s.hittingrbi3rd, opportunities: s.hittingrbi3rdno,
+        ops: s.hittingrbi3rdops, pct: s.hittingrbi3rdpct
+      },
+      two_outs: {
+        ab: s.hittingw2outsab, h: s.hittingw2outsh, pct: s.hittingw2outspct,
+        rbi: s.hittingrbi2out,
+        pitching_ab: s.pitchingw2outsab, pitching_h: s.pitchingw2outsh, pitching_pct: s.pitchingw2outspct
+      },
+      bases_loaded: {
+        ab: s.hittingwloadedab, h: s.hittingwloadedh, pct: s.hittingwloadedpct,
+        pitching_ab: s.pitchingwloadedab, pitching_h: s.pitchingwloadedh, pitching_pct: s.pitchingwloadedpct
+      },
+      bases_empty: {
+        ab: s.hittingemptyab, h: s.hittingemptyh, pct: s.hittingemptypct,
+        pitching_ab: s.pitchingemptyab, pitching_h: s.pitchingemptyh, pitching_pct: s.pitchingemptypct
+      },
+      with_runners: {
+        ab: s.hittingwrunnersab, h: s.hittingwrunnersh, pct: s.hittingwrunnerspct,
+        pitching_ab: s.pitchingwrunnersab, pitching_h: s.pitchingwrunnersh, pitching_pct: s.pitchingwrunnerspct
+      },
+      leadoff: {
+        record: s.hittingleadoff, opportunities: s.hittingleadoffno,
+        ops: s.hittingleadoffops, pct: s.hittingleadoffpct,
+        pitching_record: s.pitchingleadoff, pitching_opportunities: s.pitchingleadoffno,
+        pitching_ops: s.pitchingleadoffops, pitching_pct: s.pitchingleadoffpct
+      }
+    };
+  }
+
+  /**
+   * Sync split stats (HOME/AWAY/CONFERENCE) and situational stats for all players.
+   * Called as part of syncAll() on the 4-hour cycle.
+   */
+  async syncSplitStats(teamId) {
+    const { prestoTeamId } = await this.getPrestoConfig(teamId);
+    if (!prestoTeamId) {
+      throw new Error('PrestoSports team ID not configured');
+    }
+
+    const results = { updated: 0, errors: [] };
+    const token = await this.getToken(teamId);
+
+    // Fetch overall stats first (for situational splits embedded in response)
+    const overallResponse = await prestoSportsService.getTeamPlayerStats(token, prestoTeamId);
+    const overallPlayers = overallResponse.data || [];
+
+    // Build a map: prestoPlayerId -> situational splits from overall response
+    const situationalByPrestoId = {};
+    for (const p of overallPlayers) {
+      const s = p.stats || {};
+      situationalByPrestoId[p.playerId] = this.extractSituationalSplits(s);
+    }
+
+    // Fetch HOME, AWAY, CONFERENCE splits (requires separate API calls)
+    const splitOptions = ['HOME', 'AWAY', 'CONFERENCE'];
+    const splitDataByPrestoId = {};
+
+    for (const opt of splitOptions) {
+      try {
+        const response = await prestoSportsService.getTeamPlayerStats(token, prestoTeamId, { options: opt });
+        const players = response.data || [];
+        for (const p of players) {
+          if (!splitDataByPrestoId[p.playerId]) {
+            splitDataByPrestoId[p.playerId] = {};
+          }
+          splitDataByPrestoId[p.playerId][opt.toLowerCase()] = p.stats || {};
+        }
+      } catch (error) {
+        results.errors.push({ split: opt, error: error.message });
+      }
+    }
+
+    // Now merge and save to DB
+    for (const prestoPlayerId of Object.keys(splitDataByPrestoId)) {
+      try {
+        const player = await Player.findOne({
+          where: { external_id: String(prestoPlayerId), team_id: teamId }
+        });
+        if (!player) continue;
+
+        const splitStats = {
+          ...splitDataByPrestoId[prestoPlayerId],
+          ...(situationalByPrestoId[prestoPlayerId] || {})
+        };
+
+        await PlayerSeasonStats.update(
+          { split_stats: splitStats },
+          {
+            where: {
+              player_id: player.id,
+              team_id: teamId,
+              source_system: 'presto'
+            }
+          }
+        );
+        results.updated++;
+      } catch (error) {
+        results.errors.push({ player: prestoPlayerId, error: error.message });
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Sync everything (roster, schedule, stats, record, season stats, career stats)
    */
   async syncAll(teamId, userId) {
@@ -1862,6 +1983,7 @@ class PrestoSyncService {
       stats: null,
       teamRecord: null,
       seasonStats: null,
+      splitStats: null,
       careerStats: null,
       playerDetails: null,
       playerPhotos: null,
@@ -1899,6 +2021,12 @@ class PrestoSyncService {
       results.seasonStats = await this.syncSeasonStats(teamId, userId);
     } catch (error) {
       results.errors.push({ type: 'seasonStats', error: error.message });
+    }
+
+    try {
+      results.splitStats = await this.syncSplitStats(teamId);
+    } catch (error) {
+      results.errors.push({ type: 'splitStats', error: error.message });
     }
 
     try {
@@ -1945,12 +2073,14 @@ class PrestoSyncService {
       (results.playerVideos?.created || 0) + (results.pressReleases?.created || 0);
     const totalUpdated = (results.roster?.updated || 0) + (results.schedule?.updated || 0) +
       (results.stats?.statsUpdated || 0) + (results.seasonStats?.updated || 0) +
+      (results.splitStats?.updated || 0) +
       (results.careerStats?.updated || 0) + (results.teamRecord?.success ? 1 : 0) +
       (results.historicalStats?.updated || 0) + (results.playerVideos?.updated || 0) +
       (results.pressReleases?.updated || 0);
     const totalFailed = results.errors.length +
       (results.roster?.errors?.length || 0) + (results.schedule?.errors?.length || 0) +
       (results.stats?.errors?.length || 0) + (results.seasonStats?.errors?.length || 0) +
+      (results.splitStats?.errors?.length || 0) +
       (results.careerStats?.errors?.length || 0) + (results.playerDetails?.errors?.length || 0) +
       (results.playerPhotos?.errors?.length || 0) + (results.historicalStats?.errors?.length || 0) +
       (results.playerVideos?.errors?.length || 0) + (results.pressReleases?.errors?.length || 0);
@@ -1965,6 +2095,7 @@ class PrestoSyncService {
         stats: results.stats ? { created: results.stats.statsCreated, updated: results.stats.statsUpdated } : null,
         teamRecord: results.teamRecord?.record || null,
         seasonStats: results.seasonStats ? { created: results.seasonStats.created, updated: results.seasonStats.updated } : null,
+        splitStats: results.splitStats ? { updated: results.splitStats.updated } : null,
         careerStats: results.careerStats ? { created: results.careerStats.created, updated: results.careerStats.updated } : null,
         playerDetails: results.playerDetails ? { updated: results.playerDetails.updated } : null,
         playerPhotos: results.playerPhotos ? { updated: results.playerPhotos.updated } : null,
