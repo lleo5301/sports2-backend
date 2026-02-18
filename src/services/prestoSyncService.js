@@ -2090,6 +2090,7 @@ class PrestoSyncService {
       teamRecord: null,
       seasonStats: null,
       splitStats: null,
+      teamAggregateStats: null,
       careerStats: null,
       playerDetails: null,
       playerPhotos: null,
@@ -2142,6 +2143,12 @@ class PrestoSyncService {
     }
 
     try {
+      results.teamAggregateStats = await this.syncTeamAggregateStats(teamId);
+    } catch (error) {
+      results.errors.push({ type: 'teamAggregateStats', error: error.message });
+    }
+
+    try {
       results.careerStats = await this.syncCareerStats(teamId, userId);
     } catch (error) {
       results.errors.push({ type: 'careerStats', error: error.message });
@@ -2188,7 +2195,7 @@ class PrestoSyncService {
       (results.seasonStats?.updated || 0) + (results.splitStats?.updated || 0) +
       (results.careerStats?.updated || 0) + (results.teamRecord?.success ? 1 : 0) +
       (results.historicalStats?.updated || 0) + (results.playerVideos?.updated || 0) +
-      (results.pressReleases?.updated || 0);
+      (results.pressReleases?.updated || 0) + (results.teamAggregateStats?.success ? 1 : 0);
     const totalFailed = results.errors.length +
       (results.roster?.errors?.length || 0) + (results.schedule?.errors?.length || 0) +
       (results.stats?.errors?.length || 0) + (results.gameLog?.errors?.length || 0) +
@@ -2210,6 +2217,7 @@ class PrestoSyncService {
         teamRecord: results.teamRecord?.record || null,
         seasonStats: results.seasonStats ? { created: results.seasonStats.created, updated: results.seasonStats.updated } : null,
         splitStats: results.splitStats ? { updated: results.splitStats.updated } : null,
+        teamAggregateStats: results.teamAggregateStats?.success ? 'synced' : null,
         careerStats: results.careerStats ? { created: results.careerStats.created, updated: results.careerStats.updated } : null,
         playerDetails: results.playerDetails ? { updated: results.playerDetails.updated } : null,
         playerPhotos: results.playerPhotos ? { updated: results.playerPhotos.updated } : null,
