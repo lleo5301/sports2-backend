@@ -973,6 +973,9 @@ class PrestoSyncService {
             season_name: seasonName,
             presto_season_id: prestoSeasonId,
 
+            // Store full Presto stats payload
+            raw_stats: s,
+
             // Batting stats
             games_played: n(s.gp),
             games_started: n(s.gs),
