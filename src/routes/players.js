@@ -15,7 +15,7 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
-const { Player, Team, User, ScoutingReport, PlayerSeasonStats, PlayerCareerStats, PlayerVideo } = require('../models');
+const { Player, Team, User, ScoutingReport, PlayerSeasonStats, PlayerCareerStats, PlayerVideo, GameStatistic, Game } = require('../models');
 const { protect } = require('../middleware/auth');
 const { sequelize } = require('../config/database');
 const { uploadVideo, handleUploadError } = require('../middleware/upload');
@@ -1061,6 +1061,155 @@ router.get('/performance', [
       success: false,
       error: 'Server error while fetching player performance data'
     });
+  }
+});
+
+/**
+ * GET /api/v1/players/byId/:id/splits
+ * Returns split stats (home/away/conf/situational) for a player.
+ */
+router.get('/byId/:id/splits', async (req, res) => {
+  try {
+    const player = await Player.findOne({
+      where: { id: req.params.id, team_id: req.user.team_id }
+    });
+
+    if (!player) {
+      return res.status(404).json({ success: false, error: 'Player not found' });
+    }
+
+    const seasonStats = await PlayerSeasonStats.findOne({
+      where: { player_id: player.id, team_id: req.user.team_id },
+      order: [['created_at', 'DESC']]
+    });
+
+    if (!seasonStats || !seasonStats.split_stats) {
+      return res.json({
+        success: true,
+        data: {
+          player_id: player.id,
+          player_name: `${player.first_name} ${player.last_name}`,
+          splits: null,
+          message: 'No split stats available. Sync with PrestoSports to populate.'
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        player_id: player.id,
+        player_name: `${player.first_name} ${player.last_name}`,
+        season: seasonStats.season,
+        season_name: seasonStats.season_name,
+        splits: {
+          overall: seasonStats.raw_stats || {},
+          ...seasonStats.split_stats
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching player splits:', error);
+    res.status(500).json({ success: false, error: 'Error fetching player splits' });
+  }
+});
+
+/**
+ * GET /api/v1/players/byId/:id/stats/raw
+ * Returns the full 214-key Presto stats object.
+ */
+router.get('/byId/:id/stats/raw', async (req, res) => {
+  try {
+    const player = await Player.findOne({
+      where: { id: req.params.id, team_id: req.user.team_id }
+    });
+
+    if (!player) {
+      return res.status(404).json({ success: false, error: 'Player not found' });
+    }
+
+    const seasonStats = await PlayerSeasonStats.findOne({
+      where: { player_id: player.id, team_id: req.user.team_id },
+      order: [['created_at', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      data: {
+        player_id: player.id,
+        player_name: `${player.first_name} ${player.last_name}`,
+        season: seasonStats?.season,
+        season_name: seasonStats?.season_name,
+        raw_stats: seasonStats?.raw_stats || null
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching player raw stats:', error);
+    res.status(500).json({ success: false, error: 'Error fetching player raw stats' });
+  }
+});
+
+/**
+ * GET /api/v1/players/byId/:id/game-log
+ * Returns per-game stats with game context.
+ */
+router.get('/byId/:id/game-log', async (req, res) => {
+  try {
+    const player = await Player.findOne({
+      where: { id: req.params.id, team_id: req.user.team_id }
+    });
+
+    if (!player) {
+      return res.status(404).json({ success: false, error: 'Player not found' });
+    }
+
+    const gameStats = await GameStatistic.findAll({
+      where: { player_id: player.id, team_id: req.user.team_id },
+      include: [{
+        model: Game,
+        as: 'game',
+        attributes: ['id', 'opponent', 'game_date', 'home_away', 'result',
+          'team_score', 'opponent_score', 'game_summary', 'running_record']
+      }],
+      order: [[{ model: Game, as: 'game' }, 'game_date', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      data: {
+        player_id: player.id,
+        player_name: `${player.first_name} ${player.last_name}`,
+        games: gameStats.map(gs => ({
+          game: gs.game ? {
+            id: gs.game.id,
+            opponent: gs.game.opponent,
+            date: gs.game.game_date,
+            home_away: gs.game.home_away,
+            result: gs.game.result,
+            score: gs.game.team_score !== null ? `${gs.game.team_score}-${gs.game.opponent_score}` : null,
+            game_summary: gs.game.game_summary,
+            running_record: gs.game.running_record
+          } : null,
+          batting: {
+            ab: gs.at_bats, r: gs.runs, h: gs.hits, doubles: gs.doubles, triples: gs.triples,
+            hr: gs.home_runs, rbi: gs.rbi, bb: gs.walks, so: gs.strikeouts_batting,
+            sb: gs.stolen_bases, hbp: gs.hit_by_pitch
+          },
+          pitching: gs.innings_pitched > 0 ? {
+            ip: gs.innings_pitched, h: gs.hits_allowed, r: gs.runs_allowed, er: gs.earned_runs,
+            bb: gs.walks_allowed, so: gs.strikeouts_pitching, hr: gs.home_runs_allowed,
+            pitches: gs.pitches_thrown, win: gs.win, loss: gs.loss, save: gs.save
+          } : null,
+          fielding: {
+            po: gs.putouts, a: gs.assists, e: gs.errors
+          },
+          position: gs.position_played
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching player game log:', error);
+    res.status(500).json({ success: false, error: 'Error fetching player game log' });
   }
 });
 
