@@ -60,8 +60,8 @@ class PrestoSportsService {
     if (throttle) {
       const now = Date.now();
       const timeSinceLast = now - (this._lastRequestAt || 0);
-      if (timeSinceLast < 500) {
-        await new Promise(r => setTimeout(r, 500 - timeSinceLast));
+      if (timeSinceLast < 1000) {
+        await new Promise(r => setTimeout(r, 1000 - timeSinceLast));
       }
     }
 

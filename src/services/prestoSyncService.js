@@ -6,6 +6,9 @@ const { parseBoxScore } = require('../utils/boxScoreParser');
 
 const PROVIDER = IntegrationCredential.PROVIDERS.PRESTO;
 
+// Skip per-player API calls if the player was synced within this window
+const PLAYER_SYNC_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 class PrestoSyncService {
   /**
    * Get decrypted credentials for a team using the new credential service
@@ -709,8 +712,9 @@ class PrestoSyncService {
       const token = await this.getToken(teamId);
       const team = await Team.findByPk(teamId);
 
-      // Get all games synced from PrestoSports
-      const games = await Game.findAll({
+      // Get completed games that haven't had stats synced yet
+      // (completed game stats don't change, so skip already-synced games)
+      const allGames = await Game.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto',
@@ -718,10 +722,22 @@ class PrestoSyncService {
         }
       });
 
+      // Filter to games missing stats
+      const gamesWithStats = await GameStatistic.findAll({
+        where: { team_id: teamId },
+        attributes: ['game_id'],
+        group: ['game_id']
+      });
+      const syncedGameIds = new Set(gamesWithStats.map(s => s.game_id));
+      const games = allGames.filter(g => !syncedGameIds.has(g.id));
+
+      console.log(`[SyncStats] ${allGames.length} completed games, ${games.length} need stats sync (${syncedGameIds.size} already synced)`);
+
       const results = {
         gamesProcessed: 0,
         statsCreated: 0,
         statsUpdated: 0,
+        skipped: syncedGameIds.size,
         errors: []
       };
 
@@ -1113,13 +1129,16 @@ class PrestoSyncService {
     try {
       const token = await this.getToken(teamId);
 
-      // Get all players from this team that came from PrestoSports
-      const players = await Player.findAll({
+      // Get players that need career stats sync (skip recently synced)
+      const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+      const allPlayers = await Player.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto'
         }
       });
+      const players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
+      console.log(`[SyncCareerStats] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
 
       for (const player of players) {
         try {
@@ -1253,13 +1272,16 @@ class PrestoSyncService {
     try {
       const token = await this.getToken(teamId);
 
-      // Get all players from this team that came from PrestoSports
-      const players = await Player.findAll({
+      // Get players that need details sync (skip recently synced)
+      const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+      const allPlayers = await Player.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto'
         }
       });
+      const players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
+      console.log(`[SyncPlayerDetails] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
 
       for (const player of players) {
         try {
@@ -1384,13 +1406,16 @@ class PrestoSyncService {
     try {
       const token = await this.getToken(teamId);
 
-      // Get all players from this team that came from PrestoSports
-      const players = await Player.findAll({
+      // Get players that need photos sync (skip recently synced)
+      const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+      const allPlayers = await Player.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto'
         }
       });
+      const players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
+      console.log(`[SyncPlayerPhotos] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
 
       for (const player of players) {
         try {
@@ -1497,13 +1522,16 @@ class PrestoSyncService {
     try {
       const token = await this.getToken(teamId);
 
-      // Get all players from this team that came from PrestoSports
-      const players = await Player.findAll({
+      // Get players that need historical stats sync (skip recently synced)
+      const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+      const allPlayers = await Player.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto'
         }
       });
+      const players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
+      console.log(`[SyncHistoricalStats] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
 
       for (const player of players) {
         try {
@@ -1645,13 +1673,16 @@ class PrestoSyncService {
     try {
       const token = await this.getToken(teamId);
 
-      // Get all players from this team that came from PrestoSports
-      const players = await Player.findAll({
+      // Get players that need videos sync (skip recently synced)
+      const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+      const allPlayers = await Player.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto'
         }
       });
+      const players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
+      console.log(`[SyncPlayerVideos] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
 
       for (const player of players) {
         try {
@@ -2522,7 +2553,7 @@ class PrestoSyncService {
     const token = await this.getToken(teamId);
 
     // Get all completed games with a Presto event ID
-    const games = await Game.findAll({
+    const allGames = await Game.findAll({
       where: {
         team_id: teamId,
         game_status: 'completed',
@@ -2533,10 +2564,22 @@ class PrestoSyncService {
       }
     });
 
+    // Skip games that already have opponent stats synced
+    const gamesWithOpponentStats = await OpponentGameStat.findAll({
+      where: { team_id: teamId },
+      attributes: ['game_id'],
+      group: ['game_id']
+    });
+    const syncedGameIds = new Set(gamesWithOpponentStats.map(s => s.game_id));
+    const games = allGames.filter(g => !syncedGameIds.has(g.id));
+
+    console.log(`[SyncOpponentStats] ${allGames.length} completed games, ${games.length} need opponent stats sync (${syncedGameIds.size} already synced)`);
+
     const results = {
       gamesProcessed: 0,
       playersCreated: 0,
       playersUpdated: 0,
+      skipped: syncedGameIds.size,
       errors: []
     };
 
