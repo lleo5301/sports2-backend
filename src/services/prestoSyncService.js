@@ -1,7 +1,8 @@
 const { Op } = require('sequelize');
-const { Game, Player, GameStatistic, Team, PlayerSeasonStats, PlayerCareerStats, SyncLog, IntegrationCredential, NewsRelease, PlayerVideo } = require('../models');
+const { Game, Player, GameStatistic, Team, PlayerSeasonStats, PlayerCareerStats, SyncLog, IntegrationCredential, NewsRelease, PlayerVideo, OpponentGameStat } = require('../models');
 const prestoSportsService = require('./prestoSportsService');
 const integrationCredentialService = require('./integrationCredentialService');
+const { parseBoxScore } = require('../utils/boxScoreParser');
 
 const PROVIDER = IntegrationCredential.PROVIDERS.PRESTO;
 
@@ -385,6 +386,16 @@ class PrestoSyncService {
       const team = await Team.findByPk(teamId);
       const response = await prestoSportsService.getTeamEvents(token, prestoTeamId);
 
+      // Look up human-readable season name
+      let seasonName = null;
+      if (prestoSeasonId) {
+        try {
+          const seasonResp = await prestoSportsService.getSeasonTeams(token, prestoSeasonId);
+          const teamEntry = (seasonResp.data || []).find(t => t.teamId === prestoTeamId);
+          seasonName = teamEntry?.season?.seasonName || null;
+        } catch (_e) { /* non-critical */ }
+      }
+
       const events = response.data || response || [];
       const results = {
         created: 0,
@@ -476,6 +487,7 @@ class PrestoSyncService {
             result: this.determineResult(teamScore, opponentScore),
             location: event.location || event.venue || null,
             season: event.seasonId || event.season || prestoSeasonId || null,
+            season_name: event.seasonName || seasonName || null,
             game_status: gameStatus,
             // Enhanced game details
             attendance: event.attendance || null,
@@ -2097,6 +2109,7 @@ class PrestoSyncService {
       historicalStats: null,
       playerVideos: null,
       pressReleases: null,
+      opponentStats: null,
       errors: []
     };
 
@@ -2184,12 +2197,19 @@ class PrestoSyncService {
       results.errors.push({ type: 'pressReleases', error: error.message });
     }
 
+    try {
+      results.opponentStats = await this.syncOpponentStats(teamId, userId);
+    } catch (error) {
+      results.errors.push({ type: 'opponentStats', error: error.message });
+    }
+
     // Calculate totals for the full sync log
     const totalCreated = (results.roster?.created || 0) + (results.schedule?.created || 0) +
       (results.stats?.statsCreated || 0) + (results.seasonStats?.created || 0) +
       (results.careerStats?.created || 0) + (results.playerDetails?.updated || 0) +
       (results.playerPhotos?.updated || 0) + (results.historicalStats?.created || 0) +
-      (results.playerVideos?.created || 0) + (results.pressReleases?.created || 0);
+      (results.playerVideos?.created || 0) + (results.pressReleases?.created || 0) +
+      (results.opponentStats?.playersCreated || 0);
     const totalUpdated = (results.roster?.updated || 0) + (results.schedule?.updated || 0) +
       (results.stats?.statsUpdated || 0) + (results.gameLog?.updated || 0) +
       (results.seasonStats?.updated || 0) + (results.splitStats?.updated || 0) +
@@ -2486,6 +2506,227 @@ class PrestoSyncService {
     }
     const parsed = parseFloat(value);
     return isNaN(parsed) ? null : parsed;
+  }
+
+  /**
+   * Sync opponent stats for all completed games from PrestoSports box scores.
+   * Fetches XML box scores, identifies the opponent team, and stores
+   * per-player opponent stats in opponent_game_stats for aggregation.
+   */
+  async syncOpponentStats(teamId, _userId) {
+    const { prestoTeamId } = await this.getPrestoConfig(teamId);
+    if (!prestoTeamId) {
+      throw new Error('PrestoSports team ID not configured');
+    }
+
+    const token = await this.getToken(teamId);
+
+    // Get all completed games with a Presto event ID
+    const games = await Game.findAll({
+      where: {
+        team_id: teamId,
+        game_status: 'completed',
+        [Op.or]: [
+          { presto_event_id: { [Op.ne]: null } },
+          { external_id: { [Op.ne]: null } }
+        ]
+      }
+    });
+
+    const results = {
+      gamesProcessed: 0,
+      playersCreated: 0,
+      playersUpdated: 0,
+      errors: []
+    };
+
+    for (const game of games) {
+      try {
+        const eventId = game.presto_event_id || game.external_id;
+        const singleResult = await this._syncOpponentStatsForEvent(
+          token, game, eventId, teamId
+        );
+        results.gamesProcessed++;
+        results.playersCreated += singleResult.created;
+        results.playersUpdated += singleResult.updated;
+      } catch (error) {
+        results.errors.push({
+          item_id: game.id,
+          opponent: game.opponent,
+          error: error.message
+        });
+      }
+    }
+
+    console.log(`[SyncOpponentStats] Done: ${results.gamesProcessed} games, ${results.playersCreated} created, ${results.playersUpdated} updated, ${results.errors.length} errors`);
+    return results;
+  }
+
+  /**
+   * Sync opponent stats for a single game.
+   */
+  async syncOpponentStatsForGame(teamId, gameId, _userId) {
+    const token = await this.getToken(teamId);
+
+    const game = await Game.findOne({
+      where: { id: gameId, team_id: teamId }
+    });
+
+    if (!game) {
+      throw new Error('Game not found');
+    }
+
+    const eventId = game.presto_event_id || game.external_id;
+    if (!eventId) {
+      throw new Error('Game has no PrestoSports event ID');
+    }
+
+    return this._syncOpponentStatsForEvent(token, game, eventId, teamId);
+  }
+
+  /**
+   * Internal: fetch box score XML for one event and upsert opponent player stats.
+   */
+  async _syncOpponentStatsForEvent(token, game, eventId, teamId) {
+    const statsResponse = await prestoSportsService.getEventStats(token, eventId);
+    const eventStats = statsResponse.data || statsResponse || {};
+
+    const xml = eventStats.xml ||
+      (typeof eventStats === 'string' ? eventStats : null) ||
+      (typeof statsResponse === 'string' ? statsResponse : null);
+
+    if (!xml) {
+      return { created: 0, updated: 0 };
+    }
+
+    const boxScore = parseBoxScore(xml);
+    if (!boxScore) {
+      return { created: 0, updated: 0 };
+    }
+
+    // Determine which team in the box score is the opponent
+    // If our game says home_away='home', we're the home team → opponent is visitor
+    const opponentTeam = game.home_away === 'home' ? boxScore.visitor : boxScore.home;
+
+    if (!opponentTeam) {
+      return { created: 0, updated: 0 };
+    }
+
+    const opponentName = opponentTeam.name || game.opponent;
+    const opponentPrestoTeamId = opponentTeam.id || null;
+    const now = new Date();
+
+    // Collect all players (batters + pitchers, deduplicated by jersey number)
+    const allPlayers = new Map();
+    for (const p of [...(opponentTeam.batters || []), ...(opponentTeam.pitchers || [])]) {
+      const key = p.uni || p.name || `unknown-${allPlayers.size}`;
+      if (!allPlayers.has(key)) {
+        allPlayers.set(key, p);
+      } else {
+        // Merge pitching stats onto existing batter entry
+        const existing = allPlayers.get(key);
+        if (p.pitching && !existing.pitching) {
+          existing.pitching = p.pitching;
+          existing.isPitcher = true;
+        }
+      }
+    }
+
+    // Build starter set from starters list
+    const starterUnis = new Set(
+      (opponentTeam.starters || []).map(s => s.uni).filter(Boolean)
+    );
+
+    let created = 0;
+    let updated = 0;
+
+    for (const [, player] of allPlayers) {
+      const hitting = player.hitting || {};
+      const pitching = player.pitching || {};
+      const fielding = player.fielding || {};
+
+      const statData = {
+        game_id: game.id,
+        team_id: teamId,
+        opponent_name: opponentName,
+        opponent_presto_team_id: opponentPrestoTeamId,
+        player_name: player.name || player.shortname || null,
+        jersey_number: player.uni || null,
+        is_starter: starterUnis.has(player.uni),
+        batting_order: this._parseInt(player.spot),
+        position_played: player.atpos || player.pos || null,
+        source_system: 'presto',
+        last_synced_at: now,
+
+        // Batting
+        at_bats: this._parseInt(hitting.ab),
+        runs: this._parseInt(hitting.r),
+        hits: this._parseInt(hitting.h),
+        doubles: this._parseInt(hitting.double),
+        triples: this._parseInt(hitting.triple),
+        home_runs: this._parseInt(hitting.hr),
+        rbi: this._parseInt(hitting.rbi),
+        walks: this._parseInt(hitting.bb),
+        strikeouts_batting: this._parseInt(hitting.so),
+        stolen_bases: this._parseInt(hitting.sb),
+        caught_stealing: this._parseInt(hitting.cs),
+        hit_by_pitch: this._parseInt(hitting.hbp),
+        sacrifice_flies: this._parseInt(hitting.sf),
+        sacrifice_bunts: this._parseInt(hitting.sh),
+
+        // Pitching
+        innings_pitched: this._parseFloat(pitching.ip),
+        hits_allowed: this._parseInt(pitching.h),
+        runs_allowed: this._parseInt(pitching.r),
+        earned_runs: this._parseInt(pitching.er),
+        walks_allowed: this._parseInt(pitching.bb),
+        strikeouts_pitching: this._parseInt(pitching.so),
+        home_runs_allowed: this._parseInt(pitching.hr),
+        batters_faced: this._parseInt(pitching.bf),
+        pitches_thrown: this._parseInt(pitching.pitches),
+        strikes_thrown: this._parseInt(pitching.strikes),
+        win: pitching.win === 'true' || pitching.win === '1' || pitching.win === true,
+        loss: pitching.loss === 'true' || pitching.loss === '1' || pitching.loss === true,
+        save: pitching.save === 'true' || pitching.save === '1' || pitching.save === true,
+        hold: pitching.hold === 'true' || pitching.hold === '1' || pitching.hold === true,
+
+        // Fielding
+        putouts: this._parseInt(fielding.po),
+        assists: this._parseInt(fielding.a),
+        errors: this._parseInt(fielding.e),
+      };
+
+      const [, wasCreated] = await OpponentGameStat.upsert(statData, {
+        conflictFields: ['game_id', 'opponent_name', 'jersey_number'],
+        returning: true
+      });
+
+      if (wasCreated) {
+        created++;
+      } else {
+        updated++;
+      }
+    }
+
+    return { created, updated };
+  }
+
+  /**
+   * Safe parseInt helper — returns 0 for unparseable values
+   */
+  _parseInt(val) {
+    if (val === null || val === undefined || val === '') return 0;
+    const n = parseInt(val, 10);
+    return isNaN(n) ? 0 : n;
+  }
+
+  /**
+   * Safe parseFloat helper — returns 0 for unparseable values
+   */
+  _parseFloat(val) {
+    if (val === null || val === undefined || val === '') return 0;
+    const n = parseFloat(val);
+    return isNaN(n) ? 0 : n;
   }
 }
 
