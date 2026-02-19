@@ -22,6 +22,10 @@ info:
     ## Stats & Analytics
     See `docs/api/stats-analytics-api.md` for player season/career stats, videos, leaderboards,
     and news releases (all populated by PrestoSports sync).
+
+    ## Extended Stats & Coach's Dashboard
+    See `docs/api/extended-stats-api.md` for split stats, raw Presto data, player/team game logs,
+    team aggregate stats, lineup, and the coach's dashboard endpoint.
   version: 1.0.0
   contact:
     name: Sports2 Team
@@ -490,6 +494,149 @@ paths:
       responses:
         '200':
           description: Players deleted
+
+  /api/v1/players/byId/{id}/splits:
+    get:
+      summary: Player split stats (home/away/situational)
+      tags: [Players]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Split stats by situation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      player_id: { type: string, format: uuid }
+                      player_name: { type: string }
+                      season: { type: string, example: '2025-26' }
+                      season_name: { type: string, example: '2025-26 Baseball' }
+                      splits:
+                        type: object
+                        description: 'Keys: overall, home, away, conference, vs_lhp, vs_rhp, risp, two_outs, bases_loaded, bases_empty, leadoff, with_runners. Each is a JSONB object of stat keys → string values.'
+                        nullable: true
+        '404':
+          description: Player not found
+
+  /api/v1/players/byId/{id}/stats/raw:
+    get:
+      summary: Full 214-key Presto stats object
+      tags: [Players]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Raw Presto stats payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      player_id: { type: string, format: uuid }
+                      player_name: { type: string }
+                      season: { type: string, nullable: true }
+                      season_name: { type: string, nullable: true }
+                      raw_stats:
+                        type: object
+                        nullable: true
+                        description: 'Full Presto stats object with ~214 keys (hittingab, hittingavg, pitchingera, etc.). Null if not synced.'
+        '404':
+          description: Player not found
+
+  /api/v1/players/byId/{id}/game-log:
+    get:
+      summary: Player per-game stats with game context
+      tags: [Players]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Per-game batting, pitching, fielding stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      player_id: { type: string, format: uuid }
+                      player_name: { type: string }
+                      games:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            game:
+                              type: object
+                              properties:
+                                id: { type: string, format: uuid }
+                                opponent: { type: string }
+                                date: { type: string, format: date }
+                                home_away: { type: string, enum: [home, away] }
+                                result: { type: string, enum: [W, L, T], nullable: true }
+                                score: { type: string, example: '5-3', nullable: true }
+                                game_summary: { type: string, nullable: true }
+                                running_record: { type: string, nullable: true }
+                            batting:
+                              type: object
+                              properties:
+                                ab: { type: integer }
+                                r: { type: integer }
+                                h: { type: integer }
+                                doubles: { type: integer }
+                                triples: { type: integer }
+                                hr: { type: integer }
+                                rbi: { type: integer }
+                                bb: { type: integer }
+                                so: { type: integer }
+                                sb: { type: integer }
+                                hbp: { type: integer }
+                            pitching:
+                              type: object
+                              nullable: true
+                              description: 'Null if player did not pitch (innings_pitched = 0)'
+                              properties:
+                                ip: { type: number }
+                                h: { type: integer }
+                                r: { type: integer }
+                                er: { type: integer }
+                                bb: { type: integer }
+                                so: { type: integer }
+                                hr: { type: integer }
+                                pitches: { type: integer }
+                                win: { type: boolean }
+                                loss: { type: boolean }
+                                save: { type: boolean }
+                            fielding:
+                              type: object
+                              properties:
+                                po: { type: integer }
+                                a: { type: integer }
+                                e: { type: integer }
+                            position: { type: string, example: SS }
+        '404':
+          description: Player not found
 
   # ---- Prospects (Scouting System) ----
   /api/v1/prospects:
@@ -1176,6 +1323,168 @@ paths:
       responses:
         '200':
           description: Pitchers, catchers, infielders, outfielders, DH
+
+  /api/v1/teams/dashboard:
+    get:
+      summary: Coach's dashboard with record, leaders, recent games
+      tags: [Teams]
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      record:
+                        type: object
+                        properties:
+                          wins: { type: integer }
+                          losses: { type: integer }
+                          ties: { type: integer }
+                          conference_wins: { type: integer }
+                          conference_losses: { type: integer }
+                      team_batting:
+                        type: object
+                        description: 'JSONB aggregate team batting stats from Presto. Keys are strings like avg, runs, hits, etc.'
+                      team_pitching:
+                        type: object
+                        description: 'JSONB aggregate team pitching stats from Presto.'
+                      team_fielding:
+                        type: object
+                        description: 'JSONB aggregate team fielding stats from Presto.'
+                      recent_games:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string, format: uuid }
+                            date: { type: string, format: date }
+                            opponent: { type: string }
+                            home_away: { type: string, enum: [home, away] }
+                            result: { type: string, enum: [W, L, T], nullable: true }
+                            score: { type: string, example: '5-3', nullable: true }
+                            game_summary: { type: string, nullable: true }
+                            running_record: { type: string, nullable: true }
+                            running_conference_record: { type: string, nullable: true }
+                      leaders:
+                        type: object
+                        description: 'Top 3 players per category. Each key maps to an array of { player_id, name, value }.'
+                        properties:
+                          batting_avg: { type: array, items: { $ref: '#/components/schemas/StatLeader' } }
+                          home_runs: { type: array, items: { $ref: '#/components/schemas/StatLeader' } }
+                          rbi: { type: array, items: { $ref: '#/components/schemas/StatLeader' } }
+                          stolen_bases: { type: array, items: { $ref: '#/components/schemas/StatLeader' } }
+                          era: { type: array, items: { $ref: '#/components/schemas/StatLeader' } }
+                          strikeouts: { type: array, items: { $ref: '#/components/schemas/StatLeader' } }
+                      stats_last_synced_at: { type: string, format: date-time, nullable: true }
+
+  /api/v1/teams/game-log:
+    get:
+      summary: Team game log with per-game stats
+      tags: [Teams]
+      responses:
+        '200':
+          description: All completed games with stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      games:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string, format: uuid }
+                            date: { type: string, format: date }
+                            opponent: { type: string }
+                            home_away: { type: string, enum: [home, away] }
+                            result: { type: string, enum: [W, L, T] }
+                            score: { type: string, example: '5-3', nullable: true }
+                            location: { type: string, nullable: true }
+                            team_stats:
+                              type: object
+                              nullable: true
+                              description: 'Per-game team batting/pitching/fielding from Presto (JSONB)'
+                            game_summary: { type: string, nullable: true }
+                            running_record: { type: string, nullable: true }
+                            running_conference_record: { type: string, nullable: true }
+
+  /api/v1/teams/aggregate-stats:
+    get:
+      summary: Team batting/pitching/fielding aggregates
+      tags: [Teams]
+      responses:
+        '200':
+          description: Full team aggregate stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      batting:
+                        type: object
+                        description: 'JSONB with Presto team batting stats (string values)'
+                      pitching:
+                        type: object
+                        description: 'JSONB with Presto team pitching stats (string values)'
+                      fielding:
+                        type: object
+                        description: 'JSONB with Presto team fielding stats (string values)'
+                      last_synced_at: { type: string, format: date-time, nullable: true }
+
+  /api/v1/teams/lineup:
+    get:
+      summary: Most recent lineup from last game
+      tags: [Teams]
+      responses:
+        '200':
+          description: Lineup derived from last completed game
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      source: { type: string, enum: [last_game, none] }
+                      game_id: { type: string, format: uuid, nullable: true }
+                      game_date: { type: string, format: date, nullable: true }
+                      opponent: { type: string, nullable: true }
+                      players:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            player_id: { type: string, format: uuid, nullable: true }
+                            name: { type: string }
+                            jersey_number: { type: string, nullable: true }
+                            position: { type: string, example: SS }
+                            photo_url: { type: string, nullable: true }
+                            batting:
+                              type: object
+                              properties:
+                                ab: { type: integer }
+                                h: { type: integer }
+                                r: { type: integer }
+                                rbi: { type: integer }
+                                bb: { type: integer }
+                      message: { type: string, description: 'Present when source is none' }
 
   /api/v1/teams/{id}:
     get:
@@ -1985,6 +2294,165 @@ paths:
         '200':
           description: Game stats
 
+  /api/v1/games/{gameId}/box-score:
+    get:
+      summary: Presto live box score
+      description: |
+        Fetches a full box score from PrestoSports for a game with a presto_event_id.
+        Returns both teams' data: linescore, batting, pitching, fielding for all players
+        (including opponent players with names, jersey numbers, and full stats).
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Full box score for both teams
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      game:
+                        type: object
+                        properties:
+                          id: { type: integer }
+                          opponent: { type: string }
+                          game_date: { type: string, format: date-time }
+                          home_away: { type: string, enum: [home, away] }
+                          result: { type: string, enum: [W, L, T], nullable: true }
+                          team_score: { type: integer, nullable: true }
+                          opponent_score: { type: integer, nullable: true }
+                          season_name: { type: string, nullable: true }
+                      box_score:
+                        $ref: '#/components/schemas/BoxScore'
+                      format: { type: string, enum: [parsed, raw] }
+        '400':
+          description: Game has no PrestoSports event linked
+        '404':
+          description: Game not found or not on user's team
+
+  /api/v1/integrations/presto/league-teams:
+    get:
+      summary: All league teams with logos
+      description: |
+        Returns all teams in the configured PrestoSports season with team names and logo URLs.
+        Logo URLs point to static.prestosports.com and can be used directly by the frontend.
+        Optionally pass `seasonId` query param to override the configured season.
+      parameters:
+        - name: seasonId
+          in: query
+          description: Override the configured season ID
+          schema: { type: string }
+      responses:
+        '200':
+          description: Array of league teams
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/LeagueTeam' }
+                  count: { type: integer }
+                  seasonId: { type: string }
+        '400':
+          description: No season configured
+
+  /api/v1/integrations/presto/sync/opponent-stats:
+    post:
+      summary: Sync opponent stats from box scores
+      description: |
+        Backfills opponent player stats from Presto box score XML for all completed games.
+        Stores per-player per-game opponent stats in opponent_game_stats table for aggregation.
+      responses:
+        '200':
+          description: Sync results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  data:
+                    type: object
+                    properties:
+                      gamesProcessed: { type: integer }
+                      playersCreated: { type: integer }
+                      playersUpdated: { type: integer }
+                      errors: { type: array, items: { type: object } }
+
+  /api/v1/games/opponent-stats:
+    get:
+      summary: Aggregated opponent team stats
+      description: |
+        Returns per-opponent batting/pitching/fielding totals across all games.
+        Includes derived stats like batting average and ERA.
+      parameters:
+        - name: opponent
+          in: query
+          description: Filter by opponent name (partial match, case-insensitive)
+          schema: { type: string }
+        - name: season
+          in: query
+          description: Filter by season ID
+          schema: { type: string }
+      responses:
+        '200':
+          description: Aggregated stats grouped by opponent team
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/OpponentTeamStats' }
+                  count: { type: integer }
+
+  /api/v1/games/opponent-stats/{opponent}/players:
+    get:
+      summary: Opponent player breakdown
+      description: |
+        Returns per-player stats for a specific opponent aggregated across all games.
+        Pitching stats only included for players who pitched.
+      parameters:
+        - name: opponent
+          in: path
+          required: true
+          description: URL-encoded opponent team name
+          schema: { type: string }
+        - name: season
+          in: query
+          description: Filter by season ID
+          schema: { type: string }
+      responses:
+        '200':
+          description: Player-level stats for the opponent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      opponent: { type: string }
+                      players:
+                        type: array
+                        items: { $ref: '#/components/schemas/OpponentPlayerStats' }
+                  count: { type: integer }
+
   # ---- News Releases ----
   /api/v1/news:
     get:
@@ -2635,6 +3103,13 @@ components:
         total: { type: integer }
         pages: { type: integer }
 
+    StatLeader:
+      type: object
+      properties:
+        player_id: { type: string, format: uuid }
+        name: { type: string, example: 'John Smith' }
+        value: { description: 'Stat value (string or number from Presto)' }
+
     User:
       type: object
       properties:
@@ -2952,3 +3427,150 @@ components:
         - type: object
           properties:
             content: { type: string, description: Full HTML content }
+
+    OpponentTeamStats:
+      type: object
+      description: Aggregated stats for one opponent team across all games
+      properties:
+        opponent_name: { type: string }
+        opponent_presto_team_id: { type: string, nullable: true }
+        games_played: { type: integer }
+        batting:
+          type: object
+          properties:
+            ab: { type: integer }
+            r: { type: integer }
+            h: { type: integer }
+            doubles: { type: integer }
+            triples: { type: integer }
+            hr: { type: integer }
+            rbi: { type: integer }
+            bb: { type: integer }
+            so: { type: integer }
+            sb: { type: integer }
+            hbp: { type: integer }
+            avg: { type: string, description: Batting average as ".XXX" }
+        pitching:
+          type: object
+          properties:
+            ip: { type: number }
+            ha: { type: integer, description: Hits allowed }
+            er: { type: integer }
+            bb: { type: integer }
+            so: { type: integer }
+            hr: { type: integer }
+            era: { type: string }
+        fielding:
+          type: object
+          properties:
+            errors: { type: integer }
+
+    OpponentPlayerStats:
+      type: object
+      description: Stats for one opponent player aggregated across games
+      properties:
+        player_name: { type: string, nullable: true }
+        jersey_number: { type: string, nullable: true }
+        position: { type: string, nullable: true }
+        games: { type: integer }
+        batting:
+          type: object
+          properties:
+            ab: { type: integer }
+            r: { type: integer }
+            h: { type: integer }
+            hr: { type: integer }
+            rbi: { type: integer }
+            bb: { type: integer }
+            so: { type: integer }
+            avg: { type: string }
+        fielding:
+          type: object
+          properties:
+            po: { type: integer }
+            a: { type: integer }
+            e: { type: integer }
+        pitching:
+          type: object
+          nullable: true
+          description: Only present for players who pitched
+          properties:
+            ip: { type: number }
+            h: { type: integer }
+            er: { type: integer }
+            bb: { type: integer }
+            so: { type: integer }
+            pitches: { type: integer }
+            era: { type: string }
+
+    LeagueTeam:
+      type: object
+      description: A team from the PrestoSports season with logo URL
+      properties:
+        teamId: { type: string, description: PrestoSports team ID }
+        name: { type: string, description: Team display name }
+        logo: { type: string, format: uri, description: Logo URL from static.prestosports.com }
+        conference: { type: string, nullable: true }
+        division: { type: string, nullable: true }
+
+    BoxScore:
+      type: object
+      description: Full box score with both teams' data
+      properties:
+        visitor:
+          $ref: '#/components/schemas/BoxScoreTeam'
+        home:
+          $ref: '#/components/schemas/BoxScoreTeam'
+        gameInfo:
+          type: object
+          properties:
+            date: { type: string, nullable: true }
+            location: { type: string, nullable: true }
+            attendance: { type: string, nullable: true }
+            duration: { type: string, nullable: true }
+
+    BoxScoreTeam:
+      type: object
+      properties:
+        role: { type: string, enum: [visitor, home] }
+        id: { type: string, nullable: true }
+        name: { type: string, nullable: true }
+        linescore:
+          type: object
+          properties:
+            innings:
+              type: array
+              items:
+                type: object
+                properties:
+                  number: { type: string }
+                  score: { type: string }
+            runs: { type: string }
+            hits: { type: string }
+            errors: { type: string, nullable: true }
+            lob: { type: string, nullable: true }
+        totals:
+          type: object
+          properties:
+            hitting: { type: object, additionalProperties: { type: string } }
+            pitching: { type: object, additionalProperties: { type: string } }
+            fielding: { type: object, additionalProperties: { type: string } }
+        batters:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoxScorePlayer'
+        pitchers:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoxScorePlayer'
+
+    BoxScorePlayer:
+      type: object
+      properties:
+        playerId: { type: string, nullable: true }
+        name: { type: string, nullable: true, description: May be empty for some opponent players }
+        uni: { type: string, nullable: true, description: Jersey number }
+        pos: { type: string, nullable: true }
+        hitting: { type: object, additionalProperties: { type: string }, description: ab, r, h, rbi, bb, so, etc. }
+        pitching: { type: object, additionalProperties: { type: string }, description: ip, h, r, er, bb, so, pitches, etc. }
+        fielding: { type: object, additionalProperties: { type: string }, description: po, a, e }
