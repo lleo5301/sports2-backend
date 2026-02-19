@@ -37,7 +37,10 @@ const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { protect } = require('../middleware/auth');
-const { Game, Team, GameStatistic, Player, PlayerSeasonStats } = require('../models');
+const { Game, Team, GameStatistic, Player, PlayerSeasonStats, OpponentGameStat } = require('../models');
+const prestoSyncService = require('../services/prestoSyncService');
+const prestoSportsService = require('../services/prestoSportsService');
+const { parseBoxScore } = require('../utils/boxScoreParser');
 
 const router = express.Router();
 
@@ -695,7 +698,7 @@ router.get('/season-stats', [
     // Database: Fetch games with fields needed for statistics
     const games = await Game.findAll({
       where: whereClause,
-      attributes: ['result', 'team_score', 'opponent_score', 'season']
+      attributes: ['result', 'team_score', 'opponent_score', 'season', 'season_name']
     });
 
     // Business logic: Aggregate statistics by season using reduce
@@ -708,6 +711,7 @@ router.get('/season-stats', [
       if (!acc[season]) {
         acc[season] = {
           season,
+          season_name: game.season_name || null,
           gamesPlayed: 0,
           wins: 0,
           losses: 0,
@@ -837,7 +841,7 @@ router.get('/player-stats/:playerId', async (req, res) => {
           where: gameWhereClause,
           attributes: [
             'id', 'opponent', 'game_date', 'home_away', 'result',
-            'team_score', 'opponent_score', 'location', 'season', 'game_status'
+            'team_score', 'opponent_score', 'location', 'season', 'season_name', 'game_status'
           ]
         }
       ],
@@ -856,6 +860,7 @@ router.get('/player-stats/:playerId', async (req, res) => {
         opponent_score: stat.game.opponent_score,
         location: stat.game.location,
         season: stat.game.season,
+        season_name: stat.game.season_name,
         game_status: stat.game.game_status
       },
       position_played: stat.position_played,
@@ -1046,19 +1051,27 @@ router.get('/leaderboard', [
 
     // Determine season: use query param or find most recent for this team
     let season = req.query.season;
+    let seasonName = null;
     if (!season) {
       const latest = await PlayerSeasonStats.findOne({
         where: { team_id: req.user.team_id },
         order: [['season', 'DESC']],
-        attributes: ['season']
+        attributes: ['season', 'season_name']
       });
       season = latest ? latest.season : null;
+      seasonName = latest ? latest.season_name : null;
+    } else {
+      const match = await PlayerSeasonStats.findOne({
+        where: { team_id: req.user.team_id, season },
+        attributes: ['season_name']
+      });
+      seasonName = match ? match.season_name : null;
     }
 
     if (!season) {
       return res.json({
         success: true,
-        data: { stat, season: null, leaders: [] }
+        data: { stat, season: null, season_name: null, leaders: [] }
       });
     }
 
@@ -1093,7 +1106,7 @@ router.get('/leaderboard', [
 
     res.json({
       success: true,
-      data: { stat, season, leaders }
+      data: { stat, season, season_name: seasonName, leaders }
     });
   } catch (error) {
     console.error('Get leaderboard error:', error);
@@ -1101,6 +1114,211 @@ router.get('/leaderboard', [
       success: false,
       error: 'Server error while fetching leaderboard'
     });
+  }
+});
+
+/**
+ * GET /api/v1/games/opponent-stats
+ *
+ * Aggregated opponent stats across all games. Group by opponent team.
+ * Optional filters: ?opponent=, ?season=
+ * Returns per-opponent batting/pitching totals with derived stats (AVG, ERA, etc.)
+ */
+router.get('/opponent-stats', async (req, res) => {
+  try {
+    const { opponent, season } = req.query;
+
+    const where = { team_id: req.user.team_id };
+    if (opponent) where.opponent_name = { [Op.iLike]: `%${opponent}%` };
+
+    // If season filter, join through game
+    const include = [];
+    if (season) {
+      include.push({
+        model: Game,
+        as: 'game',
+        attributes: [],
+        where: { season },
+        required: true
+      });
+    }
+
+    const stats = await OpponentGameStat.findAll({
+      where,
+      include,
+      attributes: [
+        'opponent_name',
+        'opponent_presto_team_id',
+        [OpponentGameStat.sequelize.fn('COUNT', OpponentGameStat.sequelize.literal('DISTINCT "OpponentGameStat"."game_id"')), 'games_played'],
+        [OpponentGameStat.sequelize.fn('COUNT', OpponentGameStat.sequelize.col('id')), 'total_players'],
+        // Batting aggregates
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('at_bats')), 'ab'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('runs')), 'r'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('hits')), 'h'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('doubles')), 'doubles'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('triples')), 'triples'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('home_runs')), 'hr'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('rbi')), 'rbi'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('walks')), 'bb'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('strikeouts_batting')), 'so'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('stolen_bases')), 'sb'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('hit_by_pitch')), 'hbp'],
+        // Pitching aggregates
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('innings_pitched')), 'ip'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('hits_allowed')), 'ha'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('earned_runs')), 'er'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('walks_allowed')), 'bba'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('strikeouts_pitching')), 'kp'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('home_runs_allowed')), 'hra'],
+        // Fielding aggregates
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('errors')), 'errors'],
+      ],
+      group: ['opponent_name', 'opponent_presto_team_id'],
+      order: [[OpponentGameStat.sequelize.literal('"games_played"'), 'DESC']],
+      raw: true
+    });
+
+    // Compute derived stats
+    const data = stats.map(row => {
+      const ab = parseInt(row.ab) || 0;
+      const h = parseInt(row.h) || 0;
+      const ip = parseFloat(row.ip) || 0;
+      const er = parseInt(row.er) || 0;
+
+      return {
+        opponent_name: row.opponent_name,
+        opponent_presto_team_id: row.opponent_presto_team_id,
+        games_played: parseInt(row.games_played),
+        batting: {
+          ab, r: parseInt(row.r) || 0, h, doubles: parseInt(row.doubles) || 0,
+          triples: parseInt(row.triples) || 0, hr: parseInt(row.hr) || 0,
+          rbi: parseInt(row.rbi) || 0, bb: parseInt(row.bb) || 0,
+          so: parseInt(row.so) || 0, sb: parseInt(row.sb) || 0,
+          hbp: parseInt(row.hbp) || 0,
+          avg: ab > 0 ? (h / ab).toFixed(3).replace(/^0/, '') : '.000'
+        },
+        pitching: {
+          ip, ha: parseInt(row.ha) || 0, er, bb: parseInt(row.bba) || 0,
+          so: parseInt(row.kp) || 0, hr: parseInt(row.hra) || 0,
+          era: ip > 0 ? ((er * 9) / ip).toFixed(2) : '0.00'
+        },
+        fielding: { errors: parseInt(row.errors) || 0 }
+      };
+    });
+
+    res.json({ success: true, data, count: data.length });
+  } catch (error) {
+    console.error('Error fetching opponent stats:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch opponent stats' });
+  }
+});
+
+/**
+ * GET /api/v1/games/opponent-stats/:opponent/players
+ *
+ * Per-player breakdown for a specific opponent across all games.
+ * Returns individual player stats aggregated across all meetings.
+ */
+router.get('/opponent-stats/:opponent/players', async (req, res) => {
+  try {
+    const opponentName = decodeURIComponent(req.params.opponent);
+    const { season } = req.query;
+
+    const where = {
+      team_id: req.user.team_id,
+      opponent_name: opponentName
+    };
+
+    const include = [];
+    if (season) {
+      include.push({
+        model: Game,
+        as: 'game',
+        attributes: [],
+        where: { season },
+        required: true
+      });
+    }
+
+    const stats = await OpponentGameStat.findAll({
+      where,
+      include,
+      attributes: [
+        'player_name',
+        'jersey_number',
+        [OpponentGameStat.sequelize.fn('COUNT', OpponentGameStat.sequelize.literal('DISTINCT "OpponentGameStat"."game_id"')), 'games'],
+        [OpponentGameStat.sequelize.fn('MAX', OpponentGameStat.sequelize.col('position_played')), 'position'],
+        // Batting
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('at_bats')), 'ab'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('runs')), 'r'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('hits')), 'h'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('doubles')), 'doubles'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('triples')), 'triples'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('home_runs')), 'hr'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('rbi')), 'rbi'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('walks')), 'bb'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('strikeouts_batting')), 'so'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('stolen_bases')), 'sb'],
+        // Pitching
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('innings_pitched')), 'ip'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('hits_allowed')), 'ha'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('earned_runs')), 'er'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('walks_allowed')), 'bba'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('strikeouts_pitching')), 'kp'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('pitches_thrown')), 'pitches'],
+        // Fielding
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('putouts')), 'po'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('assists')), 'a'],
+        [OpponentGameStat.sequelize.fn('SUM', OpponentGameStat.sequelize.col('errors')), 'e'],
+      ],
+      group: ['player_name', 'jersey_number'],
+      order: [[OpponentGameStat.sequelize.literal('"ab"'), 'DESC']],
+      raw: true
+    });
+
+    const players = stats.map(row => {
+      const ab = parseInt(row.ab) || 0;
+      const h = parseInt(row.h) || 0;
+      const ip = parseFloat(row.ip) || 0;
+      const er = parseInt(row.er) || 0;
+      const isPitcher = ip > 0;
+
+      const result = {
+        player_name: row.player_name,
+        jersey_number: row.jersey_number,
+        position: row.position,
+        games: parseInt(row.games),
+        batting: {
+          ab, r: parseInt(row.r) || 0, h, doubles: parseInt(row.doubles) || 0,
+          triples: parseInt(row.triples) || 0, hr: parseInt(row.hr) || 0,
+          rbi: parseInt(row.rbi) || 0, bb: parseInt(row.bb) || 0,
+          so: parseInt(row.so) || 0, sb: parseInt(row.sb) || 0,
+          avg: ab > 0 ? (h / ab).toFixed(3).replace(/^0/, '') : '.000'
+        },
+        fielding: {
+          po: parseInt(row.po) || 0, a: parseInt(row.a) || 0, e: parseInt(row.e) || 0
+        }
+      };
+
+      if (isPitcher) {
+        result.pitching = {
+          ip, h: parseInt(row.ha) || 0, er, bb: parseInt(row.bba) || 0,
+          so: parseInt(row.kp) || 0, pitches: parseInt(row.pitches) || 0,
+          era: ip > 0 ? ((er * 9) / ip).toFixed(2) : '0.00'
+        };
+      }
+
+      return result;
+    });
+
+    res.json({
+      success: true,
+      data: { opponent: opponentName, players },
+      count: players.length
+    });
+  } catch (error) {
+    console.error('Error fetching opponent player stats:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch opponent player stats' });
   }
 });
 
@@ -1307,6 +1525,105 @@ router.get('/:gameId/stats', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch game statistics'
+    });
+  }
+});
+
+/**
+ * GET /api/v1/games/:gameId/box-score
+ *
+ * Fetch a full box score from PrestoSports for a game that has a presto_event_id.
+ * Returns both teams' data: linescore, batting, pitching, fielding for all players.
+ * Opponent players may have empty names but will have jersey numbers and full stats.
+ *
+ * @returns {Object} { visitor: {...}, home: {...}, gameInfo: {...} }
+ */
+router.get('/:gameId/box-score', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+
+    const game = await Game.findOne({
+      where: { id: gameId, team_id: req.user.team_id }
+    });
+
+    if (!game) {
+      return res.status(404).json({
+        success: false,
+        error: 'Game not found or does not belong to your team'
+      });
+    }
+
+    if (!game.presto_event_id && !game.external_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'This game has no PrestoSports event linked. Box score is only available for Presto-synced games.'
+      });
+    }
+
+    const eventId = game.presto_event_id || game.external_id;
+
+    // Authenticate and fetch live box score XML from Presto
+    const token = await prestoSyncService.getToken(req.user.team_id);
+    const statsResponse = await prestoSportsService.getEventStats(token, eventId);
+
+    const xml = statsResponse?.data?.xml || statsResponse?.xml ||
+                (typeof statsResponse?.data === 'string' ? statsResponse.data : null) ||
+                (typeof statsResponse === 'string' ? statsResponse : null);
+
+    if (!xml) {
+      // Fall back to JSON if no XML (some events return structured JSON)
+      return res.json({
+        success: true,
+        data: {
+          game: {
+            id: game.id,
+            opponent: game.opponent,
+            game_date: game.game_date,
+            home_away: game.home_away,
+            result: game.result,
+            team_score: game.team_score,
+            opponent_score: game.opponent_score
+          },
+          box_score: statsResponse?.data || statsResponse || null,
+          format: 'raw'
+        }
+      });
+    }
+
+    const boxScore = parseBoxScore(xml);
+
+    if (!boxScore) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to parse box score XML'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        game: {
+          id: game.id,
+          opponent: game.opponent,
+          game_date: game.game_date,
+          game_time: game.game_time,
+          home_away: game.home_away,
+          location: game.location,
+          result: game.result,
+          team_score: game.team_score,
+          opponent_score: game.opponent_score,
+          season: game.season,
+          season_name: game.season_name
+        },
+        box_score: boxScore,
+        format: 'parsed'
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching Presto box score:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch box score from PrestoSports'
     });
   }
 });

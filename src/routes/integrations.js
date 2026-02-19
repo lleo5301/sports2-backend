@@ -607,4 +607,75 @@ router.post('/presto/sync/all', protect, checkIntegrationPermission, async (req,
   }
 });
 
+// Presto API diagnostics — recent requests, stats, Cloudflare detections
+router.get('/presto/diagnostics', protect, checkIntegrationPermission, async (_req, res) => {
+  const diagnostics = prestoSportsService.getDiagnostics();
+  res.json({ success: true, data: diagnostics });
+});
+
+// Sync opponent stats from box scores
+router.post('/presto/sync/opponent-stats', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const results = await prestoSyncService.syncOpponentStats(req.user.team_id, req.user.id);
+
+    res.json({
+      success: true,
+      message: `Opponent stats synced: ${results.playersCreated} created, ${results.playersUpdated} updated from ${results.gamesProcessed} games`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing opponent stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing opponent stats'
+    });
+  }
+});
+
+// Get all league teams with logos for the configured season
+// Frontend uses this to display opponent logos in game lists, schedules, etc.
+router.get('/presto/league-teams', protect, async (req, res) => {
+  try {
+    // Get configured season from integration credentials
+    const { config } = await integrationCredentialService.getCredentials(
+      req.user.team_id,
+      PROVIDER
+    );
+
+    const seasonId = req.query.seasonId || config?.season_id;
+    if (!seasonId) {
+      return res.status(400).json({
+        success: false,
+        message: 'No season configured. Set up PrestoSports integration first.'
+      });
+    }
+
+    const token = await prestoSyncService.getToken(req.user.team_id);
+    const response = await prestoSportsService.getSeasonTeams(token, seasonId);
+    const teams = response.data || [];
+
+    // Map to a clean, frontend-friendly format
+    const leagueTeams = teams.map(t => ({
+      teamId: t.teamId,
+      name: t.teamName || t.name || null,
+      logo: t.logo || t.logoUrl || null,
+      conference: t.conference || null,
+      division: t.division || null,
+    }));
+
+    res.json({
+      success: true,
+      data: leagueTeams,
+      count: leagueTeams.length,
+      seasonId
+    });
+  } catch (error) {
+    console.error('Error getting league teams:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error getting league teams'
+    });
+  }
+});
+
 module.exports = router;
