@@ -33,6 +33,92 @@ class PrestoSportsService {
   }
 
   /**
+   * Low-level HTTP request with throttle, retry, Cloudflare detection, and diagnostics.
+   * All Presto API calls (auth + data) funnel through this method.
+   * @param {object} axiosConfig - Full axios request config
+   * @param {string} label - Human-readable label for logging (e.g. '/auth/token', 'GET /teams/123')
+   * @param {object} [opts] - Options
+   * @param {number} [opts.maxRetries=3] - Max retry attempts on 403/429
+   * @param {boolean} [opts.throttle=true] - Whether to apply 500ms inter-request throttle
+   */
+  async _doRequest(axiosConfig, label, { maxRetries = 3, throttle = true } = {}) {
+    const baseDelay = 1000;
+
+    if (throttle) {
+      const now = Date.now();
+      const timeSinceLast = now - (this._lastRequestAt || 0);
+      if (timeSinceLast < 500) {
+        await new Promise(r => setTimeout(r, 500 - timeSinceLast));
+      }
+    }
+
+    const entry = {
+      timestamp: new Date().toISOString(),
+      method: (axiosConfig.method || 'POST').toUpperCase(),
+      endpoint: label,
+      attempts: 0,
+      status: null,
+      durationMs: null,
+      throttled: throttle,
+      cloudflare: false,
+      error: null,
+    };
+
+    const startTime = Date.now();
+    this._stats.total++;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      entry.attempts = attempt + 1;
+
+      try {
+        this._lastRequestAt = Date.now();
+        const response = await axios(axiosConfig);
+
+        entry.status = response.status;
+        entry.durationMs = Date.now() - startTime;
+        this._stats.success++;
+        this._trackRequest(entry);
+
+        if (attempt > 0) {
+          console.log(`[Presto] OK ${label} after ${attempt} retries (${entry.durationMs}ms)`);
+        }
+
+        return response;
+      } catch (error) {
+        const status = error.response?.status;
+        const isCloudflare = status === 403 &&
+          typeof error.response?.data === 'string' &&
+          error.response.data.includes('challenge-platform');
+
+        if (isCloudflare) {
+          this._stats.cloudflare++;
+          entry.cloudflare = true;
+        }
+
+        if ((status === 403 || status === 429) && attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt);
+          this._stats.retries++;
+          console.warn(`[Presto] ${status}${isCloudflare ? ' (Cloudflare)' : ''} on ${label}, retry ${attempt + 1}/${maxRetries} after ${delay}ms`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+
+        entry.status = status || 'NETWORK_ERROR';
+        entry.durationMs = Date.now() - startTime;
+        entry.error = isCloudflare ? 'Cloudflare bot challenge' :
+          (error.response?.statusText || error.message);
+        this._stats.failures++;
+        this._trackRequest(entry);
+
+        if (status !== 404) {
+          console.error(`[Presto] FAIL ${label} → ${status}${isCloudflare ? ' (Cloudflare)' : ''} after ${entry.attempts} attempts (${entry.durationMs}ms)`);
+        }
+        throw error;
+      }
+    }
+  }
+
+  /**
    * Get cached token for a team or null if expired/missing
    */
   getCachedToken(teamId) {
@@ -77,18 +163,15 @@ class PrestoSportsService {
    */
   async authenticate(username, password) {
     try {
-      const response = await axios.post(`${this.baseUrl}/auth/token`, {
-        username,
-        password
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await this._doRequest({
+        method: 'POST',
+        url: `${this.baseUrl}/auth/token`,
+        headers: { 'Content-Type': 'application/json' },
+        data: { username, password }
+      }, 'POST /auth/token');
 
       return response.data;
     } catch (error) {
-      console.error('PrestoSports authentication error:', error.response?.data || error.message);
       throw new Error(error.response?.data?.error_description || 'Authentication failed');
     }
   }
@@ -100,17 +183,15 @@ class PrestoSportsService {
    */
   async refreshToken(refreshToken) {
     try {
-      const response = await axios.post(`${this.baseUrl}/auth/token/refresh`, {
-        refreshToken
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await this._doRequest({
+        method: 'POST',
+        url: `${this.baseUrl}/auth/token/refresh`,
+        headers: { 'Content-Type': 'application/json' },
+        data: { refreshToken }
+      }, 'POST /auth/token/refresh');
 
       return response.data;
     } catch (error) {
-      console.error('PrestoSports token refresh error:', error.response?.data || error.message);
       throw new Error(error.response?.data?.error_description || 'Token refresh failed');
     }
   }
@@ -124,98 +205,22 @@ class PrestoSportsService {
    * @param {object} data - Request body
    */
   async makeRequest(token, method, endpoint, params = {}, data = null) {
-    const maxRetries = 3;
-    const baseDelay = 1000; // 1s initial backoff
-
-    // Throttle: wait between consecutive requests to avoid Cloudflare bot detection
-    const now = Date.now();
-    const timeSinceLast = now - (this._lastRequestAt || 0);
-    const throttled = timeSinceLast < 500;
-    if (throttled) {
-      await new Promise(r => setTimeout(r, 500 - timeSinceLast));
-    }
-
-    const entry = {
-      timestamp: new Date().toISOString(),
+    const config = {
       method,
-      endpoint,
-      attempts: 0,
-      status: null,
-      durationMs: null,
-      throttled,
-      cloudflare: false,
-      error: null,
+      url: `${this.baseUrl}${endpoint}`,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      params
     };
 
-    const startTime = Date.now();
-    this._stats.total++;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      entry.attempts = attempt + 1;
-
-      try {
-        const config = {
-          method,
-          url: `${this.baseUrl}${endpoint}`,
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          params
-        };
-
-        if (data) {
-          config.data = data;
-        }
-
-        this._lastRequestAt = Date.now();
-        const response = await axios(config);
-
-        entry.status = response.status;
-        entry.durationMs = Date.now() - startTime;
-        this._stats.success++;
-        this._trackRequest(entry);
-
-        if (attempt > 0) {
-          console.log(`[Presto] OK ${endpoint} after ${attempt} retries (${entry.durationMs}ms)`);
-        }
-
-        return response.data;
-      } catch (error) {
-        const status = error.response?.status;
-        const isCloudflare = status === 403 &&
-          typeof error.response?.data === 'string' &&
-          error.response.data.includes('challenge-platform');
-
-        if (isCloudflare) {
-          this._stats.cloudflare++;
-          entry.cloudflare = true;
-        }
-
-        // Retry on 403 (Cloudflare challenge) or 429 (rate limit)
-        if ((status === 403 || status === 429) && attempt < maxRetries) {
-          const delay = baseDelay * Math.pow(2, attempt); // 1s, 2s, 4s
-          this._stats.retries++;
-          console.warn(`[Presto] ${status}${isCloudflare ? ' (Cloudflare)' : ''} on ${endpoint}, retry ${attempt + 1}/${maxRetries} after ${delay}ms`);
-          await new Promise(r => setTimeout(r, delay));
-          continue;
-        }
-
-        // Final failure
-        entry.status = status || 'NETWORK_ERROR';
-        entry.durationMs = Date.now() - startTime;
-        entry.error = isCloudflare ? 'Cloudflare bot challenge' :
-          (error.response?.statusText || error.message);
-        this._stats.failures++;
-        this._trackRequest(entry);
-
-        // Don't log 404s as errors — callers handle them (e.g. livestats for games not yet started)
-        if (status !== 404) {
-          console.error(`[Presto] FAIL ${method} ${endpoint} → ${status}${isCloudflare ? ' (Cloudflare)' : ''} after ${entry.attempts} attempts (${entry.durationMs}ms)`);
-        }
-        throw error;
-      }
+    if (data) {
+      config.data = data;
     }
+
+    const response = await this._doRequest(config, `${method} ${endpoint}`);
+    return response.data;
   }
 
   /**
