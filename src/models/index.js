@@ -37,6 +37,7 @@ const Prospect = require('./Prospect');
 const ProspectMedia = require('./ProspectMedia');
 const Roster = require('./Roster');
 const RosterEntry = require('./RosterEntry');
+const OpponentGameStat = require('./OpponentGameStat');
 
 // Define associations
 
@@ -165,6 +166,13 @@ Player.hasMany(GameStatistic, { foreignKey: 'player_id', as: 'gameStats' });
 
 GameStatistic.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
 Team.hasMany(GameStatistic, { foreignKey: 'team_id', as: 'gameStatistics' });
+
+// OpponentGameStat associations
+OpponentGameStat.belongsTo(Game, { foreignKey: 'game_id', as: 'game' });
+Game.hasMany(OpponentGameStat, { foreignKey: 'game_id', as: 'opponentGameStats' });
+
+OpponentGameStat.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
+Team.hasMany(OpponentGameStat, { foreignKey: 'team_id', as: 'opponentGameStats' });
 
 // Coach associations
 Coach.belongsTo(Team, { foreignKey: 'team_id' });
@@ -335,5 +343,6 @@ module.exports = {
   Prospect,
   ProspectMedia,
   Roster,
-  RosterEntry
+  RosterEntry,
+  OpponentGameStat
 };

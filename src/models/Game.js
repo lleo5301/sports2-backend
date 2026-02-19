@@ -54,6 +54,10 @@ const Game = sequelize.define('Game', {
       len: [0, 20]
     }
   },
+  season_name: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
   notes: {
     type: DataTypes.TEXT,
     allowNull: true,
