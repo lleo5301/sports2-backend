@@ -2,6 +2,16 @@ const axios = require('axios');
 
 const PRESTO_API_BASE_URL = 'https://gameday-api.prestosports.com/api';
 
+// Browser-like default headers to reduce Cloudflare bot detection
+const DEFAULT_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Accept': '*/*',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'Connection': 'keep-alive',
+  'Cache-Control': 'no-cache',
+};
+
 class PrestoSportsService {
   constructor() {
     this.baseUrl = PRESTO_API_BASE_URL;
@@ -42,6 +52,9 @@ class PrestoSportsService {
    * @param {boolean} [opts.throttle=true] - Whether to apply 500ms inter-request throttle
    */
   async _doRequest(axiosConfig, label, { maxRetries = 3, throttle = true } = {}) {
+    // Merge browser-like defaults under caller-specified headers
+    axiosConfig.headers = { ...DEFAULT_HEADERS, ...axiosConfig.headers };
+
     const baseDelay = 1000;
 
     if (throttle) {
