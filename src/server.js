@@ -198,10 +198,13 @@ const startServer = async () => {
       logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
 
       // Start sync scheduler in production and development (not test)
-      if (process.env.NODE_ENV !== 'test') {
+      // Set DISABLE_SYNC=true in docker-compose to prevent automatic Presto API calls
+      if (process.env.NODE_ENV !== 'test' && process.env.DISABLE_SYNC !== 'true') {
         const syncScheduler = new SyncScheduler();
         syncScheduler.start();
         app.locals.syncScheduler = syncScheduler;
+      } else if (process.env.DISABLE_SYNC === 'true') {
+        logger.info('Sync scheduler disabled (DISABLE_SYNC=true)');
       }
     });
   } catch (error) {
