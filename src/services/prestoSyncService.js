@@ -4,6 +4,7 @@ const prestoSportsService = require('./prestoSportsService');
 const integrationCredentialService = require('./integrationCredentialService');
 const { parseBoxScore } = require('../utils/boxScoreParser');
 const { extractTournamentInfo } = require('../utils/tournamentExtractor');
+const { parsePlayByPlay } = require('../utils/playByPlayParser');
 
 const PROVIDER = IntegrationCredential.PROVIDERS.PRESTO;
 
@@ -914,6 +915,18 @@ class PrestoSyncService {
                 item_type: 'game_stat',
                 error: error.message
               });
+            }
+          }
+
+          // Parse and store play-by-play from the same XML
+          if (eventStats.xml) {
+            try {
+              const pbp = parsePlayByPlay(eventStats.xml);
+              if (pbp && pbp.total_plays > 0) {
+                await game.update({ play_by_play: pbp });
+              }
+            } catch (pbpError) {
+              console.error(`[SyncStats] Game ${game.id}: play-by-play parse error:`, pbpError.message);
             }
           }
 
