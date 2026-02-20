@@ -49,6 +49,8 @@ const integrationRoutes = require('./routes/integrations');
 const prospectRoutes = require('./routes/prospects');
 const rosterRoutes = require('./routes/rosters');
 const newsRoutes = require('./routes/news');
+const tournamentRoutes = require('./routes/tournaments');
+const teamStatsRoutes = require('./routes/teams/stats');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -123,6 +125,7 @@ app.get('/api/v1/health', (req, res) => {
 // API v1 routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/players', playerRoutes);
+app.use('/api/v1/teams', teamStatsRoutes);
 app.use('/api/v1/teams', teamRoutes);
 app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/recruits', recruitRoutes);
@@ -141,6 +144,7 @@ app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/prospects', prospectRoutes);
 app.use('/api/v1/rosters', rosterRoutes);
 app.use('/api/v1/news', newsRoutes);
+app.use('/api/v1/tournaments', tournamentRoutes);
 
 // Error handling middleware
 app.use(csrfErrorHandler); // Handle CSRF validation errors
@@ -196,10 +200,13 @@ const startServer = async () => {
       logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
 
       // Start sync scheduler in production and development (not test)
-      if (process.env.NODE_ENV !== 'test') {
+      // Set DISABLE_SYNC=true in docker-compose to prevent automatic Presto API calls
+      if (process.env.NODE_ENV !== 'test' && process.env.DISABLE_SYNC !== 'true') {
         const syncScheduler = new SyncScheduler();
         syncScheduler.start();
         app.locals.syncScheduler = syncScheduler;
+      } else if (process.env.DISABLE_SYNC === 'true') {
+        logger.info('Sync scheduler disabled (DISABLE_SYNC=true)');
       }
     });
   } catch (error) {

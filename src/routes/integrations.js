@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const { Team, IntegrationCredential } = require('../models');
+const { Team, IntegrationCredential, SyncLog, User } = require('../models');
 const { protect } = require('../middleware/auth');
 const prestoSportsService = require('../services/prestoSportsService');
 const prestoSyncService = require('../services/prestoSyncService');
@@ -346,7 +346,8 @@ router.post('/presto/sync/roster', protect, checkIntegrationPermission, async (r
 // Sync stats
 router.post('/presto/sync/stats', protect, checkIntegrationPermission, async (req, res) => {
   try {
-    const results = await prestoSyncService.syncStats(req.user.team_id, req.user.id);
+    const force = req.query.force === 'true';
+    const results = await prestoSyncService.syncStats(req.user.team_id, req.user.id, { force });
 
     res.json({
       success: true,
@@ -571,7 +572,8 @@ router.post('/presto/sync/live-stats/:gameId', protect, checkIntegrationPermissi
 // Sync all
 router.post('/presto/sync/all', protect, checkIntegrationPermission, async (req, res) => {
   try {
-    const results = await prestoSyncService.syncAll(req.user.team_id, req.user.id);
+    const force = req.body.force === true;
+    const results = await prestoSyncService.syncAll(req.user.team_id, req.user.id, { force });
 
     const messages = [];
     if (results.roster) {
@@ -603,6 +605,145 @@ router.post('/presto/sync/all', protect, checkIntegrationPermission, async (req,
     res.status(500).json({
       success: false,
       message: error.message || 'Error syncing all'
+    });
+  }
+});
+
+// Presto API diagnostics — recent requests, stats, Cloudflare detections
+router.get('/presto/diagnostics', protect, checkIntegrationPermission, async (_req, res) => {
+  const diagnostics = prestoSportsService.getDiagnostics();
+  res.json({ success: true, data: diagnostics });
+});
+
+// Sync opponent stats from box scores
+router.post('/presto/sync/opponent-stats', protect, checkIntegrationPermission, async (req, res) => {
+  try {
+    const results = await prestoSyncService.syncOpponentStats(req.user.team_id, req.user.id);
+
+    res.json({
+      success: true,
+      message: `Opponent stats synced: ${results.playersCreated} created, ${results.playersUpdated} updated from ${results.gamesProcessed} games`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error syncing opponent stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error syncing opponent stats'
+    });
+  }
+});
+
+// Get all league teams with logos for the configured season
+// Frontend uses this to display opponent logos in game lists, schedules, etc.
+router.get('/presto/league-teams', protect, async (req, res) => {
+  try {
+    // Get configured season from integration credentials
+    const { config } = await integrationCredentialService.getCredentials(
+      req.user.team_id,
+      PROVIDER
+    );
+
+    const seasonId = req.query.seasonId || config?.season_id;
+    if (!seasonId) {
+      return res.status(400).json({
+        success: false,
+        message: 'No season configured. Set up PrestoSports integration first.'
+      });
+    }
+
+    const token = await prestoSyncService.getToken(req.user.team_id);
+    const response = await prestoSportsService.getSeasonTeams(token, seasonId);
+    const teams = response.data || [];
+
+    // Map to a clean, frontend-friendly format
+    const leagueTeams = teams.map(t => ({
+      teamId: t.teamId,
+      name: t.teamName || t.name || null,
+      logo: t.logo || t.logoUrl || null,
+      conference: t.conference || null,
+      division: t.division || null,
+    }));
+
+    res.json({
+      success: true,
+      data: leagueTeams,
+      count: leagueTeams.length,
+      seasonId
+    });
+  } catch (error) {
+    console.error('Error getting league teams:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error getting league teams'
+    });
+  }
+});
+
+// Get sync audit log / history
+router.get('/presto/sync/history', protect, async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 25,
+      sync_type,
+      status
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+    const offset = (pageNum - 1) * limitNum;
+
+    const where = { team_id: req.user.team_id };
+    if (sync_type) where.sync_type = sync_type;
+    if (status) where.status = status;
+
+    const { rows, count } = await SyncLog.findAndCountAll({
+      where,
+      include: [{
+        model: User,
+        as: 'initiator',
+        attributes: ['id', 'first_name', 'last_name', 'email']
+      }],
+      order: [['started_at', 'DESC']],
+      limit: limitNum,
+      offset
+    });
+
+    const logs = rows.map(log => ({
+      id: log.id,
+      sync_type: log.sync_type,
+      status: log.status,
+      trigger: log.initiated_by ? 'manual' : 'scheduled',
+      triggered_by: log.initiator
+        ? `${log.initiator.first_name} ${log.initiator.last_name}`
+        : null,
+      started_at: log.started_at,
+      completed_at: log.completed_at,
+      duration_ms: log.duration_ms,
+      items_created: log.items_created,
+      items_updated: log.items_updated,
+      items_skipped: log.items_skipped,
+      items_failed: log.items_failed,
+      error_message: log.error_message,
+      response_summary: log.response_summary
+    }));
+
+    res.json({
+      success: true,
+      data: logs,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: count,
+        pages: Math.ceil(count / limitNum)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching sync history:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error fetching sync history'
     });
   }
 });

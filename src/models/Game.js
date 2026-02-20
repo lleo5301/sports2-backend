@@ -54,6 +54,10 @@ const Game = sequelize.define('Game', {
       len: [0, 20]
     }
   },
+  season_name: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
   notes: {
     type: DataTypes.TEXT,
     allowNull: true,
@@ -123,6 +127,75 @@ const Game = sequelize.define('Game', {
     type: DataTypes.ENUM('scheduled', 'completed', 'cancelled', 'postponed'),
     defaultValue: 'scheduled',
     comment: 'Game status'
+  },
+
+  // Extended Presto game stats
+  team_stats: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Per-game team stats from Presto'
+  },
+  opponent_stats: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Per-game opponent stats'
+  },
+  game_summary: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'e.g. "W, 5-3"'
+  },
+  running_record: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    comment: 'Team record at time of game'
+  },
+  running_conference_record: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    comment: 'Conference record at time of game'
+  },
+
+  // Opponent branding
+  opponent_logo_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    comment: 'Opponent team logo URL from PrestoSports'
+  },
+
+  // Event metadata from PrestoSports
+  tournament_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'tournaments',
+      key: 'id'
+    }
+  },
+  venue_name: {
+    type: DataTypes.STRING(200),
+    allowNull: true,
+    comment: 'Stadium / field name'
+  },
+  event_type: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    comment: 'scrimmage | regular'
+  },
+  is_conference: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  is_neutral: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  is_post_season: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
   }
 }, {
   tableName: 'games',
@@ -149,6 +222,15 @@ const Game = sequelize.define('Game', {
     },
     {
       fields: ['source_system']
+    },
+    {
+      fields: ['tournament_id']
+    },
+    {
+      fields: ['event_type']
+    },
+    {
+      fields: ['is_conference']
     }
   ]
 });

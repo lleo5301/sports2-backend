@@ -35,6 +35,7 @@ Designers and developers must distinguish these clearly in the UI:
 |----------|---------|
 | **`openapi.yaml`** (root) | Full API spec. Use for client generation, endpoint reference, request/response schemas. |
 | **`docs/api/scouting-system-api.md`** | Scouting system details: prospects, 20-80 grades, recruiting pipeline, media, preference lists. |
+| **`docs/api/extended-stats-api.md`** | Extended stats & Coach's Dashboard: split stats, raw Presto data, game logs, team aggregates, lineup. |
 
 ---
 

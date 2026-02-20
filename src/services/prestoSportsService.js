@@ -1,4 +1,4 @@
-const axios = require('axios');
+const httpcloak = require('httpcloak');
 
 const PRESTO_API_BASE_URL = 'https://gameday-api.prestosports.com/api';
 
@@ -6,6 +6,183 @@ class PrestoSportsService {
   constructor() {
     this.baseUrl = PRESTO_API_BASE_URL;
     this.tokenCache = new Map(); // Cache tokens per team
+    this._lastRequestAt = 0; // Throttle: track last request time
+    this._requestLog = []; // Rolling log of recent requests (last 100)
+    this._stats = { total: 0, success: 0, retries: 0, failures: 0 };
+    this._session = null; // Reusable httpcloak session (Chrome TLS fingerprint)
+  }
+
+  /**
+   * Get or create a persistent httpcloak session.
+   * The session mimics Chrome-144's TLS fingerprint to bypass Cloudflare.
+   */
+  _getSession() {
+    if (!this._session) {
+      this._session = new httpcloak.Session({ preset: 'chrome-144' });
+    }
+    return this._session;
+  }
+
+  /**
+   * Get recent request log and aggregate stats.
+   * Useful for diagnosing Presto API issues from /presto/diagnostics endpoint.
+   */
+  getDiagnostics() {
+    return {
+      stats: { ...this._stats },
+      recentRequests: this._requestLog.slice(-50),
+    };
+  }
+
+  /**
+   * Track a Presto API request for diagnostics
+   */
+  _trackRequest(entry) {
+    this._requestLog.push(entry);
+    if (this._requestLog.length > 100) {
+      this._requestLog.shift();
+    }
+  }
+
+  /**
+   * Parse httpcloak response body (Buffer) into a JS value.
+   * httpcloak returns raw Buffers; we convert to string then try JSON.parse.
+   */
+  _parseBody(body) {
+    if (!body) return null;
+    const str = Buffer.isBuffer(body) ? body.toString('utf8')
+      : typeof body === 'object' && body.type === 'Buffer' ? Buffer.from(body.data).toString('utf8')
+      : typeof body === 'string' ? body
+      : Buffer.from(body).toString('utf8');
+    try {
+      return JSON.parse(str);
+    } catch {
+      return str;
+    }
+  }
+
+  /**
+   * Low-level HTTP request using httpcloak (Chrome TLS fingerprint).
+   * All Presto API calls (auth + data) funnel through this method.
+   * httpcloak mimics Chrome's TLS handshake, so Cloudflare never triggers.
+   * @param {object} axiosConfig - Axios-style request config (url, method, headers, data, params)
+   * @param {string} label - Human-readable label for logging
+   * @param {object} [opts] - Options
+   * @param {number} [opts.maxRetries=1] - Max retry attempts on 403/429
+   * @param {boolean} [opts.throttle=true] - Whether to apply 1s inter-request throttle
+   */
+  async _doRequest(axiosConfig, label, { maxRetries = 1, throttle = true } = {}) {
+    const baseDelay = 1000;
+
+    if (throttle) {
+      const now = Date.now();
+      const timeSinceLast = now - (this._lastRequestAt || 0);
+      if (timeSinceLast < 1000) {
+        await new Promise(r => setTimeout(r, 1000 - timeSinceLast));
+      }
+    }
+
+    const entry = {
+      timestamp: new Date().toISOString(),
+      method: (axiosConfig.method || 'POST').toUpperCase(),
+      endpoint: label,
+      attempts: 0,
+      status: null,
+      durationMs: null,
+      throttled: throttle,
+      error: null
+    };
+
+    const startTime = Date.now();
+    this._stats.total++;
+
+    // Build URL with query params
+    let url = axiosConfig.url;
+    if (axiosConfig.params && Object.keys(axiosConfig.params).length > 0) {
+      const qs = new URLSearchParams(axiosConfig.params).toString();
+      url += (url.includes('?') ? '&' : '?') + qs;
+    }
+
+    const method = (axiosConfig.method || 'POST').toUpperCase();
+    const session = this._getSession();
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      entry.attempts = attempt + 1;
+
+      try {
+        this._lastRequestAt = Date.now();
+
+        // Build httpcloak request options
+        const opts = {
+          headers: { ...axiosConfig.headers }
+        };
+
+        // For POST/PUT/PATCH with JSON body, use the json option
+        let response;
+        if (['POST', 'PUT', 'PATCH'].includes(method) && axiosConfig.data) {
+          opts.json = axiosConfig.data;
+          delete opts.headers['Content-Type']; // httpcloak sets this for json option
+        }
+
+        if (method === 'GET') {
+          response = await session.get(url, opts);
+        } else if (method === 'POST') {
+          response = await session.post(url, opts);
+        } else if (method === 'PUT') {
+          response = await session.put(url, opts);
+        } else if (method === 'PATCH') {
+          response = await session.patch(url, opts);
+        } else if (method === 'DELETE') {
+          response = await session.delete(url, opts);
+        } else {
+          response = await session.get(url, opts);
+        }
+
+        const status = response.statusCode;
+        const data = this._parseBody(response.body);
+
+        // Treat 4xx/5xx as errors (match axios behavior)
+        if (status >= 400) {
+          const err = new Error(
+            (data && data.error_description) || (data && data.message) || `HTTP ${status}`
+          );
+          err.response = { status, data };
+          throw err;
+        }
+
+        entry.status = status;
+        entry.durationMs = Date.now() - startTime;
+        this._stats.success++;
+        this._trackRequest(entry);
+
+        if (attempt > 0) {
+          console.log(`[Presto] OK ${label} after ${attempt} retries (${entry.durationMs}ms)`);
+        }
+
+        return { status, data, headers: response.headers || {} };
+      } catch (error) {
+        const status = error.response?.status;
+
+        if ((status === 403 || status === 429) && attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt);
+          this._stats.retries++;
+          console.warn(`[Presto] ${status} on ${label}, retry ${attempt + 1}/${maxRetries} after ${delay}ms`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+
+        entry.status = status || 'NETWORK_ERROR';
+        entry.durationMs = Date.now() - startTime;
+        entry.error = error.response?.data?.error_description || error.message;
+        this._stats.failures++;
+        this._trackRequest(entry);
+
+        if (status !== 404) {
+          console.error(`[Presto] FAIL ${label} → ${status || 'NETWORK_ERROR'} after ${entry.attempts} attempts (${entry.durationMs}ms)`);
+        }
+        throw error;
+      }
+    }
   }
 
   /**
@@ -53,18 +230,15 @@ class PrestoSportsService {
    */
   async authenticate(username, password) {
     try {
-      const response = await axios.post(`${this.baseUrl}/auth/token`, {
-        username,
-        password
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await this._doRequest({
+        method: 'POST',
+        url: `${this.baseUrl}/auth/token`,
+        headers: { 'Content-Type': 'application/json' },
+        data: { username, password }
+      }, 'POST /auth/token');
 
       return response.data;
     } catch (error) {
-      console.error('PrestoSports authentication error:', error.response?.data || error.message);
       throw new Error(error.response?.data?.error_description || 'Authentication failed');
     }
   }
@@ -76,17 +250,15 @@ class PrestoSportsService {
    */
   async refreshToken(refreshToken) {
     try {
-      const response = await axios.post(`${this.baseUrl}/auth/token/refresh`, {
-        refreshToken
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await this._doRequest({
+        method: 'POST',
+        url: `${this.baseUrl}/auth/token/refresh`,
+        headers: { 'Content-Type': 'application/json' },
+        data: { refreshToken }
+      }, 'POST /auth/token/refresh');
 
       return response.data;
     } catch (error) {
-      console.error('PrestoSports token refresh error:', error.response?.data || error.message);
       throw new Error(error.response?.data?.error_description || 'Token refresh failed');
     }
   }
@@ -100,30 +272,22 @@ class PrestoSportsService {
    * @param {object} data - Request body
    */
   async makeRequest(token, method, endpoint, params = {}, data = null) {
-    try {
-      const config = {
-        method,
-        url: `${this.baseUrl}${endpoint}`,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        params
-      };
+    const config = {
+      method,
+      url: `${this.baseUrl}${endpoint}`,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      params
+    };
 
-      if (data) {
-        config.data = data;
-      }
-
-      const response = await axios(config);
-      return response.data;
-    } catch (error) {
-      // Don't log 404s as errors — callers handle them (e.g. livestats for games not yet started)
-      if (error.response?.status !== 404) {
-        console.error(`PrestoSports API error (${endpoint}):`, error.response?.data || error.message);
-      }
-      throw error;
+    if (data) {
+      config.data = data;
     }
+
+    const response = await this._doRequest(config, `${method} ${endpoint}`);
+    return response.data;
   }
 
   /**
