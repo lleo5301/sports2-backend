@@ -1,4 +1,9 @@
-FROM node:24.13-alpine
+FROM node:24-slim
+
+# Install CA certificates (for httpcloak's Go TLS) and build tools for native binaries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates cmake make g++ python3 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -6,7 +11,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with better error handling
+# Install dependencies
 RUN npm install --only=production --no-audit --no-fund
 
 # Copy source code
@@ -17,8 +22,8 @@ RUN mkdir -p uploads uploads/videos && \
     chmod 755 uploads uploads/videos
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+RUN groupadd -g 1001 nodejs
+RUN useradd -u 1001 -g nodejs -s /bin/sh nodejs
 
 # Change ownership of the app directory
 RUN chown -R nodejs:nodejs /app && \

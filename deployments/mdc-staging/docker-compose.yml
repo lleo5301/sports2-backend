@@ -1,0 +1,118 @@
+version: '3.8'
+
+# MDC Staging Deployment
+# Domain: mdc-staging.theprogram1814.com
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mdc_staging_backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DB_HOST=mdc_staging_postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=7d
+      - CSRF_SECRET=${CSRF_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - CORS_ORIGIN=https://mdc-staging.theprogram1814.com
+      - FRONTEND_URL=https://mdc-staging.theprogram1814.com
+      - APP_URL=https://mdc-staging.theprogram1814.com
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX_REQUESTS=1000
+      - MAX_FILE_SIZE=10485760
+      - UPLOAD_PATH=./uploads
+      - LOG_LEVEL=info
+      - DEFAULT_TEAM_ID=1
+      - DISABLE_SYNC=true
+      - FLARESOLVERR_URL=http://mdc_staging_flaresolverr:8191/v1
+    ports:
+      - "127.0.0.1:5002:5000"
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mdc_staging_network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api/v1
+        - VITE_BASE_PATH=
+    container_name: mdc_staging_frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3003:3000"
+    depends_on:
+      - backend
+    networks:
+      - mdc_staging_network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: mdc_staging_flaresolverr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+      - TZ=America/New_York
+    networks:
+      - mdc_staging_network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8191/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: mdc_staging_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - mdc_staging_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5434:5432"
+    networks:
+      - mdc_staging_network
+
+networks:
+  mdc_staging_network:
+    driver: bridge
+    name: mdc_staging_network
+
+volumes:
+  mdc_staging_postgres_data:
+    name: mdc_staging_postgres_data
