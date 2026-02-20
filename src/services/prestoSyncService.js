@@ -1,8 +1,9 @@
 const { Op } = require('sequelize');
-const { Game, Player, GameStatistic, Team, PlayerSeasonStats, PlayerCareerStats, SyncLog, IntegrationCredential, NewsRelease, PlayerVideo, OpponentGameStat } = require('../models');
+const { Game, Player, GameStatistic, Team, PlayerSeasonStats, PlayerCareerStats, SyncLog, IntegrationCredential, NewsRelease, PlayerVideo, OpponentGameStat, Tournament } = require('../models');
 const prestoSportsService = require('./prestoSportsService');
 const integrationCredentialService = require('./integrationCredentialService');
 const { parseBoxScore } = require('../utils/boxScoreParser');
+const { extractTournamentInfo } = require('../utils/tournamentExtractor');
 
 const PROVIDER = IntegrationCredential.PROVIDERS.PRESTO;
 
@@ -309,14 +310,23 @@ class PrestoSyncService {
       for (const prestoPlayer of players) {
         try {
           const prestoPlayerId = String(prestoPlayer.id || prestoPlayer.playerId);
+          // Parse bats/throws from "R/R" or "L/R" format
+          const batsThrows = prestoPlayer.attributes?.bats_throws || '';
+          const [bats, throws_] = batsThrows.includes('/') ? batsThrows.split('/') : [null, null];
+
           const playerData = {
             first_name: prestoPlayer.firstName || prestoPlayer.first_name,
             last_name: prestoPlayer.lastName || prestoPlayer.last_name,
             position: this.mapPosition(prestoPlayer.position),
             height: this.parseHeight(prestoPlayer.height),
             weight: prestoPlayer.weight ? parseInt(prestoPlayer.weight) : null,
-            jersey_number: prestoPlayer.jerseyNumber || prestoPlayer.jersey_number,
-            class_year: this.mapClassYear(prestoPlayer.classYear || prestoPlayer.class_year),
+            jersey_number: prestoPlayer.uniform || prestoPlayer.jerseyNumber || prestoPlayer.jersey_number || prestoPlayer.attributes?.number || null,
+            class_year: this.mapClassYear(prestoPlayer.year || prestoPlayer.attributes?.year || prestoPlayer.classYear || prestoPlayer.class_year),
+            photo_url: prestoPlayer.headshot || null,
+            bats: bats || null,
+            throws: throws_ || null,
+            birth_date: prestoPlayer.dob || null,
+            hometown: prestoPlayer.hometown || prestoPlayer.attributes?.hometown || null,
             school: prestoPlayer.school || team.name,
             school_type: 'COLL',
             status: 'active',
@@ -394,7 +404,8 @@ class PrestoSyncService {
       if (prestoSeasonId) {
         try {
           const seasonResp = await prestoSportsService.getSeasonTeams(token, prestoSeasonId);
-          const teamEntry = (seasonResp.data || []).find(t => t.teamId === prestoTeamId);
+          const seasonTeams = seasonResp.data || seasonResp || [];
+          const teamEntry = (Array.isArray(seasonTeams) ? seasonTeams : []).find(t => t.teamId === prestoTeamId);
           seasonName = teamEntry?.season?.seasonName || null;
         } catch (_e) { /* non-critical */ }
       }
@@ -413,15 +424,17 @@ class PrestoSyncService {
           const awayTeam = event.teams?.awayTeam || event.awayTeam;
 
           // Determine opponent and home/away using teamId
-          let opponent, homeAway;
+          let opponent, homeAway, opponentLogoUrl = null;
           if (homeTeam && awayTeam) {
             // Check if our team is home or away using teamId
             if (homeTeam.teamId === prestoTeamId || homeTeam.teamName?.includes(team.name)) {
               opponent = awayTeam.teamName || awayTeam.name || 'TBD';
               homeAway = 'home';
+              opponentLogoUrl = awayTeam.logo || null;
             } else {
               opponent = homeTeam.teamName || homeTeam.name || 'TBD';
               homeAway = 'away';
+              opponentLogoUrl = homeTeam.logo || null;
             }
           } else {
             opponent = event.opponent || event.opponentName || 'TBD';
@@ -480,6 +493,9 @@ class PrestoSyncService {
             gameStatus = 'completed';
           }
 
+          // Extract tournament info from Presto notes field
+          const { tournamentName } = extractTournamentInfo(event);
+
           const gameData = {
             opponent,
             game_date: gameDate,
@@ -488,14 +504,23 @@ class PrestoSyncService {
             team_score: teamScore,
             opponent_score: opponentScore,
             result: this.determineResult(teamScore, opponentScore),
-            location: event.location || event.venue || null,
+            location: event.city || event.stateCountry || event.location || event.venue || null,
             season: event.seasonId || event.season || prestoSeasonId || null,
             season_name: event.seasonName || seasonName || null,
+            notes: event.notes || null,
             game_status: gameStatus,
             // Enhanced game details
             attendance: event.attendance || null,
             weather: event.weather || null,
             game_duration: event.duration || event.gameDuration || null,
+            // Opponent branding
+            opponent_logo_url: opponentLogoUrl,
+            // Event metadata from PrestoSports
+            venue_name: event.venue || null,
+            event_type: event.eventTypeCode?.toLowerCase() || null,
+            is_conference: event.eventType?.isConference || false,
+            is_neutral: event.eventType?.isNeutral || false,
+            is_post_season: event.eventType?.isPostSeason || false,
             // Source tracking
             presto_event_id: prestoEventId,  // Explicit PrestoSports ID tracking
             external_id: prestoEventId,
@@ -504,6 +529,35 @@ class PrestoSyncService {
             team_id: teamId,
             created_by: userId
           };
+
+          // Find or create tournament record (best-effort — failure should not abort game sync)
+          if (tournamentName) {
+            try {
+              const [tournament, created] = await Tournament.findOrCreate({
+                where: { team_id: teamId, name: tournamentName, season: gameData.season || null },
+                defaults: {
+                  season_name: gameData.season_name,
+                  tournament_type: 'tournament',
+                  created_by: userId
+                }
+              });
+              // Backfill season_name on existing tournaments if it was previously null
+              if (!created && !tournament.season_name && gameData.season_name) {
+                await tournament.update({ season_name: gameData.season_name });
+              }
+              gameData.tournament_id = tournament.id;
+            } catch (tournamentErr) {
+              // Non-critical — log and continue without tournament linkage
+              results.errors.push({
+                item_id: event.eventId || event.id,
+                item_type: 'tournament',
+                error: `Tournament "${tournamentName}": ${tournamentErr.message}`
+              });
+            }
+          } else {
+            // Clear stale tournament linkage if notes no longer resolve to a tournament
+            gameData.tournament_id = null;
+          }
 
           // Find existing game by external_id
           const existingGame = await Game.findOne({
@@ -608,7 +662,10 @@ class PrestoSyncService {
         const player = this.parseXmlAttributes('<player ' + playerAttrs + '>');
 
         if (!player.playerId) {
-          continue; // Skip if no playerId
+          continue; // Skip if no playerId (bench players without stats)
+        }
+        if (player.gp === 0 || player.gp === '0') {
+          continue; // Skip players who didn't participate in this game
         }
 
         const stats = {
@@ -687,8 +744,9 @@ class PrestoSyncService {
     let match;
     while ((match = attrRegex.exec(tagString)) !== null) {
       const [, key, value] = match;
-      const numValue = parseFloat(value);
-      attrs[key] = isNaN(numValue) ? value : numValue;
+      // Only convert to number if the entire value is numeric
+      // (parseFloat would truncate alphanumeric IDs like "67o5cpljzbiv16np" → 67)
+      attrs[key] = /^-?\d+(\.\d+)?$/.test(value) ? parseFloat(value) : value;
     }
     return attrs;
   }
@@ -696,7 +754,7 @@ class PrestoSyncService {
   /**
    * Sync game statistics from PrestoSports
    */
-  async syncStats(teamId, _userId) {
+  async syncStats(teamId, _userId, { force = false } = {}) {
     const { prestoTeamId, prestoSeasonId } = await this.getPrestoConfig(teamId);
     if (!prestoTeamId) {
       throw new Error('PrestoSports team ID not configured');
@@ -722,16 +780,31 @@ class PrestoSyncService {
         }
       });
 
-      // Filter to games missing stats
-      const gamesWithStats = await GameStatistic.findAll({
-        where: { team_id: teamId },
-        attributes: ['game_id'],
-        group: ['game_id']
-      });
-      const syncedGameIds = new Set(gamesWithStats.map(s => s.game_id));
-      const games = allGames.filter(g => !syncedGameIds.has(g.id));
-
-      console.log(`[SyncStats] ${allGames.length} completed games, ${games.length} need stats sync (${syncedGameIds.size} already synced)`);
+      // Filter to games missing stats (unless force=true)
+      // A game is considered "synced" only if it has >= MIN_PLAYERS_FOR_SYNCED stat rows
+      // (a single zero-stat row from incomplete Presto data should not count as synced)
+      const MIN_PLAYERS_FOR_SYNCED = 2;
+      let games;
+      let syncedGameIds = new Set();
+      if (force) {
+        games = allGames;
+        console.log(`[SyncStats] FORCE: syncing all ${allGames.length} completed games`);
+      } else {
+        const gamesWithStats = await GameStatistic.findAll({
+          where: { team_id: teamId },
+          attributes: ['game_id', [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'stat_count']],
+          group: ['game_id'],
+          raw: true
+        });
+        syncedGameIds = new Set(
+          gamesWithStats
+            .filter(s => parseInt(s.stat_count) >= MIN_PLAYERS_FOR_SYNCED)
+            .map(s => s.game_id)
+        );
+        const incompleteCount = gamesWithStats.length - syncedGameIds.size;
+        games = allGames.filter(g => !syncedGameIds.has(g.id));
+        console.log(`[SyncStats] ${allGames.length} completed games, ${games.length} need stats sync (${syncedGameIds.size} fully synced${incompleteCount > 0 ? `, ${incompleteCount} incomplete` : ''})`);
+      }
 
       const results = {
         gamesProcessed: 0,
@@ -893,13 +966,23 @@ class PrestoSyncService {
       const response = await prestoSportsService.getTeamRecord(token, prestoTeamId);
       const record = response.data || response;
 
+      // Parse "W-L" string format (e.g. "7-8") into numeric wins/losses
+      const parseWL = (str) => {
+        if (!str || typeof str !== 'string') return { w: 0, l: 0 };
+        const parts = str.split('-').map(Number);
+        return { w: parts[0] || 0, l: parts[1] || 0 };
+      };
+
+      const overall = parseWL(record.record);
+      const conf = parseWL(record.conferenceRecord);
+
       // Update team with record data
       await team.update({
-        wins: record.wins ?? record.w ?? 0,
-        losses: record.losses ?? record.l ?? 0,
-        ties: record.ties ?? record.t ?? 0,
-        conference_wins: record.conferenceWins ?? record.confW ?? 0,
-        conference_losses: record.conferenceLosses ?? record.confL ?? 0,
+        wins: record.wins ?? overall.w,
+        losses: record.losses ?? overall.l,
+        ties: record.ties ?? 0,
+        conference_wins: record.conferenceWins ?? conf.w,
+        conference_losses: record.conferenceLosses ?? conf.l,
         record_last_synced_at: new Date(),
         source_system: 'presto'
       });
@@ -1109,7 +1192,7 @@ class PrestoSyncService {
   /**
    * Sync player career stats from PrestoSports
    */
-  async syncCareerStats(teamId, _userId) {
+  async syncCareerStats(teamId, _userId, { force = false } = {}) {
     const { prestoTeamId } = await this.getPrestoConfig(teamId);
     if (!prestoTeamId) {
       throw new Error('PrestoSports team ID not configured');
@@ -1129,16 +1212,22 @@ class PrestoSyncService {
     try {
       const token = await this.getToken(teamId);
 
-      // Get players that need career stats sync (skip recently synced)
-      const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+      // Get players that need career stats sync (skip recently synced unless force)
       const allPlayers = await Player.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto'
         }
       });
-      const players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
-      console.log(`[SyncCareerStats] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
+      let players;
+      if (force) {
+        players = allPlayers;
+        console.log(`[SyncCareerStats] FORCE: syncing all ${allPlayers.length} players`);
+      } else {
+        const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+        players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
+        console.log(`[SyncCareerStats] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
+      }
 
       for (const player of players) {
         try {
@@ -1252,7 +1341,7 @@ class PrestoSyncService {
    * Sync detailed player profiles from PrestoSports
    * Enriches existing players with bio, hometown, high school, etc.
    */
-  async syncPlayerDetails(teamId, _userId) {
+  async syncPlayerDetails(teamId, _userId, { force = false } = {}) {
     const { prestoTeamId } = await this.getPrestoConfig(teamId);
     if (!prestoTeamId) {
       throw new Error('PrestoSports team ID not configured');
@@ -1272,16 +1361,22 @@ class PrestoSyncService {
     try {
       const token = await this.getToken(teamId);
 
-      // Get players that need details sync (skip recently synced)
-      const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+      // Get players that need details sync (skip recently synced unless force)
       const allPlayers = await Player.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto'
         }
       });
-      const players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
-      console.log(`[SyncPlayerDetails] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
+      let players;
+      if (force) {
+        players = allPlayers;
+        console.log(`[SyncPlayerDetails] FORCE: syncing all ${allPlayers.length} players`);
+      } else {
+        const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+        players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
+        console.log(`[SyncPlayerDetails] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
+      }
 
       for (const player of players) {
         try {
@@ -1386,7 +1481,7 @@ class PrestoSyncService {
    * Sync player photos from PrestoSports
    * Updates photo_url field for each player
    */
-  async syncPlayerPhotos(teamId, _userId) {
+  async syncPlayerPhotos(teamId, _userId, { force = false } = {}) {
     const { prestoTeamId } = await this.getPrestoConfig(teamId);
     if (!prestoTeamId) {
       throw new Error('PrestoSports team ID not configured');
@@ -1406,16 +1501,22 @@ class PrestoSyncService {
     try {
       const token = await this.getToken(teamId);
 
-      // Get players that need photos sync (skip recently synced)
-      const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+      // Get players that need photos sync (skip recently synced unless force)
       const allPlayers = await Player.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto'
         }
       });
-      const players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
-      console.log(`[SyncPlayerPhotos] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
+      let players;
+      if (force) {
+        players = allPlayers;
+        console.log(`[SyncPlayerPhotos] FORCE: syncing all ${allPlayers.length} players`);
+      } else {
+        const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+        players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
+        console.log(`[SyncPlayerPhotos] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
+      }
 
       for (const player of players) {
         try {
@@ -1502,7 +1603,7 @@ class PrestoSyncService {
    * Sync historical season-by-season stats for players
    * This pulls stats from previous seasons (useful for transfers)
    */
-  async syncHistoricalSeasonStats(teamId, _userId) {
+  async syncHistoricalSeasonStats(teamId, _userId, { force = false } = {}) {
     const { prestoTeamId } = await this.getPrestoConfig(teamId);
     if (!prestoTeamId) {
       throw new Error('PrestoSports team ID not configured');
@@ -1522,16 +1623,22 @@ class PrestoSyncService {
     try {
       const token = await this.getToken(teamId);
 
-      // Get players that need historical stats sync (skip recently synced)
-      const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+      // Get players that need historical stats sync (skip recently synced unless force)
       const allPlayers = await Player.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto'
         }
       });
-      const players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
-      console.log(`[SyncHistoricalStats] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
+      let players;
+      if (force) {
+        players = allPlayers;
+        console.log(`[SyncHistoricalStats] FORCE: syncing all ${allPlayers.length} players`);
+      } else {
+        const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+        players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
+        console.log(`[SyncHistoricalStats] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
+      }
 
       for (const player of players) {
         try {
@@ -1653,7 +1760,7 @@ class PrestoSyncService {
   /**
    * Sync player videos/highlights from PrestoSports
    */
-  async syncPlayerVideos(teamId, _userId) {
+  async syncPlayerVideos(teamId, _userId, { force = false } = {}) {
     const { prestoTeamId } = await this.getPrestoConfig(teamId);
     if (!prestoTeamId) {
       throw new Error('PrestoSports team ID not configured');
@@ -1673,16 +1780,22 @@ class PrestoSyncService {
     try {
       const token = await this.getToken(teamId);
 
-      // Get players that need videos sync (skip recently synced)
-      const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+      // Get players that need videos sync (skip recently synced unless force)
       const allPlayers = await Player.findAll({
         where: {
           team_id: teamId,
           source_system: 'presto'
         }
       });
-      const players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
-      console.log(`[SyncPlayerVideos] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
+      let players;
+      if (force) {
+        players = allPlayers;
+        console.log(`[SyncPlayerVideos] FORCE: syncing all ${allPlayers.length} players`);
+      } else {
+        const cutoff = new Date(Date.now() - PLAYER_SYNC_TTL_MS);
+        players = allPlayers.filter(p => !p.last_synced_at || p.last_synced_at < cutoff);
+        console.log(`[SyncPlayerVideos] ${allPlayers.length} players, ${players.length} need sync (${allPlayers.length - players.length} recently synced)`);
+      }
 
       for (const player of players) {
         try {
@@ -1837,17 +1950,27 @@ class PrestoSyncService {
 
       for (const release of releases) {
         try {
-          const releaseId = String(release.id || release.releaseId);
+          const releaseId = String(release.releaseId || release.id);
+          // Decode HTML entities in title (e.g., &ndash; → –)
+          const rawTitle = release.title || release.headline || 'Untitled';
+          const title = rawTitle
+            .replace(/&ndash;/g, '–').replace(/&mdash;/g, '—')
+            .replace(/&rsquo;/g, '\u2019').replace(/&lsquo;/g, '\u2018')
+            .replace(/&rdquo;/g, '\u201D').replace(/&ldquo;/g, '\u201C')
+            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
+            .replace(/&#(\d+);/g, (_m, code) => String.fromCharCode(parseInt(code)));
+
           const releaseData = {
             team_id: teamId,
-            title: release.title || release.headline || 'Untitled',
+            title,
             content: release.content || release.body || null,
             summary: release.summary || release.excerpt || release.description || null,
             author: release.author || release.byline || null,
-            publish_date: release.publishDate || release.date || release.createdAt || null,
+            publish_date: release.publishedDate || release.publishDate || release.date || release.createdAt || null,
             category: release.category || release.type || null,
-            image_url: release.imageUrl || release.image || release.featuredImage || null,
-            source_url: release.url || release.link || null,
+            image_url: release.thumbnail || release.imageUrl || release.image || release.featuredImage || null,
+            source_url: release.fullUrl || release.url || release.link || null,
             external_id: releaseId,
             source_system: 'presto',
             last_synced_at: new Date()
@@ -2100,6 +2223,7 @@ class PrestoSyncService {
 
         await game.update({
           team_stats: event.stats || null,
+          opponent_stats: event.statsOpponent || null,
           game_summary: event.resultWinnerLoser || event.resultUsOpponent || null,
           running_record: event.currentRecord || null,
           running_conference_record: event.currentRecordConference || null,
@@ -2118,7 +2242,7 @@ class PrestoSyncService {
   /**
    * Sync everything (roster, schedule, stats, record, season stats, career stats)
    */
-  async syncAll(teamId, userId) {
+  async syncAll(teamId, userId, { force = false } = {}) {
     const { prestoTeamId, prestoSeasonId } = await this.getPrestoConfig(teamId);
     const syncLog = await SyncLog.logStart(teamId, 'full', userId, '/api/v2/sync/all', {
       presto_team_id: prestoTeamId,
@@ -2157,7 +2281,7 @@ class PrestoSyncService {
     }
 
     try {
-      results.stats = await this.syncStats(teamId, userId);
+      results.stats = await this.syncStats(teamId, userId, { force });
     } catch (error) {
       results.errors.push({ type: 'stats', error: error.message });
     }
@@ -2193,31 +2317,31 @@ class PrestoSyncService {
     }
 
     try {
-      results.careerStats = await this.syncCareerStats(teamId, userId);
+      results.careerStats = await this.syncCareerStats(teamId, userId, { force });
     } catch (error) {
       results.errors.push({ type: 'careerStats', error: error.message });
     }
 
     try {
-      results.playerDetails = await this.syncPlayerDetails(teamId, userId);
+      results.playerDetails = await this.syncPlayerDetails(teamId, userId, { force });
     } catch (error) {
       results.errors.push({ type: 'playerDetails', error: error.message });
     }
 
     try {
-      results.playerPhotos = await this.syncPlayerPhotos(teamId, userId);
+      results.playerPhotos = await this.syncPlayerPhotos(teamId, userId, { force });
     } catch (error) {
       results.errors.push({ type: 'playerPhotos', error: error.message });
     }
 
     try {
-      results.historicalStats = await this.syncHistoricalSeasonStats(teamId, userId);
+      results.historicalStats = await this.syncHistoricalSeasonStats(teamId, userId, { force });
     } catch (error) {
       results.errors.push({ type: 'historicalStats', error: error.message });
     }
 
     try {
-      results.playerVideos = await this.syncPlayerVideos(teamId, userId);
+      results.playerVideos = await this.syncPlayerVideos(teamId, userId, { force });
     } catch (error) {
       results.errors.push({ type: 'playerVideos', error: error.message });
     }
@@ -2229,7 +2353,7 @@ class PrestoSyncService {
     }
 
     try {
-      results.opponentStats = await this.syncOpponentStats(teamId, userId);
+      results.opponentStats = await this.syncOpponentStats(teamId, userId, { force });
     } catch (error) {
       results.errors.push({ type: 'opponentStats', error: error.message });
     }
@@ -2544,7 +2668,7 @@ class PrestoSyncService {
    * Fetches XML box scores, identifies the opponent team, and stores
    * per-player opponent stats in opponent_game_stats for aggregation.
    */
-  async syncOpponentStats(teamId, _userId) {
+  async syncOpponentStats(teamId, _userId, { force = false } = {}) {
     const { prestoTeamId } = await this.getPrestoConfig(teamId);
     if (!prestoTeamId) {
       throw new Error('PrestoSports team ID not configured');
@@ -2564,16 +2688,22 @@ class PrestoSyncService {
       }
     });
 
-    // Skip games that already have opponent stats synced
-    const gamesWithOpponentStats = await OpponentGameStat.findAll({
-      where: { team_id: teamId },
-      attributes: ['game_id'],
-      group: ['game_id']
-    });
-    const syncedGameIds = new Set(gamesWithOpponentStats.map(s => s.game_id));
-    const games = allGames.filter(g => !syncedGameIds.has(g.id));
-
-    console.log(`[SyncOpponentStats] ${allGames.length} completed games, ${games.length} need opponent stats sync (${syncedGameIds.size} already synced)`);
+    // Skip games that already have opponent stats synced (unless force)
+    let games;
+    let syncedGameIds = new Set();
+    if (force) {
+      games = allGames;
+      console.log(`[SyncOpponentStats] FORCE: syncing all ${allGames.length} completed games`);
+    } else {
+      const gamesWithOpponentStats = await OpponentGameStat.findAll({
+        where: { team_id: teamId },
+        attributes: ['game_id'],
+        group: ['game_id']
+      });
+      syncedGameIds = new Set(gamesWithOpponentStats.map(s => s.game_id));
+      games = allGames.filter(g => !syncedGameIds.has(g.id));
+      console.log(`[SyncOpponentStats] ${allGames.length} completed games, ${games.length} need opponent stats sync (${syncedGameIds.size} already synced)`);
+    }
 
     const results = {
       gamesProcessed: 0,

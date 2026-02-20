@@ -387,32 +387,48 @@ router.get('/aggregate-stats', async (req, res) => {
 router.get('/lineup', async (req, res) => {
   try {
     const { Game, GameStatistic, Player } = require('../../models');
-
-    // Find most recent completed game
-    const lastGame = await Game.findOne({
+    // Find most recent completed games (check up to 5 in case the latest has incomplete stats)
+    const recentGames = await Game.findAll({
       where: {
         team_id: req.user.team_id,
         game_status: 'completed'
       },
-      order: [['game_date', 'DESC']]
+      order: [['game_date', 'DESC']],
+      limit: 5
     });
 
-    if (!lastGame) {
+    if (recentGames.length === 0) {
       return res.json({
         success: true,
         data: { source: 'none', players: [], message: 'No completed games found' }
       });
     }
 
-    // Get all players who appeared in that game
-    const gameStats = await GameStatistic.findAll({
-      where: { game_id: lastGame.id, team_id: req.user.team_id },
-      include: [{
-        model: Player,
-        as: 'player',
-        attributes: ['id', 'first_name', 'last_name', 'position', 'jersey_number', 'photo_url']
-      }]
-    });
+    // Find the most recent game that has at least 2 player stat rows
+    let lastGame = null;
+    let gameStats = [];
+    for (const game of recentGames) {
+      const stats = await GameStatistic.findAll({
+        where: { game_id: game.id, team_id: req.user.team_id },
+        include: [{
+          model: Player,
+          as: 'player',
+          attributes: ['id', 'first_name', 'last_name', 'position', 'jersey_number', 'photo_url']
+        }]
+      });
+      if (stats.length >= 2) {
+        lastGame = game;
+        gameStats = stats;
+        break;
+      }
+    }
+
+    if (!lastGame) {
+      return res.json({
+        success: true,
+        data: { source: 'none', players: [], message: 'No games with complete stats found' }
+      });
+    }
 
     // Sort: position players first (by position), then pitchers
     const positionOrder = { 'C': 1, 'SS': 2, '2B': 3, '3B': 4, '1B': 5, 'LF': 6, 'CF': 7, 'RF': 8, 'DH': 9, 'P': 10 };

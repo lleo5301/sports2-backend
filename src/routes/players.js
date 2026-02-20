@@ -1152,6 +1152,8 @@ router.get('/byId/:id/stats/raw', async (req, res) => {
 /**
  * GET /api/v1/players/byId/:id/game-log
  * Returns per-game stats with game context.
+ * Includes season_stats summary so the frontend can show games_played even
+ * when individual box-score rows haven't been synced yet.
  */
 router.get('/byId/:id/game-log', async (req, res) => {
   try {
@@ -1163,22 +1165,38 @@ router.get('/byId/:id/game-log', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Player not found' });
     }
 
-    const gameStats = await GameStatistic.findAll({
-      where: { player_id: player.id, team_id: req.user.team_id },
-      include: [{
-        model: Game,
-        as: 'game',
-        attributes: ['id', 'opponent', 'game_date', 'home_away', 'result',
-          'team_score', 'opponent_score', 'game_summary', 'running_record']
-      }],
-      order: [[{ model: Game, as: 'game' }, 'game_date', 'DESC']]
-    });
+    const [gameStats, seasonStats] = await Promise.all([
+      GameStatistic.findAll({
+        where: { player_id: player.id, team_id: req.user.team_id },
+        include: [{
+          model: Game,
+          as: 'game',
+          attributes: ['id', 'opponent', 'game_date', 'home_away', 'result',
+            'team_score', 'opponent_score', 'game_summary', 'running_record',
+            'opponent_logo_url']
+        }],
+        order: [[{ model: Game, as: 'game' }, 'game_date', 'DESC']]
+      }),
+      PlayerSeasonStats.findAll({
+        where: { player_id: player.id, team_id: req.user.team_id },
+        attributes: ['season', 'season_name', 'games_played', 'at_bats', 'hits',
+          'home_runs', 'rbi', 'stolen_bases', 'batting_average',
+          'innings_pitched', 'era', 'strikeouts_pitching'],
+        order: [['season', 'DESC']]
+      })
+    ]);
+
+    // Total games played across all seasons (from Presto aggregate stats)
+    const totalGamesPlayed = seasonStats.reduce((sum, s) => sum + (s.games_played || 0), 0);
 
     res.json({
       success: true,
       data: {
         player_id: player.id,
         player_name: `${player.first_name} ${player.last_name}`,
+        games_played: totalGamesPlayed,
+        box_scores_available: gameStats.length,
+        season_stats: seasonStats,
         games: gameStats.map(gs => ({
           game: gs.game ? {
             id: gs.game.id,
@@ -1188,7 +1206,8 @@ router.get('/byId/:id/game-log', async (req, res) => {
             result: gs.game.result,
             score: gs.game.team_score !== null ? `${gs.game.team_score}-${gs.game.opponent_score}` : null,
             game_summary: gs.game.game_summary,
-            running_record: gs.game.running_record
+            running_record: gs.game.running_record,
+            opponent_logo_url: gs.game.opponent_logo_url
           } : null,
           batting: {
             ab: gs.at_bats, r: gs.runs, h: gs.hits, doubles: gs.doubles, triples: gs.triples,

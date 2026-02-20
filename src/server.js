@@ -49,6 +49,7 @@ const integrationRoutes = require('./routes/integrations');
 const prospectRoutes = require('./routes/prospects');
 const rosterRoutes = require('./routes/rosters');
 const newsRoutes = require('./routes/news');
+const tournamentRoutes = require('./routes/tournaments');
 const teamStatsRoutes = require('./routes/teams/stats');
 
 const app = express();
@@ -143,6 +144,7 @@ app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/prospects', prospectRoutes);
 app.use('/api/v1/rosters', rosterRoutes);
 app.use('/api/v1/news', newsRoutes);
+app.use('/api/v1/tournaments', tournamentRoutes);
 
 // Error handling middleware
 app.use(csrfErrorHandler); // Handle CSRF validation errors

@@ -1,16 +1,6 @@
-const axios = require('axios');
+const httpcloak = require('httpcloak');
 
 const PRESTO_API_BASE_URL = 'https://gameday-api.prestosports.com/api';
-
-// Browser-like default headers to reduce Cloudflare bot detection
-const DEFAULT_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-  'Accept': '*/*',
-  'Accept-Language': 'en-US,en;q=0.9',
-  'Accept-Encoding': 'gzip, deflate, br',
-  'Connection': 'keep-alive',
-  'Cache-Control': 'no-cache',
-};
 
 class PrestoSportsService {
   constructor() {
@@ -18,7 +8,19 @@ class PrestoSportsService {
     this.tokenCache = new Map(); // Cache tokens per team
     this._lastRequestAt = 0; // Throttle: track last request time
     this._requestLog = []; // Rolling log of recent requests (last 100)
-    this._stats = { total: 0, success: 0, retries: 0, failures: 0, cloudflare: 0 };
+    this._stats = { total: 0, success: 0, retries: 0, failures: 0 };
+    this._session = null; // Reusable httpcloak session (Chrome TLS fingerprint)
+  }
+
+  /**
+   * Get or create a persistent httpcloak session.
+   * The session mimics Chrome-144's TLS fingerprint to bypass Cloudflare.
+   */
+  _getSession() {
+    if (!this._session) {
+      this._session = new httpcloak.Session({ preset: 'chrome-144' });
+    }
+    return this._session;
   }
 
   /**
@@ -43,18 +45,33 @@ class PrestoSportsService {
   }
 
   /**
-   * Low-level HTTP request with throttle, retry, Cloudflare detection, and diagnostics.
-   * All Presto API calls (auth + data) funnel through this method.
-   * @param {object} axiosConfig - Full axios request config
-   * @param {string} label - Human-readable label for logging (e.g. '/auth/token', 'GET /teams/123')
-   * @param {object} [opts] - Options
-   * @param {number} [opts.maxRetries=3] - Max retry attempts on 403/429
-   * @param {boolean} [opts.throttle=true] - Whether to apply 500ms inter-request throttle
+   * Parse httpcloak response body (Buffer) into a JS value.
+   * httpcloak returns raw Buffers; we convert to string then try JSON.parse.
    */
-  async _doRequest(axiosConfig, label, { maxRetries = 3, throttle = true } = {}) {
-    // Merge browser-like defaults under caller-specified headers
-    axiosConfig.headers = { ...DEFAULT_HEADERS, ...axiosConfig.headers };
+  _parseBody(body) {
+    if (!body) return null;
+    const str = Buffer.isBuffer(body) ? body.toString('utf8')
+      : typeof body === 'object' && body.type === 'Buffer' ? Buffer.from(body.data).toString('utf8')
+      : typeof body === 'string' ? body
+      : Buffer.from(body).toString('utf8');
+    try {
+      return JSON.parse(str);
+    } catch {
+      return str;
+    }
+  }
 
+  /**
+   * Low-level HTTP request using httpcloak (Chrome TLS fingerprint).
+   * All Presto API calls (auth + data) funnel through this method.
+   * httpcloak mimics Chrome's TLS handshake, so Cloudflare never triggers.
+   * @param {object} axiosConfig - Axios-style request config (url, method, headers, data, params)
+   * @param {string} label - Human-readable label for logging
+   * @param {object} [opts] - Options
+   * @param {number} [opts.maxRetries=1] - Max retry attempts on 403/429
+   * @param {boolean} [opts.throttle=true] - Whether to apply 1s inter-request throttle
+   */
+  async _doRequest(axiosConfig, label, { maxRetries = 1, throttle = true } = {}) {
     const baseDelay = 1000;
 
     if (throttle) {
@@ -73,21 +90,67 @@ class PrestoSportsService {
       status: null,
       durationMs: null,
       throttled: throttle,
-      cloudflare: false,
-      error: null,
+      error: null
     };
 
     const startTime = Date.now();
     this._stats.total++;
+
+    // Build URL with query params
+    let url = axiosConfig.url;
+    if (axiosConfig.params && Object.keys(axiosConfig.params).length > 0) {
+      const qs = new URLSearchParams(axiosConfig.params).toString();
+      url += (url.includes('?') ? '&' : '?') + qs;
+    }
+
+    const method = (axiosConfig.method || 'POST').toUpperCase();
+    const session = this._getSession();
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       entry.attempts = attempt + 1;
 
       try {
         this._lastRequestAt = Date.now();
-        const response = await axios(axiosConfig);
 
-        entry.status = response.status;
+        // Build httpcloak request options
+        const opts = {
+          headers: { ...axiosConfig.headers }
+        };
+
+        // For POST/PUT/PATCH with JSON body, use the json option
+        let response;
+        if (['POST', 'PUT', 'PATCH'].includes(method) && axiosConfig.data) {
+          opts.json = axiosConfig.data;
+          delete opts.headers['Content-Type']; // httpcloak sets this for json option
+        }
+
+        if (method === 'GET') {
+          response = await session.get(url, opts);
+        } else if (method === 'POST') {
+          response = await session.post(url, opts);
+        } else if (method === 'PUT') {
+          response = await session.put(url, opts);
+        } else if (method === 'PATCH') {
+          response = await session.patch(url, opts);
+        } else if (method === 'DELETE') {
+          response = await session.delete(url, opts);
+        } else {
+          response = await session.get(url, opts);
+        }
+
+        const status = response.statusCode;
+        const data = this._parseBody(response.body);
+
+        // Treat 4xx/5xx as errors (match axios behavior)
+        if (status >= 400) {
+          const err = new Error(
+            (data && data.error_description) || (data && data.message) || `HTTP ${status}`
+          );
+          err.response = { status, data };
+          throw err;
+        }
+
+        entry.status = status;
         entry.durationMs = Date.now() - startTime;
         this._stats.success++;
         this._trackRequest(entry);
@@ -96,35 +159,26 @@ class PrestoSportsService {
           console.log(`[Presto] OK ${label} after ${attempt} retries (${entry.durationMs}ms)`);
         }
 
-        return response;
+        return { status, data, headers: response.headers || {} };
       } catch (error) {
         const status = error.response?.status;
-        const isCloudflare = status === 403 &&
-          typeof error.response?.data === 'string' &&
-          error.response.data.includes('challenge-platform');
-
-        if (isCloudflare) {
-          this._stats.cloudflare++;
-          entry.cloudflare = true;
-        }
 
         if ((status === 403 || status === 429) && attempt < maxRetries) {
           const delay = baseDelay * Math.pow(2, attempt);
           this._stats.retries++;
-          console.warn(`[Presto] ${status}${isCloudflare ? ' (Cloudflare)' : ''} on ${label}, retry ${attempt + 1}/${maxRetries} after ${delay}ms`);
+          console.warn(`[Presto] ${status} on ${label}, retry ${attempt + 1}/${maxRetries} after ${delay}ms`);
           await new Promise(r => setTimeout(r, delay));
           continue;
         }
 
         entry.status = status || 'NETWORK_ERROR';
         entry.durationMs = Date.now() - startTime;
-        entry.error = isCloudflare ? 'Cloudflare bot challenge' :
-          (error.response?.statusText || error.message);
+        entry.error = error.response?.data?.error_description || error.message;
         this._stats.failures++;
         this._trackRequest(entry);
 
         if (status !== 404) {
-          console.error(`[Presto] FAIL ${label} → ${status}${isCloudflare ? ' (Cloudflare)' : ''} after ${entry.attempts} attempts (${entry.durationMs}ms)`);
+          console.error(`[Presto] FAIL ${label} → ${status || 'NETWORK_ERROR'} after ${entry.attempts} attempts (${entry.durationMs}ms)`);
         }
         throw error;
       }

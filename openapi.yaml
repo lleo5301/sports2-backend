@@ -1450,6 +1450,10 @@ paths:
     get:
       summary: Most recent lineup from last game
       tags: [Teams]
+      description: >-
+        Returns the lineup from the most recent completed game with complete stats.
+        Falls back to earlier games (up to 5) if the latest game has incomplete or
+        no player statistics (e.g., box score data not yet available from Presto).
       responses:
         '200':
           description: Lineup derived from last completed game
@@ -2869,16 +2873,265 @@ paths:
   /api/v1/integrations/presto/sync/stats:
     post:
       summary: Sync stats from Presto
+      tags: [Integrations]
       responses:
         '200':
           description: Sync initiated
+        '500':
+          description: Sync failed
+
+  /api/v1/integrations/presto/sync/record:
+    post:
+      summary: Sync team record (W-L) from Presto
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Team record synced
+        '500':
+          description: Sync failed
+
+  /api/v1/integrations/presto/sync/season-stats:
+    post:
+      summary: Sync season stats from Presto
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Season stats synced
+        '500':
+          description: Sync failed
+
+  /api/v1/integrations/presto/sync/career-stats:
+    post:
+      summary: Sync career stats from Presto
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Career stats synced
+        '500':
+          description: Sync failed
+
+  /api/v1/integrations/presto/sync/player-details:
+    post:
+      summary: Sync player details (bio, hometown, high school) from Presto
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Player details synced
+        '500':
+          description: Sync failed
+
+  /api/v1/integrations/presto/sync/player-photos:
+    post:
+      summary: Sync player photos from Presto
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Player photos synced
+        '500':
+          description: Sync failed
+
+  /api/v1/integrations/presto/sync/press-releases:
+    post:
+      summary: Sync press releases/news from Presto
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Press releases synced
+        '500':
+          description: Sync failed
+
+  /api/v1/integrations/presto/sync/historical-stats:
+    post:
+      summary: Sync historical season-by-season stats from Presto
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Historical stats synced
+        '500':
+          description: Sync failed
+
+  /api/v1/integrations/presto/sync/player-videos:
+    post:
+      summary: Sync player video/highlights from Presto
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Player videos synced
+        '500':
+          description: Sync failed
+
+  /api/v1/integrations/presto/sync/live-stats/{gameId}:
+    post:
+      summary: Sync live stats for a specific game
+      tags: [Integrations]
+      parameters:
+        - in: path
+          name: gameId
+          required: true
+          schema: { type: integer }
+          description: Game ID to sync live stats for
+      responses:
+        '200':
+          description: Live stats synced
+        '500':
+          description: Sync failed
 
   /api/v1/integrations/presto/sync/all:
     post:
       summary: Full sync from Presto
+      tags: [Integrations]
+      description: >-
+        Runs all sync operations sequentially (roster, schedule, stats, game log,
+        team record, season stats, split stats, team aggregates, career stats,
+        player details, player photos, historical stats, player videos, press
+        releases, opponent stats). Each sub-sync is individually error-handled;
+        failures in one don't stop others. Pass `force: true` to bypass TTL/skip
+        logic and re-fetch all data.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  default: false
+                  description: >-
+                    When true, bypasses already-synced checks and TTL-based skip
+                    logic for stats, career stats, player details, player photos,
+                    historical stats, player videos, and opponent stats.
       responses:
         '200':
-          description: Sync initiated
+          description: Full sync completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  data:
+                    type: object
+                    properties:
+                      results:
+                        type: object
+                        properties:
+                          roster: { type: object }
+                          schedule: { type: object }
+                          stats: { type: object }
+                          gameLog: { type: object }
+                          teamRecord: { type: object }
+                          seasonStats: { type: object }
+                          splitStats: { type: object }
+                          teamAggregateStats: { type: object }
+                          careerStats: { type: object }
+                          playerDetails: { type: object }
+                          playerPhotos: { type: object }
+                          historicalStats: { type: object }
+                          playerVideos: { type: object }
+                          pressReleases: { type: object }
+                          opponentStats: { type: object }
+                          errors:
+                            type: array
+                            items: { type: string }
+        '500':
+          description: Sync failed
+
+  /api/v1/integrations/presto/sync/history:
+    get:
+      summary: Get sync history audit log
+      tags: [Integrations]
+      description: >-
+        Retrieves paginated sync operation history for the team. Shows when syncs
+        were triggered, by whom, duration, and result. Requires authentication.
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 25, maximum: 100 }
+        - in: query
+          name: sync_type
+          schema:
+            type: string
+            enum: [roster, schedule, stats, team_record, season_stats, career_stats, full, player_details, player_photos, press_releases, historical_stats, historical_season_stats, player_videos, live_stats]
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [started, completed, partial, failed]
+      responses:
+        '200':
+          description: Sync history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        sync_type: { type: string }
+                        status: { type: string, enum: [started, completed, partial, failed] }
+                        trigger: { type: string, enum: [manual, scheduled] }
+                        triggered_by: { type: string, nullable: true }
+                        started_at: { type: string, format: date-time }
+                        completed_at: { type: string, format: date-time, nullable: true }
+                        duration_ms: { type: integer, nullable: true }
+                        items_created: { type: integer }
+                        items_updated: { type: integer }
+                        items_skipped: { type: integer }
+                        items_failed: { type: integer }
+                        error_message: { type: string, nullable: true }
+                        response_summary: { type: object, nullable: true }
+                  pagination:
+                    type: object
+                    properties:
+                      page: { type: integer }
+                      limit: { type: integer }
+                      total: { type: integer }
+                      pages: { type: integer }
+
+  /api/v1/integrations/presto/games/live:
+    get:
+      summary: List games eligible for live stats (today's games)
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Live-eligible games
+        '500':
+          description: Failed to fetch live games
+
+  /api/v1/integrations/presto/diagnostics:
+    get:
+      summary: Presto API diagnostics (recent requests, stats)
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Diagnostics data
+        '500':
+          description: Failed to fetch diagnostics
+
+  /api/v1/integrations/presto/seasons/{seasonId}/teams:
+    get:
+      summary: List teams in a Presto season
+      tags: [Integrations]
+      parameters:
+        - in: path
+          name: seasonId
+          required: true
+          schema: { type: string }
+          description: Presto season identifier
+      responses:
+        '200':
+          description: Teams in the season
+        '500':
+          description: Failed to fetch teams
 
   # ---- Settings ----
   /api/v1/settings:
@@ -3068,6 +3321,68 @@ paths:
         '200':
           description: Test email sent
 
+  /api/v1/tournaments:
+    get:
+      summary: List tournaments for the team
+      tags: [Tournaments]
+      parameters:
+        - name: season
+          in: query
+          schema: { type: string }
+          description: Filter by season ID
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: Paginated list of tournaments with game counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tournament'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /api/v1/tournaments/{id}/games:
+    get:
+      summary: Get all games in a tournament
+      tags: [Tournaments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: Tournament ID
+      responses:
+        '200':
+          description: Tournament with its games ordered by date
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      tournament:
+                        $ref: '#/components/schemas/Tournament'
+                      games:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Game'
+        '404':
+          description: Tournament not found
+
 components:
   parameters:
     userId:
@@ -3109,6 +3424,47 @@ components:
         player_id: { type: string, format: uuid }
         name: { type: string, example: 'John Smith' }
         value: { description: 'Stat value (string or number from Presto)' }
+
+    Tournament:
+      type: object
+      properties:
+        id: { type: integer }
+        team_id: { type: integer }
+        name: { type: string, example: 'Snowbird Classic' }
+        season: { type: string, nullable: true }
+        season_name: { type: string, nullable: true }
+        tournament_type: { type: string, enum: [tournament, invitational, scrimmage], nullable: true }
+        game_count: { type: integer, description: 'Number of games in this tournament (included in list endpoint)' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Game:
+      type: object
+      properties:
+        id: { type: integer }
+        opponent: { type: string }
+        game_date: { type: string, format: date-time, nullable: true }
+        game_time: { type: string, nullable: true }
+        home_away: { type: string, enum: [home, away] }
+        team_score: { type: integer, nullable: true }
+        opponent_score: { type: integer, nullable: true }
+        result: { type: string, enum: [W, L, T], nullable: true }
+        location: { type: string, nullable: true }
+        opponent_logo_url: { type: string, nullable: true, description: 'Opponent team logo URL from PrestoSports' }
+        venue_name: { type: string, nullable: true, description: 'Stadium / field name' }
+        event_type: { type: string, nullable: true, description: 'scrimmage | regular' }
+        is_conference: { type: boolean, default: false }
+        is_neutral: { type: boolean, default: false }
+        is_post_season: { type: boolean, default: false }
+        tournament_id: { type: integer, nullable: true }
+        season: { type: string, nullable: true }
+        season_name: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        game_status: { type: string, enum: [scheduled, completed, cancelled, postponed] }
+        game_summary: { type: string, nullable: true }
+        running_record: { type: string, nullable: true }
+        running_conference_record: { type: string, nullable: true }
+        source_system: { type: string, enum: [manual, presto] }
 
     User:
       type: object

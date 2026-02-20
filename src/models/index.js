@@ -38,6 +38,7 @@ const ProspectMedia = require('./ProspectMedia');
 const Roster = require('./Roster');
 const RosterEntry = require('./RosterEntry');
 const OpponentGameStat = require('./OpponentGameStat');
+const Tournament = require('./Tournament');
 
 // Define associations
 
@@ -156,6 +157,16 @@ Team.hasMany(Game, { foreignKey: 'team_id' });
 
 Game.belongsTo(User, { foreignKey: 'created_by', as: 'created_by_user' });
 User.hasMany(Game, { foreignKey: 'created_by' });
+
+// Tournament associations
+Tournament.belongsTo(Team, { foreignKey: 'team_id', as: 'team' });
+Team.hasMany(Tournament, { foreignKey: 'team_id', as: 'tournaments' });
+
+Tournament.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(Tournament, { foreignKey: 'created_by' });
+
+Game.belongsTo(Tournament, { foreignKey: 'tournament_id', as: 'tournament' });
+Tournament.hasMany(Game, { foreignKey: 'tournament_id', as: 'games' });
 
 // GameStatistic associations
 GameStatistic.belongsTo(Game, { foreignKey: 'game_id', as: 'game' });
@@ -344,5 +355,6 @@ module.exports = {
   ProspectMedia,
   Roster,
   RosterEntry,
-  OpponentGameStat
+  OpponentGameStat,
+  Tournament
 };
