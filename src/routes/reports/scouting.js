@@ -1,110 +1,108 @@
 /**
- * @fileoverview Scouting report routes for player evaluations.
+ * @fileoverview Scouting report routes for player and prospect evaluations.
  * Handles CRUD operations for scouting reports with skill ratings and evaluations.
- * All routes enforce team isolation - users can only access reports for their team's players.
- *
- * Scouting Report Model:
- * - Player evaluation reports created by scouts/coaches
- * - Contains skill ratings (hitting, power, speed, arm, fielding), overall grades, and narrative evaluations
- * - Associated with specific players via player_id
- * - Multi-tenant isolation enforced via Player's team_id
- *
- * Permission Model:
- * All routes require authentication via the protect middleware.
- * No explicit permission checks are enforced, but team isolation via player associations is mandatory.
+ * Reports can target either a rostered Player (player_id) or an external Prospect (prospect_id).
+ * Team isolation is enforced via the target entity's team_id.
  *
  * @module routes/reports/scouting
- * @requires express
- * @requires ../../middleware/auth
- * @requires ../../models
  */
 
 const express = require('express');
 const { protect } = require('../../middleware/auth');
-const { ScoutingReport, Player, User } = require('../../models');
+const { ScoutingReport, Player, Prospect, User } = require('../../models');
 const { Op } = require('sequelize');
 
 const router = express.Router();
 
-// Middleware: Apply JWT authentication to all routes in this module
 router.use(protect);
+
+// Shared includes for fetching reports with both Player and Prospect associations
+const reportIncludes = (teamId) => [
+  {
+    model: Player,
+    required: false,
+    where: { team_id: teamId },
+    attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+  },
+  {
+    model: Prospect,
+    required: false,
+    where: { team_id: teamId },
+    attributes: ['id', 'first_name', 'last_name', 'primary_position', 'school_name', 'school_type', 'graduation_year', 'photo_url']
+  },
+  {
+    model: User,
+    attributes: ['id', 'first_name', 'last_name']
+  }
+];
 
 /**
  * @route GET /api/reports/scouting
  * @description Retrieves scouting reports with pagination and optional filtering.
- *              Scouting reports are linked to players and contain evaluation data.
- *              Multi-tenant isolation is enforced via the Player's team_id.
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- *
- * @param {number} [req.query.page=1] - Page number for pagination (1-indexed)
- * @param {number} [req.query.limit=20] - Number of reports per page
- * @param {string} [req.query.player_id] - Optional filter by specific player
- * @param {string} [req.query.start_date] - Start date for date range filter (ISO 8601)
- * @param {string} [req.query.end_date] - End date for date range filter (ISO 8601)
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {Array<Object>} response.data - Array of scouting report objects
- * @returns {number} response.data[].id - Scouting report ID
- * @returns {string} response.data[].report_date - Date of the scouting report
- * @returns {string} response.data[].overall_grade - Overall grade (A-F scale)
- * @returns {Object} response.data[].Player - Associated player information
- * @returns {number} response.data[].Player.id - Player ID
- * @returns {string} response.data[].Player.first_name - Player's first name
- * @returns {string} response.data[].Player.last_name - Player's last name
- * @returns {string} response.data[].Player.position - Player's position
- * @returns {string} response.data[].Player.school - Player's school
- * @returns {Object} response.pagination - Pagination metadata
- * @returns {number} response.pagination.page - Current page number
- * @returns {number} response.pagination.limit - Items per page
- * @returns {number} response.pagination.total - Total number of reports
- * @returns {number} response.pagination.pages - Total number of pages
- *
- * @throws {500} Server error - Database query failure
+ *   Filter by player_id, prospect_id, type (player|prospect), or date range.
+ *   Team isolation enforced via Player/Prospect team_id.
  */
 router.get('/', async (req, res) => {
   try {
-    // Pagination: Parse page and limit with defaults
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
+    const teamId = req.user.team_id;
 
-    // Business logic: Build where clause for optional filters
     const whereClause = {};
 
-    // Filter: Optionally filter by specific player
     if (req.query.player_id) {
       whereClause.player_id = req.query.player_id;
     }
 
-    // Filter: Optionally filter by date range (both dates required for range)
+    if (req.query.prospect_id) {
+      whereClause.prospect_id = req.query.prospect_id;
+    }
+
+    // Filter by type: 'player' returns only player reports, 'prospect' only prospect reports
+    if (req.query.type === 'player') {
+      whereClause.player_id = { [Op.not]: null };
+    } else if (req.query.type === 'prospect') {
+      whereClause.prospect_id = { [Op.not]: null };
+    }
+
     if (req.query.start_date && req.query.end_date) {
       whereClause.report_date = {
         [Op.between]: [req.query.start_date, req.query.end_date]
       };
     }
 
-    // Database: Fetch scouting reports with pagination
+    // Use left joins so reports with either player_id or prospect_id are returned.
+    // Team isolation: at least one of Player or Prospect must match user's team.
+    const includes = [
+      {
+        model: Player,
+        required: false,
+        where: { team_id: teamId },
+        attributes: ['id', 'first_name', 'last_name', 'position', 'school']
+      },
+      {
+        model: Prospect,
+        required: false,
+        where: { team_id: teamId },
+        attributes: ['id', 'first_name', 'last_name', 'primary_position', 'school_name', 'school_type', 'graduation_year', 'photo_url']
+      }
+    ];
+
     const { count, rows: reports } = await ScoutingReport.findAndCountAll({
       where: whereClause,
-      include: [
-        {
-          model: Player,
-          // Permission: Multi-tenant isolation enforced via Player's team_id
-          where: { team_id: req.user.team_id },
-          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
-        }
-      ],
-      // Business logic: Most recent reports first
+      include: includes,
       order: [['report_date', 'DESC']],
       limit,
       offset
     });
 
+    // Filter out reports that didn't match either Player or Prospect for this team
+    const teamReports = reports.filter(r => r.Player || r.Prospect);
+
     res.json({
       success: true,
-      data: reports,
+      data: teamReports,
       pagination: {
         page,
         limit,
@@ -113,7 +111,6 @@ router.get('/', async (req, res) => {
       }
     });
   } catch (error) {
-    // Error: Database query failure or connection issues
     console.error('Get scouting reports error:', error);
     res.status(500).json({
       success: false,
@@ -124,69 +121,109 @@ router.get('/', async (req, res) => {
 
 /**
  * @route POST /api/reports/scouting
- * @description Creates a new scouting report for a player.
- *              Validates that the player belongs to the user's team before creation.
- *              Returns the created report with player and creator information.
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- *
- * @param {string} req.body.player_id - ID of the player being evaluated (required)
- * @param {string} req.body.report_date - Date of the scouting evaluation
- * @param {string} [req.body.overall_grade] - Overall grade (A+, A, A-, B+, etc.)
- * @param {string} [req.body.hitting_grade] - Hitting ability grade
- * @param {string} [req.body.power_grade] - Power hitting grade
- * @param {string} [req.body.speed_grade] - Speed/running grade
- * @param {string} [req.body.arm_grade] - Arm strength grade
- * @param {string} [req.body.fielding_grade] - Fielding ability grade
- * @param {string} [req.body.notes] - Narrative evaluation notes
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {string} response.message - Success message
- * @returns {Object} response.data - Created scouting report with associations
- * @returns {Object} response.data.Player - Player information
- * @returns {Object} response.data.User - Creator information
- *
- * @throws {404} Not found - Player not found or belongs to different team
- * @throws {500} Server error - Database creation failure
+ * @description Creates a new scouting report for a player or prospect.
+ *   Exactly one of player_id or prospect_id is required.
+ *   Validates that the target belongs to the user's team.
  */
 router.post('/', async (req, res) => {
   try {
-    // Validation: Ensure player exists and belongs to user's team
-    // This enforces multi-tenant isolation for scouting reports
-    const player = await Player.findOne({
-      where: {
-        id: req.body.player_id,
-        team_id: req.user.team_id
-      }
-    });
+    const { player_id, prospect_id } = req.body;
+    const teamId = req.user.team_id;
 
-    if (!player) {
-      return res.status(404).json({
+    // Validate exactly one target
+    if (!player_id && !prospect_id) {
+      return res.status(400).json({
         success: false,
-        message: 'Player not found or does not belong to your team'
+        message: 'Either player_id or prospect_id is required'
       });
     }
 
-    // Database: Create the scouting report
-    const scoutingReport = await ScoutingReport.create({
-      ...req.body,
-      // Business logic: Track who created the report
-      created_by: req.user.id
-    });
+    if (player_id && prospect_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Provide either player_id or prospect_id, not both'
+      });
+    }
 
-    // Database: Fetch the created report with associations for response
+    // Validate target belongs to user's team
+    if (player_id) {
+      const player = await Player.findOne({
+        where: { id: player_id, team_id: teamId }
+      });
+      if (!player) {
+        return res.status(404).json({
+          success: false,
+          message: 'Player not found or does not belong to your team'
+        });
+      }
+    } else {
+      const prospect = await Prospect.findOne({
+        where: { id: prospect_id, team_id: teamId }
+      });
+      if (!prospect) {
+        return res.status(404).json({
+          success: false,
+          message: 'Prospect not found or does not belong to your team'
+        });
+      }
+    }
+
+    // Whitelist allowed fields to prevent mass assignment
+    const {
+      report_date, game_date, opponent, event_type,
+      overall_grade, hitting_grade, bat_speed, power_potential, plate_discipline,
+      pitching_grade, fastball_grade, breaking_ball_grade, command,
+      fielding_grade, arm_strength, arm_accuracy, range,
+      speed_grade, intangibles_grade, work_ethic, coachability, projection,
+      overall_present, overall_future, hitting_present, hitting_future,
+      bat_speed_present, bat_speed_future, raw_power_present, raw_power_future,
+      game_power_present, game_power_future, plate_discipline_present, plate_discipline_future,
+      pitching_present, pitching_future, fastball_present, fastball_future,
+      curveball_present, curveball_future, slider_present, slider_future,
+      changeup_present, changeup_future, command_present, command_future,
+      fielding_present, fielding_future, arm_strength_present, arm_strength_future,
+      arm_accuracy_present, arm_accuracy_future, range_present, range_future,
+      hands_present, hands_future, speed_present, speed_future,
+      baserunning_present, baserunning_future, intangibles_present, intangibles_future,
+      work_ethic_grade, coachability_grade, baseball_iq_present, baseball_iq_future,
+      overall_future_potential,
+      sixty_yard_dash, mlb_comparison,
+      overall_notes, hitting_notes, pitching_notes, fielding_notes,
+      speed_notes, intangibles_notes, projection_notes,
+      fastball_velocity, home_to_first, is_draft, is_public
+    } = req.body;
+
+    const reportData = {
+      player_id: player_id || null,
+      prospect_id: prospect_id || null,
+      created_by: req.user.id,
+      report_date, game_date, opponent, event_type,
+      overall_grade, hitting_grade, bat_speed, power_potential, plate_discipline,
+      pitching_grade, fastball_grade, breaking_ball_grade, command,
+      fielding_grade, arm_strength, arm_accuracy, range,
+      speed_grade, intangibles_grade, work_ethic, coachability, projection,
+      overall_present, overall_future, hitting_present, hitting_future,
+      bat_speed_present, bat_speed_future, raw_power_present, raw_power_future,
+      game_power_present, game_power_future, plate_discipline_present, plate_discipline_future,
+      pitching_present, pitching_future, fastball_present, fastball_future,
+      curveball_present, curveball_future, slider_present, slider_future,
+      changeup_present, changeup_future, command_present, command_future,
+      fielding_present, fielding_future, arm_strength_present, arm_strength_future,
+      arm_accuracy_present, arm_accuracy_future, range_present, range_future,
+      hands_present, hands_future, speed_present, speed_future,
+      baserunning_present, baserunning_future, intangibles_present, intangibles_future,
+      work_ethic_grade, coachability_grade, baseball_iq_present, baseball_iq_future,
+      overall_future_potential,
+      sixty_yard_dash, mlb_comparison,
+      overall_notes, hitting_notes, pitching_notes, fielding_notes,
+      speed_notes, intangibles_notes, projection_notes,
+      fastball_velocity, home_to_first, is_draft, is_public
+    };
+
+    const scoutingReport = await ScoutingReport.create(reportData);
+
     const createdReport = await ScoutingReport.findByPk(scoutingReport.id, {
-      include: [
-        {
-          model: Player,
-          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
-        },
-        {
-          model: User,
-          attributes: ['id', 'first_name', 'last_name']
-        }
-      ]
+      include: reportIncludes(teamId)
     });
 
     res.status(201).json({
@@ -195,7 +232,6 @@ router.post('/', async (req, res) => {
       data: createdReport
     });
   } catch (error) {
-    // Error: Database creation failure or validation error
     console.error('Create scouting report error:', error);
     res.status(500).json({
       success: false,
@@ -207,54 +243,19 @@ router.post('/', async (req, res) => {
 /**
  * @route GET /api/reports/scouting/:id
  * @description Retrieves a specific scouting report by ID.
- *              Multi-tenant isolation is enforced via the Player's team_id.
- *              Returns the report with player and creator information.
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- *
- * @param {string} req.params.id - Scouting report ID (UUID)
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {Object} response.data - Scouting report object
- * @returns {number} response.data.id - Report ID
- * @returns {string} response.data.report_date - Date of evaluation
- * @returns {string} response.data.overall_grade - Overall grade
- * @returns {Object} response.data.Player - Associated player
- * @returns {number} response.data.Player.id - Player ID
- * @returns {string} response.data.Player.first_name - Player's first name
- * @returns {string} response.data.Player.last_name - Player's last name
- * @returns {string} response.data.Player.position - Player's position
- * @returns {string} response.data.Player.school - Player's school
- * @returns {Object} response.data.User - Report creator
- * @returns {number} response.data.User.id - Creator's user ID
- * @returns {string} response.data.User.first_name - Creator's first name
- * @returns {string} response.data.User.last_name - Creator's last name
- *
- * @throws {404} Not found - Report not found or player belongs to different team
- * @throws {500} Server error - Database query failure
+ *   Team isolation enforced via Player or Prospect team_id.
  */
 router.get('/:id', async (req, res) => {
   try {
-    // Database: Find report with team scoping via Player association
+    const teamId = req.user.team_id;
+
     const report = await ScoutingReport.findOne({
       where: { id: req.params.id },
-      include: [
-        {
-          model: Player,
-          // Permission: Multi-tenant isolation via Player's team_id
-          where: { team_id: req.user.team_id },
-          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
-        },
-        {
-          model: User,
-          attributes: ['id', 'first_name', 'last_name']
-        }
-      ]
+      include: reportIncludes(teamId)
     });
 
-    // Validation: Report must exist and player must belong to user's team
-    if (!report) {
+    // Must exist and belong to user's team via either Player or Prospect
+    if (!report || (!report.Player && !report.Prospect)) {
       return res.status(404).json({
         success: false,
         message: 'Scouting report not found'
@@ -266,7 +267,6 @@ router.get('/:id', async (req, res) => {
       data: report
     });
   } catch (error) {
-    // Error: Database query failure
     console.error('Get scouting report error:', error);
     res.status(500).json({
       success: false,
@@ -278,62 +278,30 @@ router.get('/:id', async (req, res) => {
 /**
  * @route PUT /api/reports/scouting/:id
  * @description Updates an existing scouting report.
- *              Multi-tenant isolation is enforced via the Player's team_id.
- *              If changing the player_id, validates the new player belongs to user's team.
- *              Supports partial updates - only provided fields are modified.
- * @access Private - Requires authentication
- * @middleware protect - JWT authentication required
- *
- * @param {string} req.params.id - Scouting report ID (UUID)
- * @param {string} [req.body.player_id] - New player ID (must belong to user's team)
- * @param {string} [req.body.report_date] - Updated evaluation date
- * @param {string} [req.body.overall_grade] - Updated overall grade
- * @param {string} [req.body.hitting_grade] - Updated hitting grade
- * @param {string} [req.body.power_grade] - Updated power grade
- * @param {string} [req.body.speed_grade] - Updated speed grade
- * @param {string} [req.body.arm_grade] - Updated arm grade
- * @param {string} [req.body.fielding_grade] - Updated fielding grade
- * @param {string} [req.body.notes] - Updated evaluation notes
- *
- * @returns {Object} response
- * @returns {boolean} response.success - Operation success status
- * @returns {string} response.message - Success message
- * @returns {Object} response.data - Updated scouting report with associations
- *
- * @throws {404} Not found - Report not found, player belongs to different team, or new player not found
- * @throws {500} Server error - Database update failure
+ *   Team isolation enforced via Player or Prospect team_id.
+ *   Can reassign between player/prospect if new target belongs to user's team.
  */
 router.put('/:id', async (req, res) => {
   try {
-    // Database: Find existing report with team validation via Player
+    const teamId = req.user.team_id;
+
     const existingReport = await ScoutingReport.findOne({
       where: { id: req.params.id },
-      include: [{
-        model: Player,
-        // Permission: Multi-tenant isolation via Player's team_id
-        where: { team_id: req.user.team_id },
-        attributes: ['id', 'first_name', 'last_name', 'position', 'school']
-      }]
+      include: reportIncludes(teamId)
     });
 
-    // Validation: Report must exist and belong to user's team
-    if (!existingReport) {
+    if (!existingReport || (!existingReport.Player && !existingReport.Prospect)) {
       return res.status(404).json({
         success: false,
         message: 'Scouting report not found or does not belong to your team'
       });
     }
 
-    // Validation: If changing player_id, verify new player belongs to user's team
-    // This prevents reassigning reports to players from other teams
+    // If changing player_id, verify new player belongs to user's team
     if (req.body.player_id && req.body.player_id !== existingReport.player_id) {
       const player = await Player.findOne({
-        where: {
-          id: req.body.player_id,
-          team_id: req.user.team_id
-        }
+        where: { id: req.body.player_id, team_id: teamId }
       });
-
       if (!player) {
         return res.status(404).json({
           success: false,
@@ -342,21 +310,23 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    // Database: Apply partial update with provided fields
+    // If changing prospect_id, verify new prospect belongs to user's team
+    if (req.body.prospect_id && req.body.prospect_id !== existingReport.prospect_id) {
+      const prospect = await Prospect.findOne({
+        where: { id: req.body.prospect_id, team_id: teamId }
+      });
+      if (!prospect) {
+        return res.status(404).json({
+          success: false,
+          message: 'Prospect not found or does not belong to your team'
+        });
+      }
+    }
+
     await existingReport.update(req.body);
 
-    // Database: Fetch updated report with associations for response
     const updatedReport = await ScoutingReport.findByPk(existingReport.id, {
-      include: [
-        {
-          model: Player,
-          attributes: ['id', 'first_name', 'last_name', 'position', 'school']
-        },
-        {
-          model: User,
-          attributes: ['id', 'first_name', 'last_name']
-        }
-      ]
+      include: reportIncludes(teamId)
     });
 
     res.json({
@@ -365,11 +335,46 @@ router.put('/:id', async (req, res) => {
       data: updatedReport
     });
   } catch (error) {
-    // Error: Database update failure
     console.error('Update scouting report error:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating scouting report'
+    });
+  }
+});
+
+/**
+ * @route DELETE /api/reports/scouting/:id
+ * @description Deletes a scouting report.
+ *   Team isolation enforced via Player or Prospect team_id.
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    const teamId = req.user.team_id;
+
+    const report = await ScoutingReport.findOne({
+      where: { id: req.params.id },
+      include: reportIncludes(teamId)
+    });
+
+    if (!report || (!report.Player && !report.Prospect)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scouting report not found or does not belong to your team'
+      });
+    }
+
+    await report.destroy();
+
+    res.json({
+      success: true,
+      message: 'Scouting report deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete scouting report error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting scouting report'
     });
   }
 });
