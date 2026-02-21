@@ -196,6 +196,13 @@ const Game = sequelize.define('Game', {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false
+  },
+
+  // Play-by-play data from PrestoSports event stats XML
+  play_by_play: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Parsed play-by-play data from PrestoSports event stats XML'
   }
 }, {
   tableName: 'games',

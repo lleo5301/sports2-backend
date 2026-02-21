@@ -42,6 +42,7 @@ const prestoSyncService = require('../services/prestoSyncService');
 const prestoSportsService = require('../services/prestoSportsService');
 const { parseBoxScore } = require('../utils/boxScoreParser');
 
+
 const router = express.Router();
 
 // Middleware: Apply JWT authentication to all routes in this file
@@ -159,6 +160,7 @@ router.get('/', async (req, res) => {
     // Database: Fetch games with team association and pagination
     const games = await Game.findAndCountAll({
       where: whereClause,
+      attributes: { exclude: ['play_by_play'] },
       // Business logic: Sort by game date descending (most recent first)
       order: [['game_date', 'DESC']],
       limit,
@@ -1624,6 +1626,52 @@ router.get('/:gameId/box-score', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch box score from PrestoSports'
+    });
+  }
+});
+
+/**
+ * @route GET /api/v1/games/byId/:id/plays
+ * @description Returns play-by-play data for a completed game.
+ *   Serves pre-synced data from the games.play_by_play JSONB column.
+ *   Data is populated during stats sync from PrestoSports event stats XML.
+ */
+router.get('/byId/:id/plays', [
+  param('id').isInt().withMessage('Game ID must be an integer'),
+  handleValidationErrors
+], async (req, res) => {
+  try {
+    const game = await Game.findOne({
+      where: { id: req.params.id, team_id: req.user.team_id }
+    });
+
+    if (!game) {
+      return res.status(404).json({ success: false, error: 'Game not found' });
+    }
+
+    if (!game.play_by_play || game.play_by_play.total_plays === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No play-by-play data available for this game. Run a stats sync to populate.'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        game_id: game.id,
+        opponent: game.opponent,
+        game_date: game.game_date,
+        home_away: game.home_away,
+        score: game.team_score != null ? `${game.team_score}-${game.opponent_score}` : null,
+        ...game.play_by_play
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching play-by-play:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch play-by-play data'
     });
   }
 });

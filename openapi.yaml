@@ -2341,6 +2341,106 @@ paths:
         '404':
           description: Game not found or not on user's team
 
+  /api/v1/games/byId/{id}/plays:
+    get:
+      summary: Play-by-play data
+      description: |
+        Returns stored play-by-play data for a completed game.
+        Data is parsed from PrestoSports event stats XML during stats sync
+        and stored in the games.play_by_play JSONB column.
+        Includes inning-by-inning plays with batter outcomes, runner movements,
+        narrative descriptions, inning summaries, and line score.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Play-by-play data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      game_id: { type: integer }
+                      opponent: { type: string }
+                      game_date: { type: string, format: date-time }
+                      home_away: { type: string, enum: [home, away] }
+                      score: { type: string, nullable: true, example: "4-8" }
+                      format: { type: string, example: summary }
+                      total_plays: { type: integer }
+                      innings:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            inning: { type: integer }
+                            halves:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  team: { type: string }
+                                  side: { type: string, enum: [away, home], nullable: true }
+                                  plays:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        batter:
+                                          type: object
+                                          nullable: true
+                                          properties:
+                                            name: { type: string }
+                                            uni: { type: string }
+                                            out: { type: boolean }
+                                            scored: { type: boolean }
+                                            to_base: { type: integer }
+                                        runners:
+                                          type: array
+                                          items:
+                                            type: object
+                                            properties:
+                                              name: { type: string }
+                                              out: { type: boolean }
+                                              scored: { type: boolean }
+                                              to_base: { type: integer }
+                                        narrative: { type: string, nullable: true }
+                                  summary:
+                                    type: object
+                                    nullable: true
+                                    properties:
+                                      runs: { type: integer }
+                                      hits: { type: integer }
+                                      errors: { type: integer }
+                                      left_on_base: { type: integer }
+                      line_score:
+                        type: array
+                        nullable: true
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string, nullable: true }
+                            name: { type: string }
+                            side: { type: string, enum: [away, home] }
+                            runs: { type: integer }
+                            hits: { type: integer }
+                            errors: { type: integer }
+                            innings:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  inning: { type: integer }
+                                  runs: { type: integer }
+        '404':
+          description: Game not found or no play-by-play data available
+
   /api/v1/integrations/presto/league-teams:
     get:
       summary: All league teams with logos
