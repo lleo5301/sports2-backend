@@ -5,6 +5,8 @@ const integrationCredentialService = require('./integrationCredentialService');
 const { parseBoxScore } = require('../utils/boxScoreParser');
 const { extractTournamentInfo } = require('../utils/tournamentExtractor');
 const { parsePlayByPlay } = require('../utils/playByPlayParser');
+const { downloadImage } = require('../utils/imageDownloader');
+const path = require('path');
 
 const PROVIDER = IntegrationCredential.PROVIDERS.PRESTO;
 
@@ -323,7 +325,7 @@ class PrestoSyncService {
             weight: prestoPlayer.weight ? parseInt(prestoPlayer.weight) : null,
             jersey_number: prestoPlayer.uniform || prestoPlayer.jerseyNumber || prestoPlayer.jersey_number || prestoPlayer.attributes?.number || null,
             class_year: this.mapClassYear(prestoPlayer.year || prestoPlayer.attributes?.year || prestoPlayer.classYear || prestoPlayer.class_year),
-            photo_url: prestoPlayer.headshot || null,
+            photo_url: prestoPlayer.headshot || null, // will be replaced with local path below
             bats: bats || null,
             throws: throws_ || null,
             birth_date: prestoPlayer.dob || null,
@@ -344,12 +346,24 @@ class PrestoSyncService {
             where: { external_id: prestoPlayerId, team_id: teamId }
           });
 
+          let player;
           if (existingPlayer) {
             await existingPlayer.update(playerData);
+            player = existingPlayer;
             results.updated++;
           } else {
-            await Player.create(playerData);
+            player = await Player.create(playerData);
             results.created++;
+          }
+
+          // Download headshot locally if we have an external URL
+          if (prestoPlayer.headshot) {
+            const ext = path.extname(new URL(prestoPlayer.headshot).pathname) || '.jpg';
+            const destPath = path.join(__dirname, '../../uploads/players', `player-${player.id}${ext}`);
+            const localPath = await downloadImage(prestoPlayer.headshot, destPath);
+            if (localPath) {
+              await player.update({ photo_url: `/uploads/players/player-${player.id}${ext}` });
+            }
           }
         } catch (error) {
           results.errors.push({
@@ -436,6 +450,17 @@ class PrestoSyncService {
               opponent = homeTeam.teamName || homeTeam.name || 'TBD';
               homeAway = 'away';
               opponentLogoUrl = homeTeam.logo || null;
+            }
+
+            // Download opponent logo locally to avoid mixed-content issues
+            if (opponentLogoUrl && opponent !== 'TBD') {
+              const slug = opponent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+              const ext = path.extname(new URL(opponentLogoUrl).pathname) || '.png';
+              const destPath = path.join(__dirname, '../../uploads/opponents', `${slug}${ext}`);
+              const localPath = await downloadImage(opponentLogoUrl, destPath);
+              if (localPath) {
+                opponentLogoUrl = `/uploads/opponents/${slug}${ext}`;
+              }
             }
           } else {
             opponent = event.opponent || event.opponentName || 'TBD';
@@ -1545,8 +1570,13 @@ class PrestoSyncService {
           const photoUrl = this.selectBestPhoto(photos);
 
           if (photoUrl) {
+            // Download image locally to avoid mixed-content issues
+            const ext = path.extname(new URL(photoUrl).pathname) || '.jpg';
+            const destPath = path.join(__dirname, '../../uploads/players', `player-${player.id}${ext}`);
+            const localPath = await downloadImage(photoUrl, destPath);
+
             await player.update({
-              photo_url: photoUrl,
+              photo_url: localPath ? `/uploads/players/player-${player.id}${ext}` : photoUrl,
               last_synced_at: new Date()
             });
             results.updated++;
