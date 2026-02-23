@@ -30,6 +30,7 @@
     "dev:status": "./scripts/dev-test.sh status"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
@@ -49,6 +50,7 @@
     "multer": "^2.0.0",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
+    "openai": "^6.22.0",
     "passport": "^0.7.0",
     "passport-apple": "^2.0.2",
     "passport-google-oauth20": "^2.0.0",

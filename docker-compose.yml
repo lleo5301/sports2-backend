@@ -26,11 +26,15 @@ services:
       - APP_URL=http://localhost:3000
       - LANDING_URL=http://localhost:4000
       - RATE_LIMIT_WINDOW_MS=900000
-      - RATE_LIMIT_MAX_REQUESTS=100
+      - RATE_LIMIT_MAX_REQUESTS=1000
       - MAX_FILE_SIZE=5242880
       - UPLOAD_PATH=./uploads
       - LOG_LEVEL=debug
       - DEFAULT_TEAM_ID=1
+      - DISABLE_SYNC=true
+      - MCP_SERVER_URL=http://mcp-server:5002
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
     volumes:
       - .:/app
       - /app/node_modules
@@ -89,6 +93,32 @@ services:
         condition: service_healthy
     networks:
       - backend-network
+
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    container_name: sports2_mcp
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=5002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=sports2
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres123
+    ports:
+      - "5002:5002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend-network
+    command: npm run dev
+    volumes:
+      - ./mcp-server:/app
+      - /app/node_modules
 
 networks:
   backend-network:

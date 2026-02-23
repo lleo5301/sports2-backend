@@ -173,3 +173,45 @@ CORS_ORIGIN=http://localhost:3000,http://localhost:4000,http://localhost
 ### Volume Mounts
 - `.:/app` - Live code reload (nodemon watches for changes)
 - `./uploads:/app/uploads` - File uploads persist
+
+## AI Coach Assistant
+
+Express backend orchestrates AI calls via OpenRouter (openrouter.ai), with a separate MCP server container (port 5002) providing 18 baseball data tools for player analysis, game planning, and coaching insights. All AI endpoints are versioned under `/api/v1/ai/`.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/services/aiService.js` | AI orchestration (OpenRouter + tool loop) |
+| `src/routes/ai.js` | All AI API endpoints |
+| `mcp-server/` | Separate MCP microservice |
+| `mcp-server/src/tools/` | 18 baseball analysis tools |
+
+### Docker Services
+
+| Service | Container | Port | Description |
+|---------|-----------|------|-------------|
+| MCP Server | `sports2_mcp` | 5002 | Baseball data tools for AI |
+
+### Environment Variables
+
+- `OPENROUTER_API_KEY` — OpenRouter API key (platform default)
+- `ANTHROPIC_API_KEY` — Fallback if OPENROUTER_API_KEY not set
+- `MCP_SERVER_URL` — Internal MCP server URL (default: `http://mcp-server:5002`)
+
+### Quick Commands
+
+```bash
+# Check MCP server health
+curl http://localhost:5002/health
+
+# List available AI tools
+curl http://localhost:5002/tools
+
+# Rebuild MCP server after changes
+docker compose up -d --build mcp-server
+```
+
+### API Reference
+
+Full documentation: `docs/api/ai-coach-assistant-api.md`

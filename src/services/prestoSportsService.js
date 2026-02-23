@@ -163,7 +163,7 @@ class PrestoSportsService {
       } catch (error) {
         const status = error.response?.status;
 
-        if ((status === 403 || status === 429) && attempt < maxRetries) {
+        if ((status === 401 || status === 403 || status === 429) && attempt < maxRetries) {
           const delay = baseDelay * Math.pow(2, attempt);
           this._stats.retries++;
           console.warn(`[Presto] ${status} on ${label}, retry ${attempt + 1}/${maxRetries} after ${delay}ms`);
@@ -235,7 +235,7 @@ class PrestoSportsService {
         url: `${this.baseUrl}/auth/token`,
         headers: { 'Content-Type': 'application/json' },
         data: { username, password }
-      }, 'POST /auth/token');
+      }, 'POST /auth/token', { maxRetries: 0 });
 
       return response.data;
     } catch (error) {
@@ -255,7 +255,7 @@ class PrestoSportsService {
         url: `${this.baseUrl}/auth/token/refresh`,
         headers: { 'Content-Type': 'application/json' },
         data: { refreshToken }
-      }, 'POST /auth/token/refresh');
+      }, 'POST /auth/token/refresh', { maxRetries: 0 });
 
       return response.data;
     } catch (error) {

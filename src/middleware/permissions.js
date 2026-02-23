@@ -11,6 +11,22 @@ const isSuperAdmin = (user) => {
 };
 
 /**
+ * Check if user is a head coach (gets all permissions except system profile deletion)
+ * @param {Object} user - The user object from req.user
+ * @returns {boolean} True if user is head_coach
+ */
+const isHeadCoach = (user) => {
+  return user && user.role === 'head_coach';
+};
+
+/**
+ * Permissions that head_coach role is denied (must be checked explicitly)
+ */
+const HEAD_COACH_DENIED = [
+  'system_profile_delete'
+];
+
+/**
  * Middleware to check if user has a specific permission
  * @param {string} permissionType - The permission type to check
  * @returns {Function} Express middleware function
@@ -20,6 +36,11 @@ const checkPermission = (permissionType) => {
     try {
       // Super admin bypasses all permission checks
       if (isSuperAdmin(req.user)) {
+        return next();
+      }
+
+      // Head coach gets all permissions except explicitly denied ones
+      if (isHeadCoach(req.user) && !HEAD_COACH_DENIED.includes(permissionType)) {
         return next();
       }
 
@@ -75,6 +96,11 @@ const checkAnyPermission = (permissionTypes) => {
         return next();
       }
 
+      // Head coach passes if any of the requested permissions are not denied
+      if (isHeadCoach(req.user) && permissionTypes.some(p => !HEAD_COACH_DENIED.includes(p))) {
+        return next();
+      }
+
       const userId = req.user.id;
       const teamId = req.user.team_id;
 
@@ -124,6 +150,11 @@ const checkAllPermissions = (permissionTypes) => {
     try {
       // Super admin bypasses all permission checks
       if (isSuperAdmin(req.user)) {
+        return next();
+      }
+
+      // Head coach passes if none of the requested permissions are denied
+      if (isHeadCoach(req.user) && permissionTypes.every(p => !HEAD_COACH_DENIED.includes(p))) {
         return next();
       }
 
@@ -185,6 +216,7 @@ const depthChartPermissions = {
 
 module.exports = {
   isSuperAdmin,
+  isHeadCoach,
   checkPermission,
   checkAnyPermission,
   checkAllPermissions,
