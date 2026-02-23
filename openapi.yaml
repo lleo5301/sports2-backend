@@ -26,6 +26,10 @@ info:
     ## Extended Stats & Coach's Dashboard
     See `docs/api/extended-stats-api.md` for split stats, raw Presto data, player/team game logs,
     team aggregate stats, lineup, and the coach's dashboard endpoint.
+
+    ## AI Coach Assistant
+    See `docs/api/ai-coach-assistant-api.md` for the AI-powered chat system, insight generation,
+    prompt templates, BYOK API key management, and usage tracking.
   version: 1.0.0
   contact:
     name: Sports2 Team
