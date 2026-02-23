@@ -39,6 +39,11 @@ const Roster = require('./Roster');
 const RosterEntry = require('./RosterEntry');
 const OpponentGameStat = require('./OpponentGameStat');
 const Tournament = require('./Tournament');
+const AiConversation = require('./AiConversation');
+const AiMessage = require('./AiMessage');
+const AiInsight = require('./AiInsight');
+const AiApiKey = require('./AiApiKey');
+const AiUsageLog = require('./AiUsageLog');
 
 // Define associations
 
@@ -317,6 +322,27 @@ RosterEntry.belongsTo(Roster, { foreignKey: 'roster_id' });
 RosterEntry.belongsTo(Player, { foreignKey: 'player_id' });
 Player.hasMany(RosterEntry, { foreignKey: 'player_id' });
 
+// AI Coach Assistant associations
+AiConversation.belongsTo(Team, { foreignKey: 'team_id' });
+AiConversation.belongsTo(User, { foreignKey: 'user_id' });
+AiConversation.hasMany(AiMessage, { foreignKey: 'conversation_id', as: 'messages' });
+Team.hasMany(AiConversation, { foreignKey: 'team_id' });
+User.hasMany(AiConversation, { foreignKey: 'user_id' });
+
+AiMessage.belongsTo(AiConversation, { foreignKey: 'conversation_id' });
+
+AiInsight.belongsTo(Team, { foreignKey: 'team_id' });
+AiInsight.belongsTo(User, { foreignKey: 'user_id' });
+Team.hasMany(AiInsight, { foreignKey: 'team_id' });
+
+AiApiKey.belongsTo(Team, { foreignKey: 'team_id' });
+Team.hasOne(AiApiKey, { foreignKey: 'team_id' });
+
+AiUsageLog.belongsTo(Team, { foreignKey: 'team_id' });
+AiUsageLog.belongsTo(User, { foreignKey: 'user_id' });
+AiUsageLog.belongsTo(AiConversation, { foreignKey: 'conversation_id' });
+Team.hasMany(AiUsageLog, { foreignKey: 'team_id' });
+
 module.exports = {
   sequelize,
   User,
@@ -356,5 +382,10 @@ module.exports = {
   Roster,
   RosterEntry,
   OpponentGameStat,
-  Tournament
+  Tournament,
+  AiConversation,
+  AiMessage,
+  AiInsight,
+  AiApiKey,
+  AiUsageLog
 };
