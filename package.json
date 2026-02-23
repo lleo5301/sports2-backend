@@ -30,6 +30,7 @@
     "dev:status": "./scripts/dev-test.sh status"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
