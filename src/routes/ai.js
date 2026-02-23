@@ -345,10 +345,13 @@ router.post('/api-keys/test', [
   body('api_key').isString().isLength({ min: 10 })
 ], async (req, res) => {
   try {
-    const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey: req.body.api_key });
-    await client.messages.create({
-      model: 'claude-haiku-4-5',
+    const OpenAI = require('openai');
+    const client = new OpenAI({
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: req.body.api_key
+    });
+    await client.chat.completions.create({
+      model: 'anthropic/claude-haiku-4-5',
       max_tokens: 10,
       messages: [{ role: 'user', content: 'Hi' }]
     });

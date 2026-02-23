@@ -220,12 +220,13 @@ router.delete('/presto/disconnect', protect, checkIntegrationPermission, async (
 // Get available seasons
 router.get('/presto/seasons', protect, async (req, res) => {
   try {
-    const token = await prestoSyncService.getToken(req.user.team_id);
-    const response = await prestoSportsService.getSeasons(token);
+    const response = await prestoSyncService.makeAuthenticatedRequest(
+      req.user.team_id, 'GET', '/me/seasons'
+    );
 
     res.json({
       success: true,
-      data: response.data || []
+      data: response.data || response || []
     });
   } catch (error) {
     console.error('Error getting PrestoSports seasons:', error);
@@ -239,12 +240,13 @@ router.get('/presto/seasons', protect, async (req, res) => {
 // Get teams for a season
 router.get('/presto/seasons/:seasonId/teams', protect, async (req, res) => {
   try {
-    const token = await prestoSyncService.getToken(req.user.team_id);
-    const response = await prestoSportsService.getSeasonTeams(token, req.params.seasonId);
+    const response = await prestoSyncService.makeAuthenticatedRequest(
+      req.user.team_id, 'GET', `/seasons/${req.params.seasonId}/teams`
+    );
 
     res.json({
       success: true,
-      data: response.data || []
+      data: response.data || response || []
     });
   } catch (error) {
     console.error('Error getting PrestoSports teams:', error);
@@ -258,12 +260,13 @@ router.get('/presto/seasons/:seasonId/teams', protect, async (req, res) => {
 // Get user's accessible teams
 router.get('/presto/teams', protect, async (req, res) => {
   try {
-    const token = await prestoSyncService.getToken(req.user.team_id);
-    const response = await prestoSportsService.getUserTeams(token);
+    const response = await prestoSyncService.makeAuthenticatedRequest(
+      req.user.team_id, 'GET', '/me/teams'
+    );
 
     res.json({
       success: true,
-      data: response.data || []
+      data: response.data || response || []
     });
   } catch (error) {
     console.error('Error getting PrestoSports teams:', error);
@@ -652,9 +655,10 @@ router.get('/presto/league-teams', protect, async (req, res) => {
       });
     }
 
-    const token = await prestoSyncService.getToken(req.user.team_id);
-    const response = await prestoSportsService.getSeasonTeams(token, seasonId);
-    const teams = response.data || [];
+    const response = await prestoSyncService.makeAuthenticatedRequest(
+      req.user.team_id, 'GET', `/seasons/${seasonId}/teams`
+    );
+    const teams = response.data || response || [];
 
     // Map to a clean, frontend-friendly format
     const leagueTeams = teams.map(t => ({

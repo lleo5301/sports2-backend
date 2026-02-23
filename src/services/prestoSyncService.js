@@ -105,6 +105,33 @@ class PrestoSyncService {
   }
 
   /**
+   * Force-clear any cached token so the next getToken() call re-authenticates.
+   */
+  clearToken(teamId) {
+    prestoSportsService.clearCachedToken(teamId);
+  }
+
+  /**
+   * Make an authenticated Presto API request with automatic token retry.
+   * If the first attempt returns 401, clears the cached token, gets a fresh
+   * one via getToken(), and retries once.
+   */
+  async makeAuthenticatedRequest(teamId, method, endpoint, params = {}, data = null) {
+    const token = await this.getToken(teamId);
+    try {
+      return await prestoSportsService.makeRequest(token, method, endpoint, params, data);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        console.warn(`[PrestoSync] 401 on ${method} ${endpoint}, refreshing token and retrying`);
+        this.clearToken(teamId);
+        const freshToken = await this.getToken(teamId);
+        return await prestoSportsService.makeRequest(freshToken, method, endpoint, params, data);
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Get Presto config (team_id, season_id) from integration credentials
    */
   async getPrestoConfig(teamId) {

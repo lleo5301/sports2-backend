@@ -3483,6 +3483,473 @@ paths:
         '404':
           description: Tournament not found
 
+  # ---- AI Coach Assistant ----
+  /api/v1/ai/conversations:
+    post:
+      summary: Create a new AI conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model: { type: string, enum: [claude-sonnet-4-6, claude-haiku-4-5] }
+                system_prompt: { type: string }
+                title: { type: string }
+      responses:
+        '201':
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AiConversation' }
+        '400':
+          description: Validation error
+    get:
+      summary: List AI conversations
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, minimum: 1, maximum: 50 }
+        - name: archived
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Paginated conversation list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { type: array, items: { $ref: '#/components/schemas/AiConversation' } }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+
+  /api/v1/ai/conversations/{id}:
+    get:
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/AiConversation'
+                      - type: object
+                        properties:
+                          messages:
+                            type: array
+                            items: { $ref: '#/components/schemas/AiMessage' }
+        '404':
+          description: Conversation not found
+    patch:
+      summary: Update conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                is_archived: { type: boolean }
+      responses:
+        '200':
+          description: Conversation updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AiConversation' }
+        '404':
+          description: Conversation not found
+    delete:
+      summary: Delete conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Conversation deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      message: { type: string, example: Conversation deleted }
+        '404':
+          description: Conversation not found
+
+  /api/v1/ai/conversations/{id}/messages:
+    post:
+      summary: Send message (SSE streaming)
+      description: Sends a user message and streams the assistant response via Server-Sent Events.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string, minLength: 1, maxLength: 10000 }
+      responses:
+        '200':
+          description: SSE stream with assistant response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Server-Sent Events stream. Event types:
+                  - message_start: Stream has begun
+                  - content_delta: Partial text chunk
+                  - tool_use: Tool invocation by assistant
+                  - tool_result: Result of tool invocation
+                  - message_complete: Final message with full content
+                  - error: Error during processing
+        '404':
+          description: Conversation not found
+
+  /api/v1/ai/insights/generate:
+    post:
+      summary: Generate an AI insight
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category]
+              properties:
+                category:
+                  type: string
+                  enum: [player_performance, pitching_analysis, recruiting, lineup, scouting, game_recap, weekly_digest]
+                prompt: { type: string }
+                player_id: { type: integer }
+                game_id: { type: integer }
+      responses:
+        '201':
+          description: Insight generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/AiInsight'
+                      - type: object
+                        properties:
+                          tokens:
+                            type: object
+                            properties:
+                              input_tokens: { type: integer }
+                              output_tokens: { type: integer }
+                              total_tokens: { type: integer }
+        '400':
+          description: Validation error
+
+  /api/v1/ai/insights:
+    get:
+      summary: List AI insights
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [player_performance, pitching_analysis, recruiting, lineup, scouting, game_recap, weekly_digest]
+        - name: pinned
+          in: query
+          schema: { type: boolean }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, minimum: 1, maximum: 50 }
+      responses:
+        '200':
+          description: Paginated insight list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { type: array, items: { $ref: '#/components/schemas/AiInsight' } }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+
+  /api/v1/ai/insights/{id}:
+    get:
+      summary: Get insight by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Insight details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AiInsight' }
+        '404':
+          description: Insight not found
+    patch:
+      summary: Update insight
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_pinned: { type: boolean }
+      responses:
+        '200':
+          description: Insight updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AiInsight' }
+        '404':
+          description: Insight not found
+    delete:
+      summary: Delete insight
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Insight deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      message: { type: string, example: Insight deleted }
+        '404':
+          description: Insight not found
+
+  /api/v1/ai/prompts:
+    get:
+      summary: Get pre-built prompt templates
+      description: Returns prompt templates organized by category.
+      responses:
+        '200':
+          description: Prompt templates by category
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      player_performance:
+                        type: array
+                        items: { $ref: '#/components/schemas/PromptTemplate' }
+                      game_prep:
+                        type: array
+                        items: { $ref: '#/components/schemas/PromptTemplate' }
+                      recruiting:
+                        type: array
+                        items: { $ref: '#/components/schemas/PromptTemplate' }
+                      season_analysis:
+                        type: array
+                        items: { $ref: '#/components/schemas/PromptTemplate' }
+
+  /api/v1/ai/api-keys:
+    post:
+      summary: Save API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [api_key]
+              properties:
+                api_key: { type: string, minLength: 10 }
+                provider: { type: string, enum: [anthropic], default: anthropic }
+      responses:
+        '200':
+          description: API key saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      has_key: { type: boolean, example: true }
+                      provider: { type: string, example: anthropic }
+                      created_at: { type: string, format: date-time }
+        '400':
+          description: Validation error
+    get:
+      summary: Check API key status
+      responses:
+        '200':
+          description: API key status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      has_key: { type: boolean }
+                      provider: { type: string }
+                      is_active: { type: boolean }
+                      created_at: { type: string, format: date-time }
+    delete:
+      summary: Remove API key
+      responses:
+        '200':
+          description: API key removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      message: { type: string, example: API key removed }
+
+  /api/v1/ai/api-keys/test:
+    post:
+      summary: Test API key validity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [api_key]
+              properties:
+                api_key: { type: string, minLength: 10 }
+      responses:
+        '200':
+          description: Key validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      valid: { type: boolean }
+                      error: { type: string }
+
+  /api/v1/ai/usage:
+    get:
+      summary: Get usage summary
+      responses:
+        '200':
+          description: Token and cost usage summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      total_requests: { type: integer }
+                      total_tokens: { type: integer }
+                      total_cost_usd: { type: number }
+                      month_tokens: { type: integer }
+                      month_cost_usd: { type: number }
+
+  /api/v1/ai/usage/detail:
+    get:
+      summary: Get detailed usage logs
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, minimum: 1, maximum: 50 }
+      responses:
+        '200':
+          description: Paginated usage logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { type: array, items: { $ref: '#/components/schemas/AiUsageLog' } }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+
 components:
   parameters:
     userId:
@@ -4030,3 +4497,74 @@ components:
         hitting: { type: object, additionalProperties: { type: string }, description: ab, r, h, rbi, bb, so, etc. }
         pitching: { type: object, additionalProperties: { type: string }, description: ip, h, r, er, bb, so, pitches, etc. }
         fielding: { type: object, additionalProperties: { type: string }, description: po, a, e }
+
+    # ---- AI Coach Assistant Schemas ----
+    AiConversation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        team_id: { type: integer }
+        user_id: { type: integer }
+        title: { type: string, nullable: true }
+        model: { type: string }
+        system_prompt: { type: string, nullable: true }
+        is_archived: { type: boolean }
+        token_count: { type: integer }
+        message_count: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    AiMessage:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        conversation_id: { type: string, format: uuid }
+        role: { type: string, enum: [user, assistant, tool_call, tool_result] }
+        content: { type: string, nullable: true }
+        tool_name: { type: string, nullable: true }
+        tool_input: { type: object, nullable: true }
+        tool_result: { type: object, nullable: true }
+        tokens_used: { type: integer, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    AiInsight:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        team_id: { type: integer }
+        user_id: { type: integer, nullable: true }
+        category:
+          type: string
+          enum: [player_performance, pitching_analysis, recruiting, lineup, scouting, game_recap, weekly_digest]
+        title: { type: string }
+        content: { type: string }
+        data_snapshot: { type: object, nullable: true }
+        prompt_used: { type: string, nullable: true }
+        is_pinned: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    AiUsageLog:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        team_id: { type: integer }
+        user_id: { type: integer, nullable: true }
+        conversation_id: { type: string, format: uuid, nullable: true }
+        model: { type: string }
+        input_tokens: { type: integer }
+        output_tokens: { type: integer }
+        total_tokens: { type: integer }
+        cost_usd: { type: number }
+        key_source: { type: string, enum: [platform, byok] }
+        created_at: { type: string, format: date-time }
+
+    PromptTemplate:
+      type: object
+      properties:
+        id: { type: string }
+        label: { type: string }
+        description: { type: string }
+        prompt: { type: string }
+        variables:
+          type: array
+          items: { type: string }

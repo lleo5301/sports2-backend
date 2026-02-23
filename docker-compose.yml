@@ -33,6 +33,7 @@ services:
       - DEFAULT_TEAM_ID=1
       - DISABLE_SYNC=true
       - MCP_SERVER_URL=http://mcp-server:5002
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
     volumes:
       - .:/app

@@ -1,14 +1,30 @@
-const Anthropic = require('@anthropic-ai/sdk').default;
+const OpenAI = require('openai');
 const axios = require('axios');
 const encryptionService = require('./encryptionService');
 
 const MCP_SERVER_URL = process.env.MCP_SERVER_URL || 'http://localhost:5002';
-const PLATFORM_API_KEY = process.env.ANTHROPIC_API_KEY || null;
+const PLATFORM_API_KEY = process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY || null;
 
-// Anthropic pricing per million tokens
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+
+// Default model (OpenRouter format: provider/model)
+const DEFAULT_MODEL = 'anthropic/claude-sonnet-4';
+
+// Model mapping: user-facing names → OpenRouter model IDs
+const MODEL_MAP = {
+  'claude-sonnet-4-6': 'anthropic/claude-sonnet-4',
+  'claude-haiku-4-5': 'anthropic/claude-haiku-4-5',
+  'claude-sonnet-4': 'anthropic/claude-sonnet-4',
+  'gpt-4o': 'openai/gpt-4o',
+  'gpt-4o-mini': 'openai/gpt-4o-mini'
+};
+
+// Pricing per million tokens (approximate via OpenRouter)
 const PRICING = {
-  'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
-  'claude-haiku-4-5': { input: 0.80, output: 4.0 }
+  'anthropic/claude-sonnet-4': { input: 3.0, output: 15.0 },
+  'anthropic/claude-haiku-4-5': { input: 0.80, output: 4.0 },
+  'openai/gpt-4o': { input: 2.50, output: 10.0 },
+  'openai/gpt-4o-mini': { input: 0.15, output: 0.60 }
 };
 
 class AiService {
@@ -18,11 +34,10 @@ class AiService {
   }
 
   /**
-   * Resolve the Anthropic API key for a team.
+   * Resolve the API key for a team.
    * Check for BYOK key first, fall back to platform key.
    */
   async resolveApiKey(teamId) {
-    // Lazy-require to avoid circular dependency
     const { AiApiKey } = require('../models');
 
     const byokKey = await AiApiKey.findOne({
@@ -35,10 +50,31 @@ class AiService {
     }
 
     if (!PLATFORM_API_KEY) {
-      throw new Error('No AI API key configured. Ask your admin to add an Anthropic API key in settings.');
+      throw new Error('No AI API key configured. Ask your admin to add an API key in settings.');
     }
 
     return { apiKey: PLATFORM_API_KEY, keySource: 'platform' };
+  }
+
+  /**
+   * Create an OpenAI client pointed at OpenRouter.
+   */
+  _createClient(apiKey) {
+    return new OpenAI({
+      baseURL: OPENROUTER_BASE_URL,
+      apiKey,
+      defaultHeaders: {
+        'HTTP-Referer': process.env.APP_URL || 'http://localhost:5000',
+        'X-Title': 'The Program 1814 - AI Coach'
+      }
+    });
+  }
+
+  /**
+   * Resolve a user-facing model name to an OpenRouter model ID.
+   */
+  _resolveModel(model) {
+    return MODEL_MAP[model] || model || DEFAULT_MODEL;
   }
 
   /**
@@ -71,20 +107,26 @@ class AiService {
    * Calculate USD cost from token usage.
    */
   calculateCost(model, inputTokens, outputTokens) {
-    const pricing = PRICING[model] || PRICING['claude-sonnet-4-6'];
+    const pricing = PRICING[model] || PRICING[DEFAULT_MODEL];
     return ((inputTokens * pricing.input) + (outputTokens * pricing.output)) / 1_000_000;
   }
 
   /**
+   * Convert MCP tool definitions to OpenAI function-calling format.
+   */
+  _formatToolsForOpenAI(mcpTools) {
+    return mcpTools.map(t => ({
+      type: 'function',
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.input_schema
+      }
+    }));
+  }
+
+  /**
    * Send a message in a conversation and stream the response via SSE.
-   *
-   * This is the core method. It:
-   * 1. Loads conversation history from DB
-   * 2. Calls Claude with MCP tool definitions
-   * 3. If Claude requests tools, executes them via MCP and continues the loop
-   * 4. Streams text responses to the client via SSE
-   * 5. Saves all messages (user, assistant, tool_call, tool_result) to DB
-   * 6. Logs token usage
    */
   async sendMessage({ conversationId, content, teamId, userId, res }) {
     const { AiConversation, AiMessage, AiUsageLog } = require('../models');
@@ -104,15 +146,11 @@ class AiService {
 
     // 3. Resolve API key
     const { apiKey, keySource } = await this.resolveApiKey(teamId);
-    const client = new Anthropic({ apiKey });
+    const client = this._createClient(apiKey);
 
-    // 4. Get MCP tools
+    // 4. Get MCP tools in OpenAI format
     const mcpTools = await this.getMcpTools();
-    const tools = mcpTools.map(t => ({
-      name: t.name,
-      description: t.description,
-      input_schema: t.input_schema
-    }));
+    const tools = this._formatToolsForOpenAI(mcpTools);
 
     // 5. Build message history from DB
     const dbMessages = await AiMessage.findAll({
@@ -120,7 +158,7 @@ class AiService {
       order: [['created_at', 'ASC']]
     });
 
-    const messages = this._buildAnthropicMessages(dbMessages);
+    const messages = this._buildOpenAIMessages(dbMessages, conversation.system_prompt);
 
     // 6. Set up SSE headers
     res.writeHead(200, {
@@ -137,48 +175,60 @@ class AiService {
     let totalOutputTokens = 0;
     let assistantText = '';
     let currentMessages = [...messages];
-    const model = conversation.model || 'claude-sonnet-4-6';
+    const model = this._resolveModel(conversation.model);
     let loopCount = 0;
     const maxLoops = 10;
 
     while (loopCount < maxLoops) {
       loopCount++;
 
-      const response = await client.messages.create({
+      const response = await client.chat.completions.create({
         model,
         max_tokens: 4096,
-        system: conversation.system_prompt || this.getDefaultSystemPrompt(),
         tools,
         messages: currentMessages
       });
 
-      totalInputTokens += response.usage?.input_tokens || 0;
-      totalOutputTokens += response.usage?.output_tokens || 0;
+      const choice = response.choices[0];
+      const message = choice.message;
 
-      let hasToolUse = false;
-      const toolResults = [];
+      totalInputTokens += response.usage?.prompt_tokens || 0;
+      totalOutputTokens += response.usage?.completion_tokens || 0;
 
-      for (const block of response.content) {
-        if (block.type === 'text') {
-          assistantText += block.text;
-          res.write(`event: content_delta\ndata: ${JSON.stringify({ text: block.text })}\n\n`);
-        } else if (block.type === 'tool_use') {
-          hasToolUse = true;
+      // Handle text content
+      if (message.content) {
+        assistantText += message.content;
+        res.write(`event: content_delta\ndata: ${JSON.stringify({ text: message.content })}\n\n`);
+      }
 
-          res.write(`event: tool_use\ndata: ${JSON.stringify({ tool: block.name, status: 'calling' })}\n\n`);
+      // Handle tool calls
+      if (message.tool_calls && message.tool_calls.length > 0) {
+        // Add assistant message with tool calls to history
+        currentMessages.push(message);
+
+        for (const toolCall of message.tool_calls) {
+          const toolName = toolCall.function.name;
+          let toolInput;
+          try {
+            toolInput = JSON.parse(toolCall.function.arguments);
+          } catch {
+            toolInput = {};
+          }
+
+          res.write(`event: tool_use\ndata: ${JSON.stringify({ tool: toolName, status: 'calling' })}\n\n`);
 
           // Save tool call message
           await AiMessage.create({
             conversation_id: conversationId,
             role: 'tool_call',
-            content: JSON.stringify({ name: block.name, input: block.input }),
-            tool_name: block.name
+            content: JSON.stringify({ name: toolName, input: toolInput }),
+            tool_name: toolName
           });
 
           // Execute tool via MCP
           let toolResult;
           try {
-            toolResult = await this.executeMcpTool(block.name, block.input, teamId);
+            toolResult = await this.executeMcpTool(toolName, toolInput, teamId);
           } catch (err) {
             toolResult = { error: err.message };
           }
@@ -188,33 +238,27 @@ class AiService {
             conversation_id: conversationId,
             role: 'tool_result',
             content: JSON.stringify(toolResult),
-            tool_name: block.name
+            tool_name: toolName
           });
 
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: block.id,
+          // Add tool result to messages (OpenAI format)
+          currentMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
             content: JSON.stringify(toolResult)
           });
 
-          res.write(`event: tool_result\ndata: ${JSON.stringify({ tool: block.name, status: 'complete' })}\n\n`);
+          res.write(`event: tool_result\ndata: ${JSON.stringify({ tool: toolName, status: 'complete' })}\n\n`);
+        }
+
+        // Continue loop to get Claude's response after tool results
+        if (choice.finish_reason !== 'stop') {
+          continue;
         }
       }
 
-      // If no tool calls or stop reason is end_turn, we're done
-      if (!hasToolUse || response.stop_reason === 'end_turn') {
-        break;
-      }
-
-      // Continue the loop: add assistant response + tool results
-      currentMessages.push({
-        role: 'assistant',
-        content: response.content
-      });
-      currentMessages.push({
-        role: 'user',
-        content: toolResults
-      });
+      // No tool calls or stop reason — we're done
+      break;
     }
 
     // 8. Save assistant response
@@ -254,13 +298,19 @@ class AiService {
   }
 
   /**
-   * Convert DB messages to Anthropic API format.
-   * Groups tool_call + tool_result pairs correctly.
+   * Convert DB messages to OpenAI API format.
+   * Prepends system prompt. Groups tool_call + tool_result pairs correctly.
    */
-  _buildAnthropicMessages(dbMessages) {
+  _buildOpenAIMessages(dbMessages, systemPrompt) {
     const messages = [];
-    let i = 0;
 
+    // System prompt as first message
+    messages.push({
+      role: 'system',
+      content: systemPrompt || this.getDefaultSystemPrompt()
+    });
+
+    let i = 0;
     while (i < dbMessages.length) {
       const msg = dbMessages[i];
 
@@ -271,27 +321,29 @@ class AiService {
         messages.push({ role: 'assistant', content: msg.content });
         i++;
       } else if (msg.role === 'tool_call') {
-        // Group consecutive tool_call + tool_result pairs
-        const toolBlocks = [];
-        const resultBlocks = [];
+        // Group consecutive tool_call + tool_result pairs into one assistant message
+        const toolCalls = [];
+        const toolResults = [];
 
         while (i < dbMessages.length && (dbMessages[i].role === 'tool_call' || dbMessages[i].role === 'tool_result')) {
           const m = dbMessages[i];
           if (m.role === 'tool_call') {
             const parsed = JSON.parse(m.content);
-            const toolUseId = `tool_${toolBlocks.length}_${Date.now()}`;
-            toolBlocks.push({
-              type: 'tool_use',
-              id: toolUseId,
-              name: parsed.name,
-              input: parsed.input
+            const callId = `call_${toolCalls.length}_${Date.now()}`;
+            toolCalls.push({
+              id: callId,
+              type: 'function',
+              function: {
+                name: parsed.name,
+                arguments: JSON.stringify(parsed.input)
+              }
             });
             // Look ahead for matching result
             if (i + 1 < dbMessages.length && dbMessages[i + 1].role === 'tool_result') {
               i++;
-              resultBlocks.push({
-                type: 'tool_result',
-                tool_use_id: toolUseId,
+              toolResults.push({
+                role: 'tool',
+                tool_call_id: callId,
                 content: dbMessages[i].content
               });
             }
@@ -299,11 +351,9 @@ class AiService {
           i++;
         }
 
-        if (toolBlocks.length) {
-          messages.push({ role: 'assistant', content: toolBlocks });
-          if (resultBlocks.length) {
-            messages.push({ role: 'user', content: resultBlocks });
-          }
+        if (toolCalls.length) {
+          messages.push({ role: 'assistant', tool_calls: toolCalls });
+          toolResults.forEach(tr => messages.push(tr));
         }
         continue;
       } else {
@@ -338,64 +388,73 @@ Rules:
     const { AiUsageLog } = require('../models');
 
     const { apiKey, keySource } = await this.resolveApiKey(teamId);
-    const client = new Anthropic({ apiKey });
+    const client = this._createClient(apiKey);
 
     const mcpTools = await this.getMcpTools();
-    const tools = mcpTools.map(t => ({
-      name: t.name,
-      description: t.description,
-      input_schema: t.input_schema
-    }));
+    const tools = this._formatToolsForOpenAI(mcpTools);
 
-    let messages = [{ role: 'user', content: prompt }];
+    let messages = [
+      { role: 'system', content: this.getDefaultSystemPrompt() },
+      { role: 'user', content: prompt }
+    ];
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
     let finalText = '';
-    const model = 'claude-sonnet-4-6';
+    const model = DEFAULT_MODEL;
     const dataSnapshot = {};
 
     let loopCount = 0;
     while (loopCount < 10) {
       loopCount++;
 
-      const response = await client.messages.create({
+      const response = await client.chat.completions.create({
         model,
         max_tokens: 4096,
-        system: this.getDefaultSystemPrompt(),
         tools,
         messages
       });
 
-      totalInputTokens += response.usage?.input_tokens || 0;
-      totalOutputTokens += response.usage?.output_tokens || 0;
+      const choice = response.choices[0];
+      const message = choice.message;
 
-      let hasToolUse = false;
-      const toolResults = [];
+      totalInputTokens += response.usage?.prompt_tokens || 0;
+      totalOutputTokens += response.usage?.completion_tokens || 0;
 
-      for (const block of response.content) {
-        if (block.type === 'text') {
-          finalText += block.text;
-        } else if (block.type === 'tool_use') {
-          hasToolUse = true;
+      if (message.content) {
+        finalText += message.content;
+      }
+
+      if (message.tool_calls && message.tool_calls.length > 0) {
+        messages.push(message);
+
+        for (const toolCall of message.tool_calls) {
+          const toolName = toolCall.function.name;
+          let toolInput;
+          try {
+            toolInput = JSON.parse(toolCall.function.arguments);
+          } catch {
+            toolInput = {};
+          }
+
           let result;
           try {
-            result = await this.executeMcpTool(block.name, block.input, teamId);
-            dataSnapshot[block.name] = result;
+            result = await this.executeMcpTool(toolName, toolInput, teamId);
+            dataSnapshot[toolName] = result;
           } catch (err) {
             result = { error: err.message };
           }
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: block.id,
+
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
             content: JSON.stringify(result)
           });
         }
+
+        if (choice.finish_reason !== 'stop') continue;
       }
 
-      if (!hasToolUse || response.stop_reason === 'end_turn') break;
-
-      messages.push({ role: 'assistant', content: response.content });
-      messages.push({ role: 'user', content: toolResults });
+      break;
     }
 
     // Log usage
