@@ -16,7 +16,9 @@ const MODEL_MAP = {
   'claude-haiku-4-5': 'anthropic/claude-haiku-4-5',
   'claude-sonnet-4': 'anthropic/claude-sonnet-4',
   'gpt-4o': 'openai/gpt-4o',
-  'gpt-4o-mini': 'openai/gpt-4o-mini'
+  'gpt-4o-mini': 'openai/gpt-4o-mini',
+  'perplexity-sonar': 'perplexity/sonar',
+  'perplexity-sonar-pro': 'perplexity/sonar-pro'
 };
 
 // Pricing per million tokens (approximate via OpenRouter)
@@ -378,6 +380,13 @@ Context Resolution:
 - When the user mentions a player by partial name, call search_players to resolve the full name and ID
 - When the user asks to "scout the opponent" without specifying, look up the next upcoming game first
 - NEVER ask the user for information that your tools can provide — look it up first, then present your analysis
+
+Web Search Fallback:
+- When opponent stats, roster, or records are NOT in the local database, use web_search to find them online
+- Search for "[opponent name] baseball [year] stats roster record" to find their athletic pages
+- Use fetch_webpage to pull detailed stats from the opponent's athletics or stats pages
+- Common sources: team athletics sites, PrestoSports pages, NCAA stats, MaxPreps, D2baseball.com
+- Always note when data comes from web search vs local database so the coach knows the source
 
 Rules:
 - Always reference specific stats and data when making recommendations

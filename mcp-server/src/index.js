@@ -21,11 +21,13 @@ const playerTools = require('./tools/playerTools');
 const gameTools = require('./tools/gameTools');
 const scoutingTools = require('./tools/scoutingTools');
 const opsTools = require('./tools/opsTools');
+const webTools = require('./tools/webTools');
 
 registerTools(playerTools);
 registerTools(gameTools);
 registerTools(scoutingTools);
 registerTools(opsTools);
+registerTools(webTools);
 
 // GET /tools — list all available tools
 app.get('/tools', (_req, res) => {
@@ -50,7 +52,8 @@ app.post('/tools/:name', async (req, res) => {
     return res.status(404).json({ error: `Tool '${name}' not found` });
   }
 
-  if (!team_id) {
+  const noTeamTools = ['web_search', 'fetch_webpage'];
+  if (!team_id && !noTeamTools.includes(name)) {
     return res.status(400).json({ error: 'team_id is required' });
   }
 
