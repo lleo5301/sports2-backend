@@ -11,6 +11,7 @@ const express = require('express');
 const { protect } = require('../../middleware/auth');
 const { ScoutingReport, Player, Prospect, User } = require('../../models');
 const { Op } = require('sequelize');
+const { validateToolGrades } = require('../../utils/validateToolGrades');
 
 const router = express.Router();
 
@@ -168,6 +169,18 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // Validate tool_grades JSONB structure
+    if (req.body.tool_grades) {
+      const result = validateToolGrades(req.body.tool_grades);
+      if (!result.valid) {
+        return res.status(422).json({
+          success: false,
+          message: 'Invalid tool_grades structure',
+          errors: result.errors
+        });
+      }
+    }
+
     // Whitelist allowed fields to prevent mass assignment
     const {
       report_date, game_date, opponent, event_type,
@@ -190,7 +203,11 @@ router.post('/', async (req, res) => {
       sixty_yard_dash, mlb_comparison,
       overall_notes, hitting_notes, pitching_notes, fielding_notes,
       speed_notes, intangibles_notes, projection_notes,
-      fastball_velocity, home_to_first, is_draft, is_public
+      fastball_velocity, home_to_first, is_draft, is_public,
+      report_type, role, round_would_take, money_save, overpay,
+      dollar_amount, report_confidence, impact_statement, summary,
+      look_recommendation, look_recommendation_desc, player_comparison,
+      date_seen_start, date_seen_end, video_report, tool_grades
     } = req.body;
 
     const reportData = {
@@ -217,7 +234,11 @@ router.post('/', async (req, res) => {
       sixty_yard_dash, mlb_comparison,
       overall_notes, hitting_notes, pitching_notes, fielding_notes,
       speed_notes, intangibles_notes, projection_notes,
-      fastball_velocity, home_to_first, is_draft, is_public
+      fastball_velocity, home_to_first, is_draft, is_public,
+      report_type, role, round_would_take, money_save, overpay,
+      dollar_amount, report_confidence, impact_statement, summary,
+      look_recommendation, look_recommendation_desc, player_comparison,
+      date_seen_start, date_seen_end, video_report, tool_grades
     };
 
     const scoutingReport = await ScoutingReport.create(reportData);
@@ -323,7 +344,55 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    await existingReport.update(req.body);
+    // Validate tool_grades if provided
+    if (req.body.tool_grades) {
+      const result = validateToolGrades(req.body.tool_grades);
+      if (!result.valid) {
+        return res.status(422).json({
+          success: false,
+          message: 'Invalid tool_grades structure',
+          errors: result.errors
+        });
+      }
+    }
+
+    // Whitelist allowed fields for update
+    const allowedFields = [
+      'report_date', 'game_date', 'opponent', 'event_type',
+      'overall_grade', 'hitting_grade', 'bat_speed', 'power_potential', 'plate_discipline',
+      'pitching_grade', 'fastball_grade', 'breaking_ball_grade', 'command',
+      'fielding_grade', 'arm_strength', 'arm_accuracy', 'range',
+      'speed_grade', 'intangibles_grade', 'work_ethic', 'coachability', 'projection',
+      'overall_present', 'overall_future', 'hitting_present', 'hitting_future',
+      'bat_speed_present', 'bat_speed_future', 'raw_power_present', 'raw_power_future',
+      'game_power_present', 'game_power_future', 'plate_discipline_present', 'plate_discipline_future',
+      'pitching_present', 'pitching_future', 'fastball_present', 'fastball_future',
+      'curveball_present', 'curveball_future', 'slider_present', 'slider_future',
+      'changeup_present', 'changeup_future', 'command_present', 'command_future',
+      'fielding_present', 'fielding_future', 'arm_strength_present', 'arm_strength_future',
+      'arm_accuracy_present', 'arm_accuracy_future', 'range_present', 'range_future',
+      'hands_present', 'hands_future', 'speed_present', 'speed_future',
+      'baserunning_present', 'baserunning_future', 'intangibles_present', 'intangibles_future',
+      'work_ethic_grade', 'coachability_grade', 'baseball_iq_present', 'baseball_iq_future',
+      'overall_future_potential',
+      'sixty_yard_dash', 'mlb_comparison',
+      'overall_notes', 'hitting_notes', 'pitching_notes', 'fielding_notes',
+      'speed_notes', 'intangibles_notes', 'projection_notes',
+      'fastball_velocity', 'home_to_first', 'is_draft', 'is_public',
+      'report_type', 'role', 'round_would_take', 'money_save', 'overpay',
+      'dollar_amount', 'report_confidence', 'impact_statement', 'summary',
+      'look_recommendation', 'look_recommendation_desc', 'player_comparison',
+      'date_seen_start', 'date_seen_end', 'video_report', 'tool_grades'
+    ];
+
+    const updateData = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    }
+
+    await existingReport.update(updateData);
 
     const updatedReport = await ScoutingReport.findByPk(existingReport.id, {
       include: reportIncludes(teamId)
