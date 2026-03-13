@@ -185,7 +185,41 @@ const ScoutingReport = sequelize.define('ScoutingReport', {
     validate: { min: 3.0, max: 5.0 }
   },
   is_draft: { type: DataTypes.BOOLEAN, defaultValue: false },
-  is_public: { type: DataTypes.BOOLEAN, defaultValue: false }
+  is_public: { type: DataTypes.BOOLEAN, defaultValue: false },
+
+  // --- Pro-style tool grade metadata ---
+  report_type: {
+    type: DataTypes.STRING(10),
+    allowNull: true,
+    validate: { isIn: [['hitter', 'pitcher']] }
+  },
+  role: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: { min: 1, max: 5 }
+  },
+  round_would_take: { type: DataTypes.STRING(20), allowNull: true },
+  money_save: { type: DataTypes.BOOLEAN, allowNull: true },
+  overpay: { type: DataTypes.BOOLEAN, allowNull: true },
+  dollar_amount: { type: DataTypes.STRING(20), allowNull: true },
+  report_confidence: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    validate: { isIn: [['High', 'Medium', 'Low']] }
+  },
+  impact_statement: { type: DataTypes.TEXT, allowNull: true },
+  summary: { type: DataTypes.TEXT, allowNull: true },
+  look_recommendation: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: { min: 20, max: 80 }
+  },
+  look_recommendation_desc: { type: DataTypes.TEXT, allowNull: true },
+  player_comparison: { type: DataTypes.STRING(100), allowNull: true },
+  date_seen_start: { type: DataTypes.DATEONLY, allowNull: true },
+  date_seen_end: { type: DataTypes.DATEONLY, allowNull: true },
+  video_report: { type: DataTypes.BOOLEAN, allowNull: true },
+  tool_grades: { type: DataTypes.JSONB, allowNull: true }
 }, {
   tableName: 'scouting_reports'
 });
